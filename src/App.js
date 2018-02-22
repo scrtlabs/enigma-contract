@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import SimpleStorageContract from '../build/contracts/SimpleStorage.json'
+import CoinMixerContract from '../build/contracts/CoinMixer.json'
 import getWeb3 from './utils/getWeb3'
 import {Button} from 'rmwc/Button';
 import {
@@ -93,7 +93,7 @@ class App extends Component {
          */
 
         const contract = require('truffle-contract')
-        const simpleStorage = contract(SimpleStorageContract)
+        const simpleStorage = contract(CoinMixerContract)
         simpleStorage.setProvider(this.state.web3.currentProvider)
 
         // Declaring this for later so we can chain functions on SimpleStorage.
