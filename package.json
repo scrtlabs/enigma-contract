@@ -52,7 +52,8 @@
     "dotenv": "^2.0.0",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
-    "rmwc": "^1.2.1"
+    "rmwc": "^1.2.1",
+    "web3-utils": "^1.0.0-beta.30"
   },
   "scripts": {
     "start": "node scripts/start.js",

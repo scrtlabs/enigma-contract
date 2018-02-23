@@ -1,8 +1,9 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.19;
+
 
 contract CoinMixer {
-
     struct Deal {
+        bytes32 title;
         mapping(address => uint) deposit;
         uint depositSum;
         uint numDeposits;
@@ -11,17 +12,21 @@ contract CoinMixer {
         uint depositInWei;
         uint numParticipants;
 
-        string[] encryptedDestAddresses;
+        bytes32[] encryptedDestAddresses;
         address[] destAddresses;
 
         bool active;
         bool fullyFunded;
     }
 
+    struct DealSummary {
+        bytes32 title;
+    }
+
     Deal[]  _deals;
 
-    event NewDeal(address indexed user, uint indexed _dealId, uint _startTime, string _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
-    event Deposit(address indexed _depositor, uint indexed _dealId, string _encryptedDestAddress, uint _value, bool _success, string _err);
+    event NewDeal(address indexed user, uint indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
+    event Deposit(address indexed _depositor, uint indexed _dealId, bytes32 _encryptedDestAddress, uint _value, bool _success, string _err);
     event Distribute(address[] indexed _destAddresses, uint indexed _dealId, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
@@ -41,16 +46,17 @@ contract CoinMixer {
     function CoinMixer(){
     }
 
-    function newDeal(string _title, uint _depositInWei, uint _numParticipants) returns (ReturnValue) {
+    function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants) pure returns (ReturnValue) {
         uint dealId = _deals.length;
 
         _deals.length++;
+        _deals[dealId].title = _title;
         _deals[dealId].depositSum = 0;
         _deals[dealId].numDeposits = 0;
         _deals[dealId].startTime = now;
         _deals[dealId].depositInWei = _depositInWei;
         _deals[dealId].numParticipants = _numParticipants;
-        _deals[dealId].encryptedDestAddresses = new string[](_numParticipants);
+        _deals[dealId].encryptedDestAddresses = new bytes32[](_numParticipants);
         _deals[dealId].destAddresses = new address[](_numParticipants);
         _deals[dealId].fullyFunded = false;
         _deals[dealId].active = true;
@@ -66,7 +72,7 @@ contract CoinMixer {
     }
 
 
-    function makeDeposit(uint dealId, string encryptedDestAddress) payable returns (ReturnValue){
+    function makeDeposit(uint dealId, bytes32 encryptedDestAddress) payable returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
         // validations
@@ -170,6 +176,16 @@ contract CoinMixer {
 
         Distribute(deal.destAddresses, dealId, true, "all good");
         return ReturnValue.Ok;
+    }
+
+    function listDealTitles() public view returns (bytes32[]) {
+        bytes32[] memory titles;
+        uint256 dealId = 0;
+        while (dealId < _deals.length) {
+            titles[dealId] = _deals[dealId].title;
+            dealId++;
+        }
+        return titles;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////

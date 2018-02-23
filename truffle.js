@@ -1,4 +1,4 @@
-let options = {
+module.exports = {
     networks: {
         development: {
             host: "127.0.0.1",
@@ -7,11 +7,3 @@ let options = {
         }
     }
 };
-let reporterArg = process.argv.indexOf('--reporter');
-if (reporterArg >= 0) {
-    options['mocha'] = {
-        reporter: process.argv[reporterArg + 1]
-    }
-}
-
-module.exports = options;
