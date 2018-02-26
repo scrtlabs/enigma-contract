@@ -46,7 +46,7 @@ contract CoinMixer {
     function CoinMixer(){
     }
 
-    function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants) pure returns (ReturnValue) {
+    function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants) public returns (ReturnValue) {
         uint dealId = _deals.length;
 
         _deals.length++;
@@ -124,12 +124,12 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-    function mixAddresses(uint dealId, address[] destAddresses) returns (uint, address[]) {
+    function mixAddresses(uint dealId, address[] destAddresses) public returns (uint, address[]) {
         // TODO: put mixing logic here
         return (dealId, destAddresses);
     }
 
-    function setDestAddresses(uint dealId, address[] destAddresses) returns (ReturnValue){
+    function setDestAddresses(uint dealId, address[] destAddresses) public returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
 
@@ -151,7 +151,7 @@ contract CoinMixer {
     }
 
 
-    function distribute(uint dealId) returns (ReturnValue){
+    function distribute(uint dealId) private returns (ReturnValue){
         // validation
         bool errorDetected = false;
         string memory error;
@@ -190,7 +190,7 @@ contract CoinMixer {
 
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    function dealStatus(uint _dealId) constant returns (uint[5]){
+    function dealStatus(uint _dealId) view returns (uint[5]){
         uint active = _deals[_dealId].active ? 1 : 0;
         uint numParticipants = _deals[_dealId].numParticipants;
         uint numDeposits = _deals[_dealId].numDeposits;

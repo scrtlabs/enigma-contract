@@ -35,8 +35,8 @@ import './App.css'
 import './css/material-components-web.min.css'
 
 class App extends Component {
-    constructor (props) {
-        super (props);
+    constructor(props) {
+        super(props);
 
         this.state = {
             dealTitles: [],
@@ -51,25 +51,25 @@ class App extends Component {
         }
     }
 
-    componentWillMount () {
+    componentWillMount() {
         // Get network provider and web3 instance.
         // See utils/getWeb3 for more info.
 
         getWeb3
-            .then (results => {
-                this.setState ({
+            .then(results => {
+                this.setState({
                     web3: results.web3
                 });
 
                 // Instantiate contract once web3 provided.
-                this.instantiateContract ()
+                this.instantiateContract()
             })
-            .catch (() => {
-                console.log ('Error finding web3.')
+            .catch(() => {
+                console.log('Error finding web3.')
             })
     }
 
-    instantiateContract () {
+    instantiateContract() {
         /*
          * SMART CONTRACT EXAMPLE
          *
@@ -77,56 +77,72 @@ class App extends Component {
          * state management library, but for convenience I've placed them here.
          */
 
-        const contract = require ('truffle-contract');
-        const coinMixer = contract (CoinMixerContract);
+        const contract = require('truffle-contract');
+        const coinMixer = contract(CoinMixerContract);
         //TODO: not sure why relying on truffle.js does not work
-        let provider = new Web3.providers.HttpProvider ("http://127.0.0.1:7545");
-        coinMixer.setProvider (provider);
+        // let provider = new Web3.providers.HttpProvider ("http://127.0.0.1:7545");
+        coinMixer.setProvider(this.state.web3.currentProvider);
 
 
         // Get accounts.
-        this.state.web3.eth.getAccounts ((error, accounts) => {
-            this.setState ({ accounts: accounts });
+        this.state.web3.eth.getAccounts((error, accounts) => {
+            this.setState({accounts: accounts});
 
-            coinMixer.deployed ().then ((instance) => {
-                this.setState ({ contract: instance });
-                this.updateDealTitles ();
+            coinMixer.deployed().then((instance) => {
+                this.setState({contract: instance});
+                this.updateDealTitles();
             });
         })
     }
 
-    updateDealTitles () {
-        this.state.contract.listDealTitles ({ from: this.state.accounts[0] })
-            .then ((result) => {
+    updateDealTitles() {
+        this.state.contract.listDealTitles({from: this.state.accounts[0]})
+            .then((result) => {
                 debugger;
-                return this.setState ({ dealTitles: result });
+                return this.setState({dealTitles: result});
             });
     }
 
-    updateDealState (event) {
-        event.preventDefault ();
+    updateDealState(event) {
+        event.preventDefault();
         let newDeal = this.state.newDeal;
         let name = event.target.name;
         let value = event.target.value;
 
         newDeal[name] = value;
 
-        this.setState ({ newDeal: newDeal });
+        this.setState({newDeal: newDeal});
     }
 
-    createDeal () {
+    createDeal() {
         let newDeal = this.state.newDeal;
         let amountEth = newDeal.deposit;
-        let depositInWei = utils.toWei (amountEth);
+        let depositInWei = utils.toWei(amountEth);
         let account = this.state.accounts[0];
-        this.state.contract.newDeal (newDeal.title, newDeal.numParticipants, depositInWei, { from: account })
-            .then ((result) => {
+        // this.state.contract.newDeal(newDeal.title, newDeal.numParticipants, depositInWei, {
+        this.state.contract.newDeal('test', 1, 5, {
+            from: account,
+            gas: 4712388,
+            gasPrice: 1000000000
+        })
+            .then((result) => {
+                // We can loop through result.logs to see if we triggered the Transfer event.
+                for (var i = 0; i < result.logs.length; i++) {
+                    debugger;
+                    var log = result.logs[i];
+
+                    if (log.event == "NewDeal") {
+                        // We found the event!
+                        debugger;
+                        break;
+                    }
+                }
                 debugger;
-                this.updateDealTitles ();
+                this.updateDealTitles();
             });
     }
 
-    render () {
+    render() {
         return (
             <div className="App">
                 <Toolbar>
@@ -144,14 +160,14 @@ class App extends Component {
                         <ListDivider/>
                         <p>To orchestrate a new mixer.</p>
                         <Button raised
-                                onClick={evt => this.setState ({ standardDialogOpen: true })}
+                                onClick={evt => this.setState({standardDialogOpen: true})}
                         >Create Mixer</Button>
                     </GridCell>
                     <GridCell span="12">
                         <ListDivider/>
                         <p>To send ETH via an existing mixer.</p>
                         <List>
-                            {this.state.dealTitles.map (function (title) {
+                            {this.state.dealTitles.map(function (title) {
                                 return <ListItem>
                                     <ListItemGraphic>people</ListItemGraphic>
                                     <ListItemText>{title}</ListItemText>
@@ -164,7 +180,7 @@ class App extends Component {
                 </Grid>
                 <Dialog
                     open={this.state.standardDialogOpen}
-                    onClose={evt => this.setState ({ standardDialogOpen: false })}
+                    onClose={evt => this.setState({standardDialogOpen: false})}
                 >
                     <DialogSurface>
                         <DialogHeader>
@@ -178,7 +194,7 @@ class App extends Component {
                                 <GridCell span="6">
                                     <TextField
                                         name="title"
-                                        onChange={this.updateDealState.bind (this)}
+                                        onChange={this.updateDealState.bind(this)}
                                         fullwidth
                                         label="Title..."
                                     />
@@ -186,7 +202,7 @@ class App extends Component {
                                 <GridCell span="3">
                                     <TextField
                                         name="numParticipants"
-                                        onChange={this.updateDealState.bind (this)}
+                                        onChange={this.updateDealState.bind(this)}
                                         fullwidth
                                         label="Number of Participants..."
                                     />
@@ -194,7 +210,7 @@ class App extends Component {
                                 <GridCell span="3">
                                     <TextField
                                         name="deposit"
-                                        onChange={this.updateDealState.bind (this)}
+                                        onChange={this.updateDealState.bind(this)}
                                         fullwidth
                                         label="Deposit Amount..."
                                     />
@@ -207,7 +223,7 @@ class App extends Component {
                             </DialogFooterButton>
                             <DialogFooterButton
                                 accept
-                                onClick={this.createDeal.bind (this)}>
+                                onClick={this.createDeal.bind(this)}>
                                 Create Deal
                             </DialogFooterButton>
                         </DialogFooter>
