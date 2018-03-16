@@ -10,6 +10,7 @@ import './css/pure-min.css'
 import './App.css'
 import NewDealDialog from './NewDealDialog';
 import DepositDialog from './DepositDialog';
+import TxModal from './TxDialog';
 import Button from "material-ui/Button";
 import IconButton from "material-ui/IconButton";
 import MenuIcon from 'material-ui-icons/Menu';
@@ -44,7 +45,10 @@ class App extends Component {
             contract: null,
             accounts: null,
             newDealDialogOpen: false,
-            depositDialogOpen: false
+            depositDialogOpen: false,
+            selectedFilterIndex: 0,
+            txModalOpen: false,
+            lastEvent: {}
         }
     }
 
@@ -106,16 +110,17 @@ class App extends Component {
                     if (result[i]) {
                         let deal = {
                             id: i,
-                            label: this.state.web3.toUtf8 (result[i])
+                            title: this.state.web3.toUtf8 (result[i])
                         };
                         promises.push (
                             this.state.contract.dealStatus.call (i)
                                 .then ((result) => {
                                     deal.active = result[0].toNumber ();
                                     deal.numParticipants = result[1].toNumber ();
-                                    deal.numDeposits = result[2].toNumber ();
-                                    deal.depositSum = result[3].toNumber ();
-                                    deal.numDestAddresses = result[4].toNumber ();
+                                    deal.deposit = utils.fromWei (result[2].toString (), 'ether');
+                                    deal.numDeposits = result[3].toNumber ();
+                                    deal.depositSum = result[4].toNumber ();
+                                    deal.numDestAddresses = result[5].toNumber ();
                                     deals.push (deal);
                                 })
                         );
@@ -132,9 +137,9 @@ class App extends Component {
          * Submits a transaction to the smart contract to create a deal based on
          * data in the state. Then updates the list of deals.
          */
-        self.closeNewDealDialog ();
+        this.closeNewDealDialog ();
         let amountEth = newDeal.deposit;
-        let depositInWei = utils.toWei (amountEth);
+        let depositInWei = utils.toWei (amountEth.toString (), 'ether');
         let account = this.state.accounts[0];
 
         this.state.contract.newDeal (newDeal.title, depositInWei, newDeal.numParticipants, {
@@ -142,18 +147,20 @@ class App extends Component {
             gas: 4712388,
             gasPrice: 1000000000
         }).then ((result) => {
-            //TODO: use an event handles instead
             // We can loop through result.logs to see if we triggered the Transfer event.
             for (var i = 0; i < result.logs.length; i++) {
                 var log = result.logs[i];
 
                 if (log.event == 'NewDeal') {
                     // We found the event!
-                    console.log ('new deal created')
+                    console.log ('new deal created', log.event);
+
+                    this.setState ({ lastEvent: log }, () => this.openTxModal ());
                     break;
                 }
             }
         }, (err) => {
+            console.error ('unable to create deal', err);
             debugger;
         })
     }
@@ -174,20 +181,45 @@ class App extends Component {
         this.setState ({ depositDialogOpen: false })
     };
 
-    makeDeposit (deposit) {
+    makeDeposit (deal, deposit) {
+        this.closeDepositDialog ();
+        this.setState ({ selectedFilterIndex: 1 });
+
+        let depositInWei = utils.toWei (deposit.amount.toString (), 'ether');
+        this.state.contract.makeDeposit (deal.id.toString (), deposit.destinationAddress, {
+            from: this.state.accounts[0],
+            value: depositInWei
+        })
+            .then ((result) => {
+                for (var i = 0; i < result.logs.length; i++) {
+                    var log = result.logs[i];
+
+                    if (log.event == 'Deposit') {
+                        // We found the event!
+                        console.log ('deposit created', log);
+                        this.setState ({ lastEvent: log }, () => this.openTxModal ());
+                        break;
+                    }
+                }
+                //TODO: wait for the tx
+            })
 
     }
+
+    openTxModal = () => {
+        this.setState ({ txModalOpen: true });
+    };
+
+    closeTxModal = () => {
+        this.setState ({ txModalOpen: false });
+        this.fetchDeals ();
+    };
 
     render () {
         return (
             <MuiThemeProvider theme={theme}>
-                <div className="App"
-                     style={{ overflow: 'hidden', paddingTop: '56px' }}
-                >
-                    <AppBar
-                        style={{ position: 'fixed', top: 0 }}
-                        color="primary"
-                    >
+                <div className="App">
+                    <AppBar position="static" color="primary">
                         <Toolbar style={{
                             display: 'flex',
                             flexDirection: 'row'
@@ -213,6 +245,7 @@ class App extends Component {
                         <DealTable
                             deals={this.state.deals}
                             selectDeal={this.selectDeal.bind (this)}
+                            selectedIndex={this.state.selectedFilterIndex}
                         />
                     </div>
 
@@ -227,6 +260,12 @@ class App extends Component {
                         makeDeposit={this.makeDeposit.bind (this)}
                         onClose={this.closeDepositDialog}
                     ></DepositDialog>
+                    <TxModal
+                        open={this.state.txModalOpen}
+                        evt={this.state.lastEvent}
+                        onClose={this.closeTxModal}
+                    >
+                    </TxModal>
                 </div>
             </MuiThemeProvider>
         );

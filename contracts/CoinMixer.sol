@@ -190,15 +190,16 @@ contract CoinMixer {
 
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    function dealStatus(uint _dealId) public view returns (uint[5]){
+    function dealStatus(uint _dealId) public view returns (uint[6]){
         uint active = _deals[_dealId].active ? 1 : 0;
         uint numParticipants = _deals[_dealId].numParticipants;
+        uint deposit = _deals[_dealId].depositInWei;
         uint numDeposits = _deals[_dealId].numDeposits;
         uint depositSum = _deals[_dealId].depositSum;
         uint numDestAddresses = _deals[_dealId].destAddresses.length;
 
 
-        return [active, numParticipants, numDeposits, depositSum, numDestAddresses];
+        return [active, numParticipants, deposit, numDeposits, depositSum, numDestAddresses];
     }
 
 }

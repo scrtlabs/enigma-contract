@@ -32,6 +32,7 @@ class DealTable extends React.Component {
 
     componentWillReceiveProps (nextProps) {
         this.setState ({ deals: nextProps.deals });
+        this.setState ({ selectedIndex: nextProps.selectedIndex });
     }
 
     handleSelectDeals (event, dealId) {
@@ -108,7 +109,7 @@ class DealTable extends React.Component {
                             <TableCell>Title</TableCell>
                             <TableCell numeric>Participants</TableCell>
                             <TableCell numeric>Deposits</TableCell>
-                            <TableCell numeric>Deposit Amount</TableCell>
+                            <TableCell numeric>Deposit (ETH)</TableCell>
                             <TableCell numeric>Places Left</TableCell>
                         </TableRow>
                     </TableHead>
@@ -119,15 +120,15 @@ class DealTable extends React.Component {
                                           hover
                                           style={{ cursor: 'pointer' }}
                                           onClick={event => this.handleSelectDeals (event, deal.id)}>
-                                    <TableCell>{deal.label}</TableCell>
+                                    <TableCell>{deal.title}</TableCell>
                                     <TableCell
                                         numeric>{deal.numParticipants}</TableCell>
                                     <TableCell
                                         numeric>{deal.numDeposits}</TableCell>
                                     <TableCell
-                                        numeric>{deal.depositSum}</TableCell>
+                                        numeric>{deal.deposit}</TableCell>
                                     <TableCell
-                                        numeric>{deal.numDestAddresses}</TableCell>
+                                        numeric>{deal.numDestAddresses - deal.numDeposits}</TableCell>
                                 </TableRow>
                             );
                         })}

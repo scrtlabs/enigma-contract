@@ -23,24 +23,27 @@ class DepositDialog extends React.Component {
     componentWillReceiveProps (nextProps) {
         this.setState ({ open: nextProps.open });
         this.setState ({ deal: nextProps.deal });
+        this.setState ({ deposit: { amount: nextProps.deal.deposit } })
     }
 
     handleMakeDeposit = () => {
-        this.props.makeDeposit (this.state.deposit);
+        this.props.makeDeposit (this.state.deal, this.state.deposit);
         this.setState ({ open: false });
     };
 
     handleClose = () => {
         this.setState ({ open: false });
-        this.props.onClose()
+        this.props.onClose ();
     };
 
     updateDepositState (event) {
         event.preventDefault ();
-        let deposit = {
-            amount: event.target.amount,
-            destinationAddress: event.target.destinationAddress
-        };
+        let deposit = this.state.deposit;
+        let name = event.target.name;
+        let value = event.target.value;
+
+        deposit[name] = value;
+
         this.setState ({ deposit: deposit });
     }
 
@@ -63,7 +66,7 @@ class DepositDialog extends React.Component {
                         onChange={this.updateDepositState.bind (this)}
                         label="Amount..."
                         disabled
-                        value={this.state.deal.depositSum}
+                        value={this.state.deposit.amount}
                     />
                     <TextField
                         name="destinationAddress"
