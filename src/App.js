@@ -9,10 +9,23 @@ import './css/open-sans.css'
 import './css/pure-min.css'
 import './App.css'
 import NewDealDialog from './NewDealDialog';
+import DepositDialog from './DepositDialog';
 import Button from "material-ui/Button";
+import IconButton from "material-ui/IconButton";
+import MenuIcon from 'material-ui-icons/Menu';
 import AppBar from "material-ui/AppBar";
 import Toolbar from "material-ui/Toolbar";
 import Typography from "material-ui/Typography";
+import DealTable from './DealTable';
+import {MuiThemeProvider, createMuiTheme} from 'material-ui/styles';
+import blue from 'material-ui/colors/blue';
+
+
+const theme = createMuiTheme ({
+    palette: {
+        primary: blue,
+    },
+});
 
 
 class App extends Component {
@@ -20,7 +33,8 @@ class App extends Component {
         super (props);
 
         this.state = {
-            dealTitles: [],
+            deals: [],
+            selectedDeal: {},
             web3: null,
             newDeal: {
                 title: null,
@@ -29,7 +43,8 @@ class App extends Component {
             },
             contract: null,
             accounts: null,
-            newDealDialogOpen: false
+            newDealDialogOpen: false,
+            depositDialogOpen: false
         }
     }
 
@@ -71,6 +86,14 @@ class App extends Component {
     }
 
     fetchDeals () {
+        /**
+         * Fetch deals from the smart contract.
+         * Because of Solidity limitations, this requires several requests:
+         * 1) Fetch an array of contract title which indexes match the deal Ids.
+         * 2) For each deal Id, fetch the status.
+         *
+         * The data is then consolidated and included into the state.
+         */
         this.state.contract.listDealTitles.call ({}, { from: this.state.accounts[0] })
             .then ((result) => {
                 if (!result || !typeof Array.isArray (result)) {
@@ -88,35 +111,38 @@ class App extends Component {
                         promises.push (
                             this.state.contract.dealStatus.call (i)
                                 .then ((result) => {
-                                    deal.active = result[0];
-                                    deal.numParticipants = result[1];
-                                    deal.numDeposits = result[2];
-                                    deal.depositSum = result[3];
-                                    deal.numDestAddresses = result[4];
+                                    deal.active = result[0].toNumber ();
+                                    deal.numParticipants = result[1].toNumber ();
+                                    deal.numDeposits = result[2].toNumber ();
+                                    deal.depositSum = result[3].toNumber ();
+                                    deal.numDestAddresses = result[4].toNumber ();
                                     deals.push (deal);
                                 })
                         );
                     }
                 }
                 return Promise.all (promises)
-                    .then (() => this.setState ({ dealTitles: deals }));
+                    .then (() => this.setState ({ deals: deals }));
             });
     }
 
 
     createDeal (newDeal) {
-        this.setState ({ newDealDialogOpen: false });
-
+        /**
+         * Submits a transaction to the smart contract to create a deal based on
+         * data in the state. Then updates the list of deals.
+         */
+        self.closeNewDealDialog ();
         let amountEth = newDeal.deposit;
         let depositInWei = utils.toWei (amountEth);
         let account = this.state.accounts[0];
-        // this.state.contract.newDeal(newDeal.title, newDeal.numParticipants, depositInWei, {
+
         this.state.contract.newDeal (newDeal.title, depositInWei, newDeal.numParticipants, {
             from: account,
             gas: 4712388,
             gasPrice: 1000000000
         }).then ((result) => {
-            debugger;
+            //TODO: use an event handles instead
             // We can loop through result.logs to see if we triggered the Transfer event.
             for (var i = 0; i < result.logs.length; i++) {
                 var log = result.logs[i];
@@ -127,45 +153,82 @@ class App extends Component {
                     break;
                 }
             }
-            this.fetchDeals ();
         }, (err) => {
             debugger;
         })
     }
 
+    closeNewDealDialog = () => {
+        this.setState ({ newDealDialogOpen: false });
+    };
+
+    selectDeal (dealId) {
+        let deal = this.state.deals.find ((d) => d.id === dealId);
+        if (deal) {
+            this.setState ({ selectedDeal: deal });
+            this.setState ({ depositDialogOpen: true });
+        }
+    }
+
+    closeDepositDialog = () => {
+        this.setState ({ depositDialogOpen: false })
+    };
+
+    makeDeposit (deposit) {
+
+    }
+
     render () {
         return (
-            <div className="App">
-                <AppBar position="static" color="default">
-                    <Toolbar>
-                        <Typography variant="title" color="inherit">
-                            Coin Mixer
-                        </Typography>
-                    </Toolbar>
-                </AppBar>
+            <MuiThemeProvider theme={theme}>
+                <div className="App"
+                     style={{ overflow: 'hidden', paddingTop: '56px' }}
+                >
+                    <AppBar
+                        style={{ position: 'fixed', top: 0 }}
+                        color="primary"
+                    >
+                        <Toolbar style={{
+                            display: 'flex',
+                            flexDirection: 'row'
+                        }}>
+                            <IconButton color="inherit" aria-label="Menu">
+                                <MenuIcon/>
+                            </IconButton>
+                            <Typography variant="title" color="inherit"
+                                        style={{ flex: 1 }}>
+                                Coin Mixer
+                            </Typography>
+                            <Button color="inherit"
+                                    onClick={evt => this.setState ({ newDealDialogOpen: true })}
+                            >Organize Deal</Button>
+                        </Toolbar>
+                    </AppBar>
 
-                <div style={{ padding: 20 }}>
-                    <h2>A Decentralized Coin Mixer for Ethereum</h2>
-                    <p><i>Powered by Enigma</i></p>
-                    <p>To orchestrate a new mixer.</p>
-                    <Button variant="raised"
-                            onClick={evt => this.setState ({ newDealDialogOpen: true })}
-                    >Create Mixer</Button>
-                    <p>To send ETH via an existing mixer.</p>
-                    <ul>
-                        {this.state.dealTitles.map (function (title) {
-                            return <li key={title.id.toString ()}>
-                                {title.label}
-                            </li>;
-                        })}
-                    </ul>
+                    <div style={{
+                        padding: 20,
+                        overflow: 'auto',
+                        height: '100%',
+                    }}>
+                        <DealTable
+                            deals={this.state.deals}
+                            selectDeal={this.selectDeal.bind (this)}
+                        />
+                    </div>
+
+                    <NewDealDialog
+                        open={this.state.newDealDialogOpen}
+                        createDeal={this.createDeal.bind (this)}
+                        onClose={this.closeNewDealDialog}
+                    />
+                    <DepositDialog
+                        open={this.state.depositDialogOpen}
+                        deal={this.state.selectedDeal}
+                        makeDeposit={this.makeDeposit.bind (this)}
+                        onClose={this.closeDepositDialog}
+                    ></DepositDialog>
                 </div>
-
-                <NewDealDialog
-                    open={this.state.newDealDialogOpen}
-                    createDeal={this.createDeal.bind (this)}
-                />
-            </div>
+            </MuiThemeProvider>
         );
     }
 }

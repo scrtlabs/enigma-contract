@@ -30,6 +30,7 @@ class NewDealDialog extends React.Component {
 
     handleClose = () => {
         this.setState ({ open: false });
+        this.props.onClose()
     };
 
     updateDealState (event) {
