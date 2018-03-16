@@ -1,42 +1,23 @@
 import React, {Component} from 'react'
 import CoinMixerContract from '../build/contracts/CoinMixer.json'
 import getWeb3 from './utils/getWeb3'
-import Web3 from 'web3'
 import utils from 'web3-utils'
-import {Button} from 'rmwc/Button';
-import {Toolbar, ToolbarRow, ToolbarTitle} from 'rmwc/Toolbar';
-import {Grid, GridCell} from 'rmwc/Grid';
-import {
-    DefaultDialogTemplate,
-    Dialog,
-    DialogBackdrop,
-    DialogBody,
-    DialogFooter,
-    DialogFooterButton,
-    DialogHeader,
-    DialogHeaderTitle,
-    DialogSurface
-} from 'rmwc/Dialog';
-import {TextField} from 'rmwc/TextField';
-import {
-    List,
-    ListDivider,
-    ListItem,
-    ListItemGraphic,
-    ListItemMeta,
-    ListItemText
-} from 'rmwc/List';
 
 
 import './css/oswald.css'
 import './css/open-sans.css'
 import './css/pure-min.css'
 import './App.css'
-import './css/material-components-web.min.css'
+import NewDealDialog from './NewDealDialog';
+import Button from "material-ui/Button";
+import AppBar from "material-ui/AppBar";
+import Toolbar from "material-ui/Toolbar";
+import Typography from "material-ui/Typography";
+
 
 class App extends Component {
-    constructor(props) {
-        super(props);
+    constructor (props) {
+        super (props);
 
         this.state = {
             dealTitles: [],
@@ -47,189 +28,143 @@ class App extends Component {
                 numParticipants: null
             },
             contract: null,
-            accounts: null
+            accounts: null,
+            newDealDialogOpen: false
         }
     }
 
-    componentWillMount() {
+    componentWillMount () {
         // Get network provider and web3 instance.
         // See utils/getWeb3 for more info.
 
-        getWeb3
-            .then(results => {
-                this.setState({
-                    web3: results.web3
-                });
+        // Is there is an injected web3 instance?
+        // This uses Metamask if available
+        getWeb3.then (results => {
+            this.setState ({ web3: results.web3 }, () => this.instantiateContract ());
 
-                // Instantiate contract once web3 provided.
-                this.instantiateContract()
-            })
-            .catch(() => {
-                console.log('Error finding web3.')
-            })
+        }).catch (() => {
+            console.log ('Error finding web3.')
+        });
     }
 
-    instantiateContract() {
-        /*
-         * SMART CONTRACT EXAMPLE
-         *
-         * Normally these functions would be called in the context of a
-         * state management library, but for convenience I've placed them here.
+    instantiateContract () {
+        /**
+         * Instantiate the smart contract and include it in the state.
+         * @type {contract}
          */
-
-        const contract = require('truffle-contract');
-        const coinMixer = contract(CoinMixerContract);
+        const contract = require ('truffle-contract');
+        const coinMixer = contract (CoinMixerContract);
         //TODO: not sure why relying on truffle.js does not work
         // let provider = new Web3.providers.HttpProvider ("http://127.0.0.1:7545");
-        coinMixer.setProvider(this.state.web3.currentProvider);
+        coinMixer.setProvider (this.state.web3.currentProvider);
 
 
         // Get accounts.
-        this.state.web3.eth.getAccounts((error, accounts) => {
-            this.setState({accounts: accounts});
+        this.state.web3.eth.getAccounts ((error, accounts) => {
+            this.state.web3.eth.defaultAccount = accounts[0];
+            this.setState ({ accounts: accounts });
 
-            coinMixer.deployed().then((instance) => {
-                this.setState({contract: instance});
-                this.updateDealTitles();
+            coinMixer.deployed ().then ((instance) => {
+                this.setState ({ contract: instance }, () => this.fetchDeals ());
             });
-        })
+        });
     }
 
-    updateDealTitles() {
-        this.state.contract.listDealTitles({from: this.state.accounts[0]})
-            .then((result) => {
-                debugger;
-                return this.setState({dealTitles: result});
+    fetchDeals () {
+        this.state.contract.listDealTitles.call ({}, { from: this.state.accounts[0] })
+            .then ((result) => {
+                if (!result || !typeof Array.isArray (result)) {
+                    return null;
+                }
+
+                let promises = [];
+                let deals = [];
+                for (let i = 0; i < result.length; i++) {
+                    if (result[i]) {
+                        let deal = {
+                            id: i,
+                            label: this.state.web3.toUtf8 (result[i])
+                        };
+                        promises.push (
+                            this.state.contract.dealStatus.call (i)
+                                .then ((result) => {
+                                    deal.active = result[0];
+                                    deal.numParticipants = result[1];
+                                    deal.numDeposits = result[2];
+                                    deal.depositSum = result[3];
+                                    deal.numDestAddresses = result[4];
+                                    deals.push (deal);
+                                })
+                        );
+                    }
+                }
+                return Promise.all (promises)
+                    .then (() => this.setState ({ dealTitles: deals }));
             });
     }
 
-    updateDealState(event) {
-        event.preventDefault();
-        let newDeal = this.state.newDeal;
-        let name = event.target.name;
-        let value = event.target.value;
 
-        newDeal[name] = value;
+    createDeal (newDeal) {
+        this.setState ({ newDealDialogOpen: false });
 
-        this.setState({newDeal: newDeal});
-    }
-
-    createDeal() {
-        let newDeal = this.state.newDeal;
         let amountEth = newDeal.deposit;
-        let depositInWei = utils.toWei(amountEth);
+        let depositInWei = utils.toWei (amountEth);
         let account = this.state.accounts[0];
         // this.state.contract.newDeal(newDeal.title, newDeal.numParticipants, depositInWei, {
-        this.state.contract.newDeal('test', 1, 5, {
+        this.state.contract.newDeal (newDeal.title, depositInWei, newDeal.numParticipants, {
             from: account,
             gas: 4712388,
             gasPrice: 1000000000
-        })
-            .then((result) => {
-                // We can loop through result.logs to see if we triggered the Transfer event.
-                for (var i = 0; i < result.logs.length; i++) {
-                    debugger;
-                    var log = result.logs[i];
+        }).then ((result) => {
+            debugger;
+            // We can loop through result.logs to see if we triggered the Transfer event.
+            for (var i = 0; i < result.logs.length; i++) {
+                var log = result.logs[i];
 
-                    if (log.event == "NewDeal") {
-                        // We found the event!
-                        debugger;
-                        break;
-                    }
+                if (log.event == 'NewDeal') {
+                    // We found the event!
+                    console.log ('new deal created')
+                    break;
                 }
-                debugger;
-                this.updateDealTitles();
-            });
+            }
+            this.fetchDeals ();
+        }, (err) => {
+            debugger;
+        })
     }
 
-    render() {
+    render () {
         return (
             <div className="App">
-                <Toolbar>
-                    <ToolbarRow>
-                        <ToolbarTitle>Coin Mixer</ToolbarTitle>
-                    </ToolbarRow>
-                </Toolbar>
+                <AppBar position="static" color="default">
+                    <Toolbar>
+                        <Typography variant="title" color="inherit">
+                            Coin Mixer
+                        </Typography>
+                    </Toolbar>
+                </AppBar>
 
-                <Grid>
-                    <GridCell span="12">
-                        <h2>A Decentralized Coin Mixer for Ethereum</h2>
-                        <p><i>Powered by Enigma</i></p>
-                    </GridCell>
-                    <GridCell span="12">
-                        <ListDivider/>
-                        <p>To orchestrate a new mixer.</p>
-                        <Button raised
-                                onClick={evt => this.setState({standardDialogOpen: true})}
-                        >Create Mixer</Button>
-                    </GridCell>
-                    <GridCell span="12">
-                        <ListDivider/>
-                        <p>To send ETH via an existing mixer.</p>
-                        <List>
-                            {this.state.dealTitles.map(function (title) {
-                                return <ListItem>
-                                    <ListItemGraphic>people</ListItemGraphic>
-                                    <ListItemText>{title}</ListItemText>
-                                    <ListItemMeta>info</ListItemMeta>
-                                </ListItem>;
-                            })}
-                        </List>
-                        <ListDivider/>
-                    </GridCell>
-                </Grid>
-                <Dialog
-                    open={this.state.standardDialogOpen}
-                    onClose={evt => this.setState({standardDialogOpen: false})}
-                >
-                    <DialogSurface>
-                        <DialogHeader>
-                            <DialogHeaderTitle>Create Mixer</DialogHeaderTitle>
-                        </DialogHeader>
-                        <DialogBody>
-                            <p>You are about to initiate a new mixer. Please
-                                select the number of participants
-                                and deposit amount of each participant.</p>
-                            <Grid>
-                                <GridCell span="6">
-                                    <TextField
-                                        name="title"
-                                        onChange={this.updateDealState.bind(this)}
-                                        fullwidth
-                                        label="Title..."
-                                    />
-                                </GridCell>
-                                <GridCell span="3">
-                                    <TextField
-                                        name="numParticipants"
-                                        onChange={this.updateDealState.bind(this)}
-                                        fullwidth
-                                        label="Number of Participants..."
-                                    />
-                                </GridCell>
-                                <GridCell span="3">
-                                    <TextField
-                                        name="deposit"
-                                        onChange={this.updateDealState.bind(this)}
-                                        fullwidth
-                                        label="Deposit Amount..."
-                                    />
-                                </GridCell>
-                            </Grid>
-                        </DialogBody>
-                        <DialogFooter>
-                            <DialogFooterButton cancel>
-                                Cancel
-                            </DialogFooterButton>
-                            <DialogFooterButton
-                                accept
-                                onClick={this.createDeal.bind(this)}>
-                                Create Deal
-                            </DialogFooterButton>
-                        </DialogFooter>
-                    </DialogSurface>
-                    <DialogBackdrop/>
-                </Dialog>
+                <div style={{ padding: 20 }}>
+                    <h2>A Decentralized Coin Mixer for Ethereum</h2>
+                    <p><i>Powered by Enigma</i></p>
+                    <p>To orchestrate a new mixer.</p>
+                    <Button variant="raised"
+                            onClick={evt => this.setState ({ newDealDialogOpen: true })}
+                    >Create Mixer</Button>
+                    <p>To send ETH via an existing mixer.</p>
+                    <ul>
+                        {this.state.dealTitles.map (function (title) {
+                            return <li key={title.id.toString ()}>
+                                {title.label}
+                            </li>;
+                        })}
+                    </ul>
+                </div>
+
+                <NewDealDialog
+                    open={this.state.newDealDialogOpen}
+                    createDeal={this.createDeal.bind (this)}
+                />
             </div>
         );
     }

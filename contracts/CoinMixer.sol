@@ -72,7 +72,7 @@ contract CoinMixer {
     }
 
 
-    function makeDeposit(uint dealId, bytes32 encryptedDestAddress) payable returns (ReturnValue){
+    function makeDeposit(uint dealId, bytes32 encryptedDestAddress) public payable returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
         // validations
@@ -179,8 +179,8 @@ contract CoinMixer {
     }
 
     function listDealTitles() public view returns (bytes32[]) {
-        bytes32[] memory titles;
-        uint256 dealId = 0;
+        bytes32[] titles;
+        uint dealId = 0;
         while (dealId < _deals.length) {
             titles[dealId] = _deals[dealId].title;
             dealId++;
@@ -190,7 +190,7 @@ contract CoinMixer {
 
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    function dealStatus(uint _dealId) view returns (uint[5]){
+    function dealStatus(uint _dealId) public view returns (uint[5]){
         uint active = _deals[_dealId].active ? 1 : 0;
         uint numParticipants = _deals[_dealId].numParticipants;
         uint numDeposits = _deals[_dealId].numDeposits;
