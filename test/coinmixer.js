@@ -46,4 +46,14 @@ contract ('CoinMixer', function (accounts) {
             assert.equal (event.args._success, true, "Deal creation failed.");
         });
     });
+    it ("...is participating to deal.", function () {
+        return CoinMixer.deployed ().then (function (instance) {
+            coinMixerInstance = instance;
+
+            return coinMixerInstance.isParticipating.call (0, { from: accounts[0] });
+        }).then (function (result) {
+            console.log (result);
+            assert.equal (event.args._success, true, "Determined participation successfully.");
+        });
+    });
 });

@@ -34,16 +34,13 @@ contract CoinMixer {
 
     event DealFullyFunded(uint indexed _dealId);
 
-    //    struct RunnerArgs {
-    //        uint dealId;
-    //        string[] encryptedDestAddresses;
-    //    }
-    //
-    //    event EngimaRun(string _runner, string _args, string _setter);
+    // The generic Enigma computation event
+    event SecretCall(bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint max_cost);
 
+    // TODO: switch to require() once it accepts a message parameter
     enum ReturnValue {Ok, Error}
 
-    function CoinMixer(){
+    function CoinMixer() public {
     }
 
     function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants) public returns (ReturnValue) {
@@ -71,7 +68,6 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-
     function makeDeposit(uint dealId, bytes32 encryptedDestAddress) public payable returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
@@ -84,7 +80,8 @@ contract CoinMixer {
             error = "deal is not active";
             errorDetected = true;
         }
-        Deal deal = _deals[dealId];
+
+        Deal storage deal = _deals[dealId];
         if ((msg.value % deal.depositInWei) > 0) {
             error = "deposit value must be a multiple of claim value";
             errorDetected = true;
@@ -97,10 +94,8 @@ contract CoinMixer {
             error = "deal is already fulling funded";
             errorDetected = true;
         }
-
         if (errorDetected) {
             Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, false, error);
-            if (!msg.sender.send(msg.value)) throw;
             // send money back
             return ReturnValue.Error;
         }
@@ -111,29 +106,28 @@ contract CoinMixer {
         deal.numDeposits += 1;
         deal.encryptedDestAddresses.push(encryptedDestAddress);
 
+        Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, true, "all good");
+
         if (deal.numDeposits >= deal.numParticipants) {
             deal.fullyFunded = true;
             DealFullyFunded(dealId);
 
-            //            RunnerArgs memory args = RunnerArgs(dealId, deal.encryptedDestAddresses);
-            //            string args = '{"dealId":"", }';
-            //            EngimaRun("mixAddresses", args, "setDestAddresses");
+            // Calls the Enigma computation
+            SecretCall("mixAddresses", deal.encryptedDestAddresses, "distribute", 0);
         }
-
-        Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, true, "all good");
         return ReturnValue.Ok;
     }
 
-    function mixAddresses(uint dealId, address[] destAddresses) public returns (uint, address[]) {
+    function mixAddresses(uint dealId, address[] destAddresses) public pure returns (uint, address[]) {
         // TODO: put mixing logic here
         return (dealId, destAddresses);
     }
 
-    function setDestAddresses(uint dealId, address[] destAddresses) public returns (ReturnValue){
+    function distribute(uint dealId, address[] destAddresses) private returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
 
-        Deal deal = _deals[dealId];
+        Deal storage deal = _deals[dealId];
         if (!deal.active) {
             error = "deal is not active";
             errorDetected = true;
@@ -142,31 +136,20 @@ contract CoinMixer {
             error = "deal is not fulling funded";
             errorDetected = true;
         }
-
         if (errorDetected) {
             return ReturnValue.Error;
         }
         deal.destAddresses = destAddresses;
-        return ReturnValue.Ok;
-    }
 
-
-    function distribute(uint dealId) private returns (ReturnValue){
-        // validation
-        bool errorDetected = false;
-        string memory error;
-        Deal deal = _deals[dealId];
-        bool enoughAddresses = deal.destAddresses.length >= deal.numParticipants;
+        bool enoughAddresses = deal.destAddresses.length == deal.numParticipants;
         if (!enoughAddresses) {
             error = "missing some destination addresses";
             errorDetected = true;
         }
-
         if (errorDetected) {
             Distribute(deal.destAddresses, dealId, false, error);
             return ReturnValue.Error;
         }
-
 
         uint256 i = 0;
         while (i < deal.destAddresses.length) {
@@ -178,8 +161,12 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////
+    //VIEWS/////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////
+
     function listDealTitles() public view returns (bytes32[]) {
-        bytes32[] titles;
+        bytes32[] memory titles = new bytes32[](_deals.length);
         uint dealId = 0;
         while (dealId < _deals.length) {
             titles[dealId] = _deals[dealId].title;
@@ -187,8 +174,6 @@ contract CoinMixer {
         }
         return titles;
     }
-
-    ////////////////////////////////////////////////////////////////////////////////////////
 
     function dealStatus(uint _dealId) public view returns (uint[6]){
         uint active = _deals[_dealId].active ? 1 : 0;
@@ -202,5 +187,12 @@ contract CoinMixer {
         return [active, numParticipants, deposit, numDeposits, depositSum, numDestAddresses];
     }
 
+    function isParticipating(uint _dealId) public view returns (bool) {
+        bool participating = false;
+        if (_deals[_dealId].deposit[msg.sender] > 0) {
+            participating = true;
+        }
+        return participating;
+    }
 }
 

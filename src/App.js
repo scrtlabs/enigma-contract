@@ -191,6 +191,7 @@ class App extends Component {
             value: depositInWei
         })
             .then ((result) => {
+                debugger;
                 for (var i = 0; i < result.logs.length; i++) {
                     var log = result.logs[i];
 
@@ -218,7 +219,7 @@ class App extends Component {
     render () {
         return (
             <MuiThemeProvider theme={theme}>
-                <div className="App">
+                <div>
                     <AppBar position="static" color="primary">
                         <Toolbar style={{
                             display: 'flex',
