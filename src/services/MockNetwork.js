@@ -9,8 +9,11 @@ class MockNetwork extends EventEmitter {
         this.contract = contract;
 
         let events = Cookies.get ('events');
-        this.events = events || [];
-
+        try {
+            this.events = JSON.parse (events);
+        } catch (e) {
+            this.events = [];
+        }
         this.simulateValidators ();
     }
 
@@ -43,8 +46,8 @@ class MockNetwork extends EventEmitter {
             this.events.push (event);
         });
 
-        this.events.sort ((a, b) => (b.blockNumber < a.blockNumber ? -1 : 1))
-        this.events.sort ((a, b) => (b.status < a.status ? -1 : 1))
+        this.events.sort ((a, b) => (b.blockNumber < a.blockNumber ? -1 : 1));
+        this.events.sort ((a, b) => (b.status < a.status ? -1 : 1));
 
         this.save ();
     };
@@ -66,8 +69,8 @@ class MockNetwork extends EventEmitter {
 
                     if (event.validation === event.validation_req) {
                         event.status = 3;
-                        emitted = true;
                     }
+                    emitted = true;
                 }
             }
         });
@@ -78,7 +81,7 @@ class MockNetwork extends EventEmitter {
 
         let delay = Math.floor (Math.random () * (3000 - 1000 + 1)) + 1000;
         setTimeout (this.simulateValidators, delay);
-    }
+    };
 
     save = () => {
         Cookies.set ('events', JSON.stringify (this.events));

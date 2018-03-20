@@ -11,7 +11,6 @@ import './App.css'
 import NewDealDialog from './NewDealDialog';
 import DepositDialog from './DepositDialog';
 import TxModal from './TxDialog';
-import Button from "material-ui/Button";
 import IconButton from "material-ui/IconButton";
 import MenuIcon from 'material-ui-icons/Menu';
 import AppBar from "material-ui/AppBar";
@@ -232,9 +231,6 @@ class App extends Component {
                                         style={{ flex: 1 }}>
                                 Coin Mixer
                             </Typography>
-                            <Button color="inherit"
-                                    onClick={evt => this.setState ({ newDealDialogOpen: true })}
-                            >Organize Deal</Button>
                         </Toolbar>
                     </AppBar>
 
@@ -247,6 +243,7 @@ class App extends Component {
                             deals={this.state.deals}
                             selectDeal={this.selectDeal.bind (this)}
                             selectedIndex={this.state.selectedFilterIndex}
+                            organizeDeal={evt => this.setState ({ newDealDialogOpen: true })}
                         />
                     </div>
 

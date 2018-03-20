@@ -12,10 +12,10 @@ import Table, {
 import Paper from 'material-ui/Paper';
 import IconButton from 'material-ui/IconButton';
 import FirstPageIcon from 'material-ui-icons/FirstPage';
+import CheckCircleIcon from 'material-ui-icons/CheckCircle';
 import KeyboardArrowLeft from 'material-ui-icons/KeyboardArrowLeft';
 import KeyboardArrowRight from 'material-ui-icons/KeyboardArrowRight';
 import LastPageIcon from 'material-ui-icons/LastPage';
-import Moment from 'react-moment';
 
 const actionsStyles = theme => ({
     root: {
@@ -138,20 +138,32 @@ class ComputationTable extends React.Component {
         this.setState ({ rowsPerPage: event.target.value });
     };
 
+    handleCallback = () => {
+
+    };
+
     getStatusName = (status) => {
         let name;
         switch (status) {
             case 1:
-                name = 'Assigned';
+                name = <TableCell>Assigned</TableCell>;
                 break;
             case 2:
-                name = 'Validating';
+                name = <TableCell>Validating</TableCell>;
                 break;
             case 3:
-                name = 'Done';
+                name =
+                    <TableCell style={{ padding: 0 }}>
+                        <IconButton aria-label="Sign">
+                            <CheckCircleIcon/>
+                        </IconButton>
+                    </TableCell>;
+                break;
+            case 4:
+                name = <TableCell>Executed</TableCell>;
                 break;
             default:
-                name = 'Pending';
+                name = <TableCell>Pending</TableCell>;
                 break;
         }
         return name;
@@ -184,9 +196,7 @@ class ComputationTable extends React.Component {
                                             {n.blockNumber}
                                         </TableCell>
                                         <TableCell>{n.callable}</TableCell>
-                                        <TableCell numeric>
-                                            {this.getStatusName (n.status)}
-                                        </TableCell>
+                                        {this.getStatusName (n.status)}
                                         <TableCell>{'(' + n.validation + ' / ' + n.validation_req + ')'}</TableCell>
                                         <TableCell numeric>
                                             {n.cost_eng}

@@ -13,7 +13,7 @@ contract Enigma {
     function makeDeposit(address contractAddress) payable returns (ReturnValue){
     }
 
-    function updateState(address contractAddress, bytes serializedValue, uint computationCost) {
+    function updateState(address contractAddress, bytes serializedValue, uint computationCost) pure {
 
     }
 }

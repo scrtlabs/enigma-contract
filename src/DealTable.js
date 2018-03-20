@@ -7,6 +7,7 @@ import Table, {
 } from 'material-ui/Table';
 import Paper from 'material-ui/Paper';
 import FilterListIcon from 'material-ui-icons/FilterList';
+import AddIcon from 'material-ui-icons/Add';
 import Typography from "material-ui/Typography";
 import IconButton from "material-ui/IconButton";
 import Toolbar from "material-ui/Toolbar";
@@ -35,12 +36,16 @@ class DealTable extends React.Component {
         this.setState ({ selectedIndex: nextProps.selectedIndex });
     }
 
-    handleSelectDeals (event, dealId) {
+    handleSelectDeals = (event, dealId) => {
         this.props.selectDeal (dealId);
-    }
+    };
 
     handleFilter = event => {
         this.setState ({ anchorEl: event.currentTarget });
+    };
+
+    handleOrganizeDeal = event => {
+        this.props.organizeDeal ();
     };
 
     handleSelectFilter = (event, index) => {
@@ -51,7 +56,7 @@ class DealTable extends React.Component {
         this.setState ({ anchorEl: null });
     };
 
-    getFilterLabel (index) {
+    getFilterLabel = index => {
         return FILTER_LABELS[index];
     }
 
@@ -69,10 +74,17 @@ class DealTable extends React.Component {
                         {this.getFilterLabel (this.state.selectedIndex)}
                     </Typography>
 
-                    <IconButton aria-label="Filter Deals"
-                                onClick={this.handleFilter}
+                    <IconButton
+                        aria-label="Filter Deals"
+                        onClick={this.handleFilter}
                     >
                         <FilterListIcon/>
+                    </IconButton>
+                    <IconButton
+                        aria-label="Organize Deal"
+                        onClick={this.handleOrganizeDeal}
+                    >
+                        <AddIcon/>
                     </IconButton>
                     <Menu
                         id="filter-menu"

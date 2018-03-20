@@ -21,7 +21,7 @@
       "type": "function"
     },
     {
-      "constant": false,
+      "constant": true,
       "inputs": [
         {
           "name": "contractAddress",
@@ -39,28 +39,28 @@
       "name": "updateState",
       "outputs": [],
       "payable": false,
-      "stateMutability": "nonpayable",
+      "stateMutability": "pure",
       "type": "function"
     }
   ],
-  "bytecode": "0x6060604052341561000f57600080fd5b61015e8061001e6000396000f30060606040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c3a34ad814610051578063ea727df4146100d6575b600080fd5b341561005c57600080fd5b6100d4600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803590602001908201803590602001908080601f01602080910402602001604051908101604052809392919081815260200183838082843782019150505050505091908035906020019091905050610126565b005b610102600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190505061012b565b6040518082600181111561011257fe5b60ff16815260200191505060405180910390f35b505050565b60009190505600a165627a7a72305820b6892faa428c3a2238279b7e801ae729ff52e996a47ed6ea1050cc27c06154630029",
-  "deployedBytecode": "0x60606040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c3a34ad814610051578063ea727df4146100d6575b600080fd5b341561005c57600080fd5b6100d4600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803590602001908201803590602001908080601f01602080910402602001604051908101604052809392919081815260200183838082843782019150505050505091908035906020019091905050610126565b005b610102600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190505061012b565b6040518082600181111561011257fe5b60ff16815260200191505060405180910390f35b505050565b60009190505600a165627a7a72305820b6892faa428c3a2238279b7e801ae729ff52e996a47ed6ea1050cc27c06154630029",
-  "sourceMap": "27:351:1:-;;;;;;;;;;;;;;;;;",
-  "deployedSourceMap": "27:351:1:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;277:99;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;189:82;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;277:99;;;;:::o;189:82::-;252:11;189:82;;;:::o",
-  "source": "pragma solidity ^0.4.19;\n\n\ncontract Enigma {\n    enum ReturnValue {Ok, Error}\n\n    struct Account {\n        address contractAddress;\n        mapping(address => uint) depositEng;\n    }\n\n    function makeDeposit(address contractAddress) payable returns (ReturnValue){\n    }\n\n    function updateState(address contractAddress, bytes serializedValue, uint computationCost) {\n\n    }\n}\n",
+  "bytecode": "0x6060604052341561000f57600080fd5b61015e8061001e6000396000f30060606040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c3a34ad814610051578063ea727df4146100d6575b600080fd5b341561005c57600080fd5b6100d4600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803590602001908201803590602001908080601f01602080910402602001604051908101604052809392919081815260200183838082843782019150505050505091908035906020019091905050610126565b005b610102600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190505061012b565b6040518082600181111561011257fe5b60ff16815260200191505060405180910390f35b505050565b60009190505600a165627a7a7230582089e2723c31e813ad7c6b239332aa96a7c320b9e337c1050e73c6c0a89ac9b8910029",
+  "deployedBytecode": "0x60606040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c3a34ad814610051578063ea727df4146100d6575b600080fd5b341561005c57600080fd5b6100d4600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803590602001908201803590602001908080601f01602080910402602001604051908101604052809392919081815260200183838082843782019150505050505091908035906020019091905050610126565b005b610102600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190505061012b565b6040518082600181111561011257fe5b60ff16815260200191505060405180910390f35b505050565b60009190505600a165627a7a7230582089e2723c31e813ad7c6b239332aa96a7c320b9e337c1050e73c6c0a89ac9b8910029",
+  "sourceMap": "27:401:0:-;;;;;;;;;;;;;;;;;",
+  "deployedSourceMap": "27:401:0:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;322:104;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;234:82;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;322:104;;;;:::o;234:82::-;297:11;234:82;;;:::o",
+  "source": "pragma solidity ^0.4.19;\n\n\ncontract Enigma {\n    enum ReturnValue {Ok, Error}\n\n    struct Account {\n        address contractAddress;\n        mapping(address => uint) depositEng;\n        mapping(address => uint) depositEth;\n    }\n\n    function makeDeposit(address contractAddress) payable returns (ReturnValue){\n    }\n\n    function updateState(address contractAddress, bytes serializedValue, uint computationCost) pure {\n\n    }\n}\n",
   "sourcePath": "/Users/fredfortier/Code/enigma/coin-mixer-poc/dapp/contracts/Enigma.sol",
   "ast": {
     "absolutePath": "/Users/fredfortier/Code/enigma/coin-mixer-poc/dapp/contracts/Enigma.sol",
     "exportedSymbols": {
       "Enigma": [
-        700
+        34
       ]
     },
-    "id": 701,
+    "id": 35,
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 671,
+        "id": 1,
         "literals": [
           "solidity",
           "^",
@@ -68,7 +68,7 @@
           ".19"
         ],
         "nodeType": "PragmaDirective",
-        "src": "0:24:1"
+        "src": "0:24:0"
       },
       {
         "baseContracts": [],
@@ -76,45 +76,45 @@
         "contractKind": "contract",
         "documentation": null,
         "fullyImplemented": true,
-        "id": 700,
+        "id": 34,
         "linearizedBaseContracts": [
-          700
+          34
         ],
         "name": "Enigma",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "canonicalName": "Enigma.ReturnValue",
-            "id": 674,
+            "id": 4,
             "members": [
               {
-                "id": 672,
+                "id": 2,
                 "name": "Ok",
                 "nodeType": "EnumValue",
-                "src": "67:2:1"
+                "src": "67:2:0"
               },
               {
-                "id": 673,
+                "id": 3,
                 "name": "Error",
                 "nodeType": "EnumValue",
-                "src": "71:5:1"
+                "src": "71:5:0"
               }
             ],
             "name": "ReturnValue",
             "nodeType": "EnumDefinition",
-            "src": "49:28:1"
+            "src": "49:28:0"
           },
           {
             "canonicalName": "Enigma.Account",
-            "id": 681,
+            "id": 15,
             "members": [
               {
                 "constant": false,
-                "id": 676,
+                "id": 6,
                 "name": "contractAddress",
                 "nodeType": "VariableDeclaration",
-                "scope": 681,
-                "src": "108:23:1",
+                "scope": 15,
+                "src": "108:23:0",
                 "stateVariable": false,
                 "storageLocation": "default",
                 "typeDescriptions": {
@@ -122,10 +122,10 @@
                   "typeString": "address"
                 },
                 "typeName": {
-                  "id": 675,
+                  "id": 5,
                   "name": "address",
                   "nodeType": "ElementaryTypeName",
-                  "src": "108:7:1",
+                  "src": "108:7:0",
                   "typeDescriptions": {
                     "typeIdentifier": "t_address",
                     "typeString": "address"
@@ -136,11 +136,11 @@
               },
               {
                 "constant": false,
-                "id": 680,
+                "id": 10,
                 "name": "depositEng",
                 "nodeType": "VariableDeclaration",
-                "scope": 681,
-                "src": "141:35:1",
+                "scope": 15,
+                "src": "141:35:0",
                 "stateVariable": false,
                 "storageLocation": "default",
                 "typeDescriptions": {
@@ -148,28 +148,73 @@
                   "typeString": "mapping(address => uint256)"
                 },
                 "typeName": {
-                  "id": 679,
+                  "id": 9,
                   "keyType": {
-                    "id": 677,
+                    "id": 7,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "149:7:1",
+                    "src": "149:7:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
                       "typeString": "address"
                     }
                   },
                   "nodeType": "Mapping",
-                  "src": "141:24:1",
+                  "src": "141:24:0",
                   "typeDescriptions": {
                     "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
                     "typeString": "mapping(address => uint256)"
                   },
                   "valueType": {
-                    "id": 678,
+                    "id": 8,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "160:4:1",
+                    "src": "160:4:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14,
+                "name": "depositEth",
+                "nodeType": "VariableDeclaration",
+                "scope": 15,
+                "src": "186:35:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                  "typeString": "mapping(address => uint256)"
+                },
+                "typeName": {
+                  "id": 13,
+                  "keyType": {
+                    "id": 11,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "194:7:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "186:24:0",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                    "typeString": "mapping(address => uint256)"
+                  },
+                  "valueType": {
+                    "id": 12,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "205:4:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -182,18 +227,18 @@
             ],
             "name": "Account",
             "nodeType": "StructDefinition",
-            "scope": 700,
-            "src": "83:100:1",
+            "scope": 34,
+            "src": "83:145:0",
             "visibility": "public"
           },
           {
             "body": {
-              "id": 688,
+              "id": 22,
               "nodeType": "Block",
-              "src": "264:7:1",
+              "src": "309:7:0",
               "statements": []
             },
-            "id": 689,
+            "id": 23,
             "implemented": true,
             "isConstructor": false,
             "isDeclaredConst": false,
@@ -201,16 +246,16 @@
             "name": "makeDeposit",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 684,
+              "id": 18,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 683,
+                  "id": 17,
                   "name": "contractAddress",
                   "nodeType": "VariableDeclaration",
-                  "scope": 689,
-                  "src": "210:23:1",
+                  "scope": 23,
+                  "src": "255:23:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -218,10 +263,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 682,
+                    "id": 16,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "210:7:1",
+                    "src": "255:7:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
                       "typeString": "address"
@@ -231,35 +276,35 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "209:25:1"
+              "src": "254:25:0"
             },
             "payable": true,
             "returnParameters": {
-              "id": 687,
+              "id": 21,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 686,
+                  "id": 20,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 689,
-                  "src": "252:11:1",
+                  "scope": 23,
+                  "src": "297:11:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
-                    "typeIdentifier": "t_enum$_ReturnValue_$674",
+                    "typeIdentifier": "t_enum$_ReturnValue_$4",
                     "typeString": "enum Enigma.ReturnValue"
                   },
                   "typeName": {
                     "contractScope": null,
-                    "id": 685,
+                    "id": 19,
                     "name": "ReturnValue",
                     "nodeType": "UserDefinedTypeName",
-                    "referencedDeclaration": 674,
-                    "src": "252:11:1",
+                    "referencedDeclaration": 4,
+                    "src": "297:11:0",
                     "typeDescriptions": {
-                      "typeIdentifier": "t_enum$_ReturnValue_$674",
+                      "typeIdentifier": "t_enum$_ReturnValue_$4",
                       "typeString": "enum Enigma.ReturnValue"
                     }
                   },
@@ -267,39 +312,39 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "251:13:1"
+              "src": "296:13:0"
             },
-            "scope": 700,
-            "src": "189:82:1",
+            "scope": 34,
+            "src": "234:82:0",
             "stateMutability": "payable",
             "superFunction": null,
             "visibility": "public"
           },
           {
             "body": {
-              "id": 698,
+              "id": 32,
               "nodeType": "Block",
-              "src": "368:8:1",
+              "src": "418:8:0",
               "statements": []
             },
-            "id": 699,
+            "id": 33,
             "implemented": true,
             "isConstructor": false,
-            "isDeclaredConst": false,
+            "isDeclaredConst": true,
             "modifiers": [],
             "name": "updateState",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 696,
+              "id": 30,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 691,
+                  "id": 25,
                   "name": "contractAddress",
                   "nodeType": "VariableDeclaration",
-                  "scope": 699,
-                  "src": "298:23:1",
+                  "scope": 33,
+                  "src": "343:23:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -307,10 +352,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 690,
+                    "id": 24,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "298:7:1",
+                    "src": "343:7:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
                       "typeString": "address"
@@ -321,11 +366,11 @@
                 },
                 {
                   "constant": false,
-                  "id": 693,
+                  "id": 27,
                   "name": "serializedValue",
                   "nodeType": "VariableDeclaration",
-                  "scope": 699,
-                  "src": "323:21:1",
+                  "scope": 33,
+                  "src": "368:21:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -333,10 +378,10 @@
                     "typeString": "bytes memory"
                   },
                   "typeName": {
-                    "id": 692,
+                    "id": 26,
                     "name": "bytes",
                     "nodeType": "ElementaryTypeName",
-                    "src": "323:5:1",
+                    "src": "368:5:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_bytes_storage_ptr",
                       "typeString": "bytes storage pointer"
@@ -347,11 +392,11 @@
                 },
                 {
                   "constant": false,
-                  "id": 695,
+                  "id": 29,
                   "name": "computationCost",
                   "nodeType": "VariableDeclaration",
-                  "scope": 699,
-                  "src": "346:20:1",
+                  "scope": 33,
+                  "src": "391:20:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -359,10 +404,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 694,
+                    "id": 28,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "346:4:1",
+                    "src": "391:4:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -372,40 +417,40 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "297:70:1"
+              "src": "342:70:0"
             },
             "payable": false,
             "returnParameters": {
-              "id": 697,
+              "id": 31,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "368:0:1"
+              "src": "418:0:0"
             },
-            "scope": 700,
-            "src": "277:99:1",
-            "stateMutability": "nonpayable",
+            "scope": 34,
+            "src": "322:104:0",
+            "stateMutability": "pure",
             "superFunction": null,
             "visibility": "public"
           }
         ],
-        "scope": 701,
-        "src": "27:351:1"
+        "scope": 35,
+        "src": "27:401:0"
       }
     ],
-    "src": "0:379:1"
+    "src": "0:429:0"
   },
   "legacyAST": {
     "absolutePath": "/Users/fredfortier/Code/enigma/coin-mixer-poc/dapp/contracts/Enigma.sol",
     "exportedSymbols": {
       "Enigma": [
-        700
+        34
       ]
     },
-    "id": 701,
+    "id": 35,
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 671,
+        "id": 1,
         "literals": [
           "solidity",
           "^",
@@ -413,7 +458,7 @@
           ".19"
         ],
         "nodeType": "PragmaDirective",
-        "src": "0:24:1"
+        "src": "0:24:0"
       },
       {
         "baseContracts": [],
@@ -421,45 +466,45 @@
         "contractKind": "contract",
         "documentation": null,
         "fullyImplemented": true,
-        "id": 700,
+        "id": 34,
         "linearizedBaseContracts": [
-          700
+          34
         ],
         "name": "Enigma",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "canonicalName": "Enigma.ReturnValue",
-            "id": 674,
+            "id": 4,
             "members": [
               {
-                "id": 672,
+                "id": 2,
                 "name": "Ok",
                 "nodeType": "EnumValue",
-                "src": "67:2:1"
+                "src": "67:2:0"
               },
               {
-                "id": 673,
+                "id": 3,
                 "name": "Error",
                 "nodeType": "EnumValue",
-                "src": "71:5:1"
+                "src": "71:5:0"
               }
             ],
             "name": "ReturnValue",
             "nodeType": "EnumDefinition",
-            "src": "49:28:1"
+            "src": "49:28:0"
           },
           {
             "canonicalName": "Enigma.Account",
-            "id": 681,
+            "id": 15,
             "members": [
               {
                 "constant": false,
-                "id": 676,
+                "id": 6,
                 "name": "contractAddress",
                 "nodeType": "VariableDeclaration",
-                "scope": 681,
-                "src": "108:23:1",
+                "scope": 15,
+                "src": "108:23:0",
                 "stateVariable": false,
                 "storageLocation": "default",
                 "typeDescriptions": {
@@ -467,10 +512,10 @@
                   "typeString": "address"
                 },
                 "typeName": {
-                  "id": 675,
+                  "id": 5,
                   "name": "address",
                   "nodeType": "ElementaryTypeName",
-                  "src": "108:7:1",
+                  "src": "108:7:0",
                   "typeDescriptions": {
                     "typeIdentifier": "t_address",
                     "typeString": "address"
@@ -481,11 +526,11 @@
               },
               {
                 "constant": false,
-                "id": 680,
+                "id": 10,
                 "name": "depositEng",
                 "nodeType": "VariableDeclaration",
-                "scope": 681,
-                "src": "141:35:1",
+                "scope": 15,
+                "src": "141:35:0",
                 "stateVariable": false,
                 "storageLocation": "default",
                 "typeDescriptions": {
@@ -493,28 +538,73 @@
                   "typeString": "mapping(address => uint256)"
                 },
                 "typeName": {
-                  "id": 679,
+                  "id": 9,
                   "keyType": {
-                    "id": 677,
+                    "id": 7,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "149:7:1",
+                    "src": "149:7:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
                       "typeString": "address"
                     }
                   },
                   "nodeType": "Mapping",
-                  "src": "141:24:1",
+                  "src": "141:24:0",
                   "typeDescriptions": {
                     "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
                     "typeString": "mapping(address => uint256)"
                   },
                   "valueType": {
-                    "id": 678,
+                    "id": 8,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "160:4:1",
+                    "src": "160:4:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14,
+                "name": "depositEth",
+                "nodeType": "VariableDeclaration",
+                "scope": 15,
+                "src": "186:35:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                  "typeString": "mapping(address => uint256)"
+                },
+                "typeName": {
+                  "id": 13,
+                  "keyType": {
+                    "id": 11,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "194:7:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "186:24:0",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                    "typeString": "mapping(address => uint256)"
+                  },
+                  "valueType": {
+                    "id": 12,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "205:4:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -527,18 +617,18 @@
             ],
             "name": "Account",
             "nodeType": "StructDefinition",
-            "scope": 700,
-            "src": "83:100:1",
+            "scope": 34,
+            "src": "83:145:0",
             "visibility": "public"
           },
           {
             "body": {
-              "id": 688,
+              "id": 22,
               "nodeType": "Block",
-              "src": "264:7:1",
+              "src": "309:7:0",
               "statements": []
             },
-            "id": 689,
+            "id": 23,
             "implemented": true,
             "isConstructor": false,
             "isDeclaredConst": false,
@@ -546,16 +636,16 @@
             "name": "makeDeposit",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 684,
+              "id": 18,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 683,
+                  "id": 17,
                   "name": "contractAddress",
                   "nodeType": "VariableDeclaration",
-                  "scope": 689,
-                  "src": "210:23:1",
+                  "scope": 23,
+                  "src": "255:23:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -563,10 +653,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 682,
+                    "id": 16,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "210:7:1",
+                    "src": "255:7:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
                       "typeString": "address"
@@ -576,35 +666,35 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "209:25:1"
+              "src": "254:25:0"
             },
             "payable": true,
             "returnParameters": {
-              "id": 687,
+              "id": 21,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 686,
+                  "id": 20,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 689,
-                  "src": "252:11:1",
+                  "scope": 23,
+                  "src": "297:11:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
-                    "typeIdentifier": "t_enum$_ReturnValue_$674",
+                    "typeIdentifier": "t_enum$_ReturnValue_$4",
                     "typeString": "enum Enigma.ReturnValue"
                   },
                   "typeName": {
                     "contractScope": null,
-                    "id": 685,
+                    "id": 19,
                     "name": "ReturnValue",
                     "nodeType": "UserDefinedTypeName",
-                    "referencedDeclaration": 674,
-                    "src": "252:11:1",
+                    "referencedDeclaration": 4,
+                    "src": "297:11:0",
                     "typeDescriptions": {
-                      "typeIdentifier": "t_enum$_ReturnValue_$674",
+                      "typeIdentifier": "t_enum$_ReturnValue_$4",
                       "typeString": "enum Enigma.ReturnValue"
                     }
                   },
@@ -612,39 +702,39 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "251:13:1"
+              "src": "296:13:0"
             },
-            "scope": 700,
-            "src": "189:82:1",
+            "scope": 34,
+            "src": "234:82:0",
             "stateMutability": "payable",
             "superFunction": null,
             "visibility": "public"
           },
           {
             "body": {
-              "id": 698,
+              "id": 32,
               "nodeType": "Block",
-              "src": "368:8:1",
+              "src": "418:8:0",
               "statements": []
             },
-            "id": 699,
+            "id": 33,
             "implemented": true,
             "isConstructor": false,
-            "isDeclaredConst": false,
+            "isDeclaredConst": true,
             "modifiers": [],
             "name": "updateState",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 696,
+              "id": 30,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 691,
+                  "id": 25,
                   "name": "contractAddress",
                   "nodeType": "VariableDeclaration",
-                  "scope": 699,
-                  "src": "298:23:1",
+                  "scope": 33,
+                  "src": "343:23:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -652,10 +742,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 690,
+                    "id": 24,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "298:7:1",
+                    "src": "343:7:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
                       "typeString": "address"
@@ -666,11 +756,11 @@
                 },
                 {
                   "constant": false,
-                  "id": 693,
+                  "id": 27,
                   "name": "serializedValue",
                   "nodeType": "VariableDeclaration",
-                  "scope": 699,
-                  "src": "323:21:1",
+                  "scope": 33,
+                  "src": "368:21:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -678,10 +768,10 @@
                     "typeString": "bytes memory"
                   },
                   "typeName": {
-                    "id": 692,
+                    "id": 26,
                     "name": "bytes",
                     "nodeType": "ElementaryTypeName",
-                    "src": "323:5:1",
+                    "src": "368:5:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_bytes_storage_ptr",
                       "typeString": "bytes storage pointer"
@@ -692,11 +782,11 @@
                 },
                 {
                   "constant": false,
-                  "id": 695,
+                  "id": 29,
                   "name": "computationCost",
                   "nodeType": "VariableDeclaration",
-                  "scope": 699,
-                  "src": "346:20:1",
+                  "scope": 33,
+                  "src": "391:20:0",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -704,10 +794,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 694,
+                    "id": 28,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "346:4:1",
+                    "src": "391:4:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -717,27 +807,27 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "297:70:1"
+              "src": "342:70:0"
             },
             "payable": false,
             "returnParameters": {
-              "id": 697,
+              "id": 31,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "368:0:1"
+              "src": "418:0:0"
             },
-            "scope": 700,
-            "src": "277:99:1",
-            "stateMutability": "nonpayable",
+            "scope": 34,
+            "src": "322:104:0",
+            "stateMutability": "pure",
             "superFunction": null,
             "visibility": "public"
           }
         ],
-        "scope": 701,
-        "src": "27:351:1"
+        "scope": 35,
+        "src": "27:401:0"
       }
     ],
-    "src": "0:379:1"
+    "src": "0:429:0"
   },
   "compiler": {
     "name": "solc",
@@ -745,5 +835,5 @@
   },
   "networks": {},
   "schemaVersion": "2.0.0",
-  "updatedAt": "2018-03-15T04:52:40.471Z"
+  "updatedAt": "2018-03-20T21:29:53.276Z"
 }

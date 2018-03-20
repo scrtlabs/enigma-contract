@@ -112,8 +112,16 @@ contract CoinMixer {
             deal.fullyFunded = true;
             DealFullyFunded(dealId);
 
+            // For now, I'm adding adding the dealId as the first argument.
+            // The logic looks like this: f(bytes32 dealId, bytes32 encryptedDestAddresses1, bytes32 encryptedDestAddresses1, ...)
+            // This works fine until we have to support more than one dynamic array.
+            bytes32[] memory args = new bytes32[](deal.encryptedDestAddresses.length + 1);
+            args[0] = bytes32(dealId);
+            for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
+                args[i + 1] = deal.encryptedDestAddresses[i];
+            }
             // Calls the Enigma computation
-            SecretCall("mixAddresses", deal.encryptedDestAddresses, "distribute", 0);
+            SecretCall("mixAddresses", args, "distribute", 0);
         }
         return ReturnValue.Ok;
     }

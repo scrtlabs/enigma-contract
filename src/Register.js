@@ -185,7 +185,7 @@ class Register extends Component {
     render () {
         return (
             <MuiThemeProvider theme={theme}>
-                <div>
+                <div style={{background: '#eee'}}>
                     <AppBar position="static" color="primary">
                         <Toolbar style={{
                             display: 'flex',
