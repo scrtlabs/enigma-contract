@@ -1,7 +1,6 @@
 import React, {Component} from 'react'
 import CoinMixerContract from '../build/contracts/CoinMixer.json'
 import getWeb3 from './utils/getWeb3'
-import utils from 'web3-utils'
 
 
 import './css/oswald.css'
@@ -13,11 +12,11 @@ import MenuIcon from 'material-ui-icons/Menu';
 import AppBar from "material-ui/AppBar";
 import Toolbar from "material-ui/Toolbar";
 import Typography from "material-ui/Typography";
-import {MuiThemeProvider, createMuiTheme} from 'material-ui/styles';
+import {createMuiTheme, MuiThemeProvider} from 'material-ui/styles';
 import blue from 'material-ui/colors/blue';
 import ContractTable from './ContractTable';
 import ComputationTable from './ComputationTable';
-import ChainEvents from './services/ChainEvents';
+import MockNetwork from './services/MockNetwork';
 
 
 const theme = createMuiTheme ({
@@ -39,7 +38,8 @@ class Register extends Component {
             deployedContracts: [],
             selectedContracts: [],
             filters: [],
-            events: []
+            events: [],
+            network: null
         }
     }
 
@@ -50,8 +50,7 @@ class Register extends Component {
         // Is there is an injected web3 instance?
         // This uses Metamask if available
         getWeb3.then (results => {
-            this.setState ({ web3: results.web3 }, () => this.instantiateContract ());
-
+            this.setState ({ web3: results.web3 }, this.instantiateContract);
         }).catch (() => {
             console.log ('Error finding web3.')
         });
@@ -76,10 +75,13 @@ class Register extends Component {
 
             coinMixer.deployed ().then ((instance) => {
                 this.setState ({ contract: instance }, () => {
+                    // Fetching contracts to populate the table
                     this.findContracts ()
                         .then ((contracts) => {
-                            this.setState ({ contracts: contracts }, () => this.fetchContracts ());
+                            this.setState ({ contracts: contracts }, this.fetchContracts);
                         });
+                    //Subscribing to our Network
+                    this.subscribeEventUpdates ();
                 });
             });
         });
@@ -149,7 +151,7 @@ class Register extends Component {
                 if (result.event === 'SecretCall') {
                     allEvents.push (result);
                     console.log ('pushing events', allEvents);
-                    this.fetchEventMappings (allEvents);
+                    this.state.network.registerEvents (allEvents);
                 }
             });
 
@@ -161,7 +163,7 @@ class Register extends Component {
                     }
                 });
                 console.log ('pushing events', allEvents);
-                this.fetchEventMappings (allEvents);
+                this.state.network.registerEvents (allEvents);
             });
 
             filters.push (events);
@@ -170,38 +172,13 @@ class Register extends Component {
         this.setState ({ filters: filters });
     };
 
-    fetchEventMappings = (allEvents) => {
-        function createData (tx, blockNumber, callable, status, validation, validation_req, cost_eng, cost_eth) {
-            return {
-                id: tx,
-                blockNumber,
-                callable,
-                status,
-                validation,
-                validation_req,
-                cost_eng,
-                cost_eth
-            };
-        }
+    subscribeEventUpdates = () => {
+        this.state.network = new MockNetwork (this.state.web3, this.state.accounts, this.state.contract);
 
-        let events = this.state.events;
-        allEvents.forEach ((evt) => {
-            let index = events.findIndex (e => e.transactionHash === evt.id && e.blockNumber === evt.blockNumber);
-            if (index !== -1 && events.status === 3) {
-                return;
-            }
-
-            let callable = this.state.web3.toUtf8 (evt.args.callable);
-            let event = createData (evt.transactionHash, evt.blockNumber, callable, 0, 0, 10, 1, 0.001);
-            if (index !== -1) {
-                events[index] = event;
-            } else {
-                events.push (event);
-            }
+        let token = this.state.network.addListener ('change', (events) => {
+            console.log ('got updated events', events);
+            this.setState ({ events: events });
         });
-        events.sort ((a, b) => (b.blockNumber < a.blockNumber ? -1 : 1))
-        events.sort ((a, b) => (b.status < a.status ? -1 : 1))
-        this.setState ({ events: events });
     };
 
 

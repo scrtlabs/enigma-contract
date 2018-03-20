@@ -50,6 +50,8 @@
   },
   "dependencies": {
     "dotenv": "^2.0.0",
+    "fbemitter": "^2.1.1",
+    "js-cookie": "^2.2.0",
     "material-ui": "^1.0.0-beta.37",
     "material-ui-icons": "^1.0.0-beta.36",
     "moment": "^2.21.0",

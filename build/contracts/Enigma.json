@@ -1,0 +1,749 @@
+{
+  "contractName": "Enigma",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "type": "address"
+        }
+      ],
+      "name": "makeDeposit",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "contractAddress",
+          "type": "address"
+        },
+        {
+          "name": "serializedValue",
+          "type": "bytes"
+        },
+        {
+          "name": "computationCost",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateState",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6060604052341561000f57600080fd5b61015e8061001e6000396000f30060606040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c3a34ad814610051578063ea727df4146100d6575b600080fd5b341561005c57600080fd5b6100d4600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803590602001908201803590602001908080601f01602080910402602001604051908101604052809392919081815260200183838082843782019150505050505091908035906020019091905050610126565b005b610102600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190505061012b565b6040518082600181111561011257fe5b60ff16815260200191505060405180910390f35b505050565b60009190505600a165627a7a72305820b6892faa428c3a2238279b7e801ae729ff52e996a47ed6ea1050cc27c06154630029",
+  "deployedBytecode": "0x60606040526004361061004c576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff168063c3a34ad814610051578063ea727df4146100d6575b600080fd5b341561005c57600080fd5b6100d4600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803590602001908201803590602001908080601f01602080910402602001604051908101604052809392919081815260200183838082843782019150505050505091908035906020019091905050610126565b005b610102600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190505061012b565b6040518082600181111561011257fe5b60ff16815260200191505060405180910390f35b505050565b60009190505600a165627a7a72305820b6892faa428c3a2238279b7e801ae729ff52e996a47ed6ea1050cc27c06154630029",
+  "sourceMap": "27:351:1:-;;;;;;;;;;;;;;;;;",
+  "deployedSourceMap": "27:351:1:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;277:99;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;189:82;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;277:99;;;;:::o;189:82::-;252:11;189:82;;;:::o",
+  "source": "pragma solidity ^0.4.19;\n\n\ncontract Enigma {\n    enum ReturnValue {Ok, Error}\n\n    struct Account {\n        address contractAddress;\n        mapping(address => uint) depositEng;\n    }\n\n    function makeDeposit(address contractAddress) payable returns (ReturnValue){\n    }\n\n    function updateState(address contractAddress, bytes serializedValue, uint computationCost) {\n\n    }\n}\n",
+  "sourcePath": "/Users/fredfortier/Code/enigma/coin-mixer-poc/dapp/contracts/Enigma.sol",
+  "ast": {
+    "absolutePath": "/Users/fredfortier/Code/enigma/coin-mixer-poc/dapp/contracts/Enigma.sol",
+    "exportedSymbols": {
+      "Enigma": [
+        700
+      ]
+    },
+    "id": 701,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 671,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".19"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:1"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 700,
+        "linearizedBaseContracts": [
+          700
+        ],
+        "name": "Enigma",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "canonicalName": "Enigma.ReturnValue",
+            "id": 674,
+            "members": [
+              {
+                "id": 672,
+                "name": "Ok",
+                "nodeType": "EnumValue",
+                "src": "67:2:1"
+              },
+              {
+                "id": 673,
+                "name": "Error",
+                "nodeType": "EnumValue",
+                "src": "71:5:1"
+              }
+            ],
+            "name": "ReturnValue",
+            "nodeType": "EnumDefinition",
+            "src": "49:28:1"
+          },
+          {
+            "canonicalName": "Enigma.Account",
+            "id": 681,
+            "members": [
+              {
+                "constant": false,
+                "id": 676,
+                "name": "contractAddress",
+                "nodeType": "VariableDeclaration",
+                "scope": 681,
+                "src": "108:23:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                },
+                "typeName": {
+                  "id": 675,
+                  "name": "address",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "108:7:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 680,
+                "name": "depositEng",
+                "nodeType": "VariableDeclaration",
+                "scope": 681,
+                "src": "141:35:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                  "typeString": "mapping(address => uint256)"
+                },
+                "typeName": {
+                  "id": 679,
+                  "keyType": {
+                    "id": 677,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "149:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "141:24:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                    "typeString": "mapping(address => uint256)"
+                  },
+                  "valueType": {
+                    "id": 678,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "160:4:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              }
+            ],
+            "name": "Account",
+            "nodeType": "StructDefinition",
+            "scope": 700,
+            "src": "83:100:1",
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 688,
+              "nodeType": "Block",
+              "src": "264:7:1",
+              "statements": []
+            },
+            "id": 689,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "makeDeposit",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 684,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 683,
+                  "name": "contractAddress",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 689,
+                  "src": "210:23:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 682,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "210:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "209:25:1"
+            },
+            "payable": true,
+            "returnParameters": {
+              "id": 687,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 686,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 689,
+                  "src": "252:11:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_enum$_ReturnValue_$674",
+                    "typeString": "enum Enigma.ReturnValue"
+                  },
+                  "typeName": {
+                    "contractScope": null,
+                    "id": 685,
+                    "name": "ReturnValue",
+                    "nodeType": "UserDefinedTypeName",
+                    "referencedDeclaration": 674,
+                    "src": "252:11:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_enum$_ReturnValue_$674",
+                      "typeString": "enum Enigma.ReturnValue"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "251:13:1"
+            },
+            "scope": 700,
+            "src": "189:82:1",
+            "stateMutability": "payable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 698,
+              "nodeType": "Block",
+              "src": "368:8:1",
+              "statements": []
+            },
+            "id": 699,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "updateState",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 696,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 691,
+                  "name": "contractAddress",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 699,
+                  "src": "298:23:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 690,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "298:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 693,
+                  "name": "serializedValue",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 699,
+                  "src": "323:21:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes_memory_ptr",
+                    "typeString": "bytes memory"
+                  },
+                  "typeName": {
+                    "id": 692,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "323:5:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes storage pointer"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 695,
+                  "name": "computationCost",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 699,
+                  "src": "346:20:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 694,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "346:4:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "297:70:1"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 697,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "368:0:1"
+            },
+            "scope": 700,
+            "src": "277:99:1",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 701,
+        "src": "27:351:1"
+      }
+    ],
+    "src": "0:379:1"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/fredfortier/Code/enigma/coin-mixer-poc/dapp/contracts/Enigma.sol",
+    "exportedSymbols": {
+      "Enigma": [
+        700
+      ]
+    },
+    "id": 701,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 671,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".19"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:1"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 700,
+        "linearizedBaseContracts": [
+          700
+        ],
+        "name": "Enigma",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "canonicalName": "Enigma.ReturnValue",
+            "id": 674,
+            "members": [
+              {
+                "id": 672,
+                "name": "Ok",
+                "nodeType": "EnumValue",
+                "src": "67:2:1"
+              },
+              {
+                "id": 673,
+                "name": "Error",
+                "nodeType": "EnumValue",
+                "src": "71:5:1"
+              }
+            ],
+            "name": "ReturnValue",
+            "nodeType": "EnumDefinition",
+            "src": "49:28:1"
+          },
+          {
+            "canonicalName": "Enigma.Account",
+            "id": 681,
+            "members": [
+              {
+                "constant": false,
+                "id": 676,
+                "name": "contractAddress",
+                "nodeType": "VariableDeclaration",
+                "scope": 681,
+                "src": "108:23:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                },
+                "typeName": {
+                  "id": 675,
+                  "name": "address",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "108:7:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 680,
+                "name": "depositEng",
+                "nodeType": "VariableDeclaration",
+                "scope": 681,
+                "src": "141:35:1",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                  "typeString": "mapping(address => uint256)"
+                },
+                "typeName": {
+                  "id": 679,
+                  "keyType": {
+                    "id": 677,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "149:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "141:24:1",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                    "typeString": "mapping(address => uint256)"
+                  },
+                  "valueType": {
+                    "id": 678,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "160:4:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              }
+            ],
+            "name": "Account",
+            "nodeType": "StructDefinition",
+            "scope": 700,
+            "src": "83:100:1",
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 688,
+              "nodeType": "Block",
+              "src": "264:7:1",
+              "statements": []
+            },
+            "id": 689,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "makeDeposit",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 684,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 683,
+                  "name": "contractAddress",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 689,
+                  "src": "210:23:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 682,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "210:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "209:25:1"
+            },
+            "payable": true,
+            "returnParameters": {
+              "id": 687,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 686,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 689,
+                  "src": "252:11:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_enum$_ReturnValue_$674",
+                    "typeString": "enum Enigma.ReturnValue"
+                  },
+                  "typeName": {
+                    "contractScope": null,
+                    "id": 685,
+                    "name": "ReturnValue",
+                    "nodeType": "UserDefinedTypeName",
+                    "referencedDeclaration": 674,
+                    "src": "252:11:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_enum$_ReturnValue_$674",
+                      "typeString": "enum Enigma.ReturnValue"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "251:13:1"
+            },
+            "scope": 700,
+            "src": "189:82:1",
+            "stateMutability": "payable",
+            "superFunction": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 698,
+              "nodeType": "Block",
+              "src": "368:8:1",
+              "statements": []
+            },
+            "id": 699,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "updateState",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 696,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 691,
+                  "name": "contractAddress",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 699,
+                  "src": "298:23:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 690,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "298:7:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 693,
+                  "name": "serializedValue",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 699,
+                  "src": "323:21:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes_memory_ptr",
+                    "typeString": "bytes memory"
+                  },
+                  "typeName": {
+                    "id": 692,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "323:5:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes storage pointer"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 695,
+                  "name": "computationCost",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 699,
+                  "src": "346:20:1",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 694,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "346:4:1",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "297:70:1"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 697,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "368:0:1"
+            },
+            "scope": 700,
+            "src": "277:99:1",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 701,
+        "src": "27:351:1"
+      }
+    ],
+    "src": "0:379:1"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.4.19+commit.c4cbbb05.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "2.0.0",
+  "updatedAt": "2018-03-15T04:52:40.471Z"
+}
