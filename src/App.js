@@ -191,7 +191,7 @@ class App extends Component {
             value: depositInWei
         })
             .then ((result) => {
-                debugger;
+
                 for (var i = 0; i < result.logs.length; i++) {
                     var log = result.logs[i];
 

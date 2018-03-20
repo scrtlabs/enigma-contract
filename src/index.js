@@ -1,8 +1,19 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import App from './App'
+import Register from './Register'
+import {BrowserRouter as Router, Route} from 'react-router-dom';
 
-ReactDOM.render(
-  <App />,
-  document.getElementById('root')
+
+const RouterMapping = () => (
+    <Router>
+        <div>
+            <Route exact path='/' component={Register}/>
+            <Route path='/mixer' component={App}/>
+        </div>
+    </Router>
+);
+ReactDOM.render (
+    <RouterMapping/>,
+    document.getElementById ('root')
 );
