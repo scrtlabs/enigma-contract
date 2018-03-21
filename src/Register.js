@@ -138,7 +138,7 @@ class Register extends Component {
         let allEvents = [];
         let filters = [];
         let contracts = this.state.selectedContracts.map (i => this.state.deployedContracts[i]);
-        contracts.forEach ((contract) => {
+        contracts.forEach (contract => {
             // watch for an event with {some: 'args'}
             let event = this.state.web3.sha3 ('SecretCall(bytes32,bytes32[],bytes32,uint)');
             let events = contract.allEvents ({
@@ -151,7 +151,7 @@ class Register extends Component {
                 if (result.event === 'SecretCall') {
                     allEvents.push (result);
                     console.log ('pushing events', allEvents);
-                    this.state.network.registerEvents (allEvents);
+                    this.state.network.registerEvents (contract.address, allEvents);
                 }
             });
 
@@ -163,7 +163,7 @@ class Register extends Component {
                     }
                 });
                 console.log ('pushing events', allEvents);
-                this.state.network.registerEvents (allEvents);
+                this.state.network.registerEvents (contract.address, allEvents);
             });
 
             filters.push (events);
@@ -181,11 +181,31 @@ class Register extends Component {
         });
     };
 
+    signComputation = (event) => {
+        let contract = this.state.deployedContracts.find (c => c.address === event.address);
+        let account = this.state.accounts[0];
+        // TODO: help web3 arrange and cast argument by reading the function definition
+        let args = [event.args[0], [event.args[1]]];
+        let params = [{
+            from: account,
+            gas: 9712388,
+            gasPrice: 1000000000
+        }];
+        params = args.concat (params);
+        debugger;
+        contract[event.callback].apply (contract, params)
+            .then ((result) => {
+                debugger;
+            }, (err) => {
+                console.error ('unable to commit back', err);
+                debugger;
+            });
+    };
 
     render () {
         return (
             <MuiThemeProvider theme={theme}>
-                <div style={{background: '#eee'}}>
+                <div style={{ background: '#eee' }}>
                     <AppBar position="static" color="primary">
                         <Toolbar style={{
                             display: 'flex',
@@ -212,6 +232,7 @@ class Register extends Component {
                         ></ContractTable>
                         <ComputationTable
                             data={this.state.events}
+                            onSign={this.signComputation}
                         ></ComputationTable>
                     </div>
 

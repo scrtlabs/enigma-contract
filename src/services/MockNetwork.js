@@ -17,11 +17,14 @@ class MockNetwork extends EventEmitter {
         this.simulateValidators ();
     }
 
-    createData = (tx, blockNumber, callable, status, validation, validation_req, cost_eng, cost_eth) => {
+    createData = (tx, address, blockNumber, callable, args, callback, status, validation, validation_req, cost_eng, cost_eth) => {
         return {
             id: tx,
+            address,
             blockNumber,
             callable,
+            args,
+            callback,
             status,
             validation,
             validation_req,
@@ -30,7 +33,7 @@ class MockNetwork extends EventEmitter {
         };
     };
 
-    registerEvents = (allEvents) => {
+    registerEvents = (address, allEvents) => {
         let filteredEvents = [];
         allEvents.forEach ((evt) => {
             let index = this.events.findIndex (e => e.transactionHash === evt.id && e.blockNumber === evt.blockNumber);
@@ -41,7 +44,15 @@ class MockNetwork extends EventEmitter {
 
         filteredEvents.forEach ((evt) => {
             let callable = this.web3.toUtf8 (evt.args.callable);
-            let event = this.createData (evt.transactionHash, evt.blockNumber, callable, 0, 0, 10, 1, 0.001);
+            let args = evt.args.callableArgs.map (arg => {
+                try {
+                    return this.web3.toUtf8 (arg);
+                } catch (err) {
+                    return arg;
+                }
+            });
+            let callback = this.web3.toUtf8 (evt.args.callback);
+            let event = this.createData (evt.transactionHash, address, evt.blockNumber, callable, args, callback, 0, 0, 10, 1, 0.001);
 
             this.events.push (event);
         });

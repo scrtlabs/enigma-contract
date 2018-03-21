@@ -16,6 +16,8 @@ import CheckCircleIcon from 'material-ui-icons/CheckCircle';
 import KeyboardArrowLeft from 'material-ui-icons/KeyboardArrowLeft';
 import KeyboardArrowRight from 'material-ui-icons/KeyboardArrowRight';
 import LastPageIcon from 'material-ui-icons/LastPage';
+import {CircularProgress} from 'material-ui/Progress';
+
 
 const actionsStyles = theme => ({
     root: {
@@ -142,19 +144,37 @@ class ComputationTable extends React.Component {
 
     };
 
-    getStatusName = (status) => {
+    handleSign = (event) => {
+        this.props.onSign (event);
+    };
+
+    getStatusElement = (event, status, validation, validation_req) => {
         let name;
         switch (status) {
             case 1:
                 name = <TableCell>Assigned</TableCell>;
                 break;
             case 2:
-                name = <TableCell>Validating</TableCell>;
+                name = <TableCell>
+                    <CircularProgress style={{ float: 'right' }}
+                                      variant="static"
+                                      value={validation / validation_req * 100}
+                                      size={25}
+                    />
+                </TableCell>;
                 break;
             case 3:
                 name =
-                    <TableCell style={{ padding: 0 }}>
-                        <IconButton aria-label="Sign">
+                    <TableCell style={{
+                        float: 'right',
+                        paddingTop: 0,
+                        paddingBottom: 0
+                    }}>
+
+                        <IconButton
+                            aria-label="Sign"
+                            onClick={evt => this.handleSign (event)}
+                        >
                             <CheckCircleIcon/>
                         </IconButton>
                     </TableCell>;
@@ -196,7 +216,7 @@ class ComputationTable extends React.Component {
                                             {n.blockNumber}
                                         </TableCell>
                                         <TableCell>{n.callable}</TableCell>
-                                        {this.getStatusName (n.status)}
+                                        {this.getStatusElement (n, n.status, n.validation, n.validation_req)}
                                         <TableCell>{'(' + n.validation + ' / ' + n.validation_req + ')'}</TableCell>
                                         <TableCell numeric>
                                             {n.cost_eng}

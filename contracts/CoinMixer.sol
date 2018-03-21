@@ -27,7 +27,7 @@ contract CoinMixer {
 
     event NewDeal(address indexed user, uint indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
     event Deposit(address indexed _depositor, uint indexed _dealId, bytes32 _encryptedDestAddress, uint _value, bool _success, string _err);
-    event Distribute(address[] indexed _destAddresses, uint indexed _dealId, bool _success, string _err);
+    event Distribute(uint indexed _dealId, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
     event FailedTransfer(address indexed to, uint256 value);
@@ -68,6 +68,20 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
+    function uintToBytes(uint v) private pure returns (bytes32 ret) {
+        if (v == 0) {
+            ret = '0';
+        }
+        else {
+            while (v > 0) {
+                ret = bytes32(uint(ret) / (2 ** 8));
+                ret |= bytes32(((v % 10) + 48) * 2 ** (8 * 31));
+                v /= 10;
+            }
+        }
+        return ret;
+    }
+
     function makeDeposit(uint dealId, bytes32 encryptedDestAddress) public payable returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
@@ -103,8 +117,8 @@ contract CoinMixer {
         // actual deposit
         deal.depositSum += msg.value;
         deal.deposit[msg.sender] = msg.value;
+        deal.encryptedDestAddresses[deal.numDeposits] = encryptedDestAddress;
         deal.numDeposits += 1;
-        deal.encryptedDestAddresses.push(encryptedDestAddress);
 
         Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, true, "all good");
 
@@ -115,8 +129,8 @@ contract CoinMixer {
             // For now, I'm adding adding the dealId as the first argument.
             // The logic looks like this: f(bytes32 dealId, bytes32 encryptedDestAddresses1, bytes32 encryptedDestAddresses1, ...)
             // This works fine until we have to support more than one dynamic array.
-            bytes32[] memory args = new bytes32[](deal.encryptedDestAddresses.length + 1);
-            args[0] = bytes32(dealId);
+            bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
+            args[0] = uintToBytes(dealId);
             for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
                 args[i + 1] = deal.encryptedDestAddresses[i];
             }
@@ -131,7 +145,7 @@ contract CoinMixer {
         return (dealId, destAddresses);
     }
 
-    function distribute(uint dealId, address[] destAddresses) private returns (ReturnValue){
+    function distribute(uint dealId, address[] destAddresses) public returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
 
@@ -155,17 +169,15 @@ contract CoinMixer {
             errorDetected = true;
         }
         if (errorDetected) {
-            Distribute(deal.destAddresses, dealId, false, error);
+            Distribute(dealId, false, error);
             return ReturnValue.Error;
         }
 
-        uint256 i = 0;
-        while (i < deal.destAddresses.length) {
+        for (uint i = 0; i < deal.destAddresses.length; i++) {
             deal.destAddresses[i].transfer(deal.depositSum);
-            i++;
         }
 
-        Distribute(deal.destAddresses, dealId, true, "all good");
+        Distribute(dealId, true, "all good");
         return ReturnValue.Ok;
     }
 
