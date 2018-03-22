@@ -1,5 +1,7 @@
-var CoinMixer = artifacts.require("CoinMixer.sol");
+var CoinMixer = artifacts.require ("CoinMixer.sol");
+var Enigma = artifacts.require ("Enigma.sol");
 
 module.exports = function (deployer) {
-    deployer.deploy(CoinMixer);
+    deployer.deploy (Enigma);
+    deployer.deploy (CoinMixer);
 };

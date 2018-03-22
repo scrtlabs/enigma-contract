@@ -17,6 +17,7 @@ import blue from 'material-ui/colors/blue';
 import ContractTable from './ContractTable';
 import ComputationTable from './ComputationTable';
 import MockNetwork from './services/MockNetwork';
+import TxModal from './TxDialog';
 
 
 const theme = createMuiTheme ({
@@ -39,7 +40,9 @@ class Register extends Component {
             selectedContracts: [],
             filters: [],
             events: [],
-            network: null
+            network: null,
+            txModalOpen: false,
+            lastEvent: {}
         }
     }
 
@@ -188,18 +191,29 @@ class Register extends Component {
         let args = [event.args[0], [event.args[1]]];
         let params = [{
             from: account,
-            gas: 9712388,
+            gas: 971238,
             gasPrice: 1000000000
         }];
         params = args.concat (params);
         debugger;
         contract[event.callback].apply (contract, params)
             .then ((result) => {
-                debugger;
+                let event = result.logs[0];
+                console.log ('new deal created', event);
+                if (event.args._success) {
+                    this.setState ({ lastEvent: event }, () => this.openTxModal ());
+                }
             }, (err) => {
                 console.error ('unable to commit back', err);
                 debugger;
             });
+    };
+    openTxModal = () => {
+        this.setState ({ txModalOpen: true });
+    };
+
+    closeTxModal = () => {
+        this.setState ({ txModalOpen: false });
     };
 
     render () {
@@ -236,6 +250,12 @@ class Register extends Component {
                         ></ComputationTable>
                     </div>
 
+                    <TxModal
+                        open={this.state.txModalOpen}
+                        evt={this.state.lastEvent}
+                        onClose={this.closeTxModal}
+                    >
+                    </TxModal>
                 </div>
             </MuiThemeProvider>
         );
