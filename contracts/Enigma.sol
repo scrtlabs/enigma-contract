@@ -27,16 +27,17 @@ contract Enigma is SafeMath {
     struct SecretContract {
         bytes32 name;
         mapping(address => uint) balance;
-        mapping(bytes32 => mapping(address => uint)) computations; // The key is the signature of each computations, the values are the fees
+        mapping(bytes32 => mapping(address => uint)) computations; // Computation hash mapped to fees
     }
 
     mapping(address => SecretContract) _secretContracts;
-    mapping(address => uint) bank;
-    mapping(address => mapping(address => uint)) public validators; // funds assigned to validators
+    mapping(address => uint) _bank;
+    mapping(address => uint) public _validators; // funds assigned to validators
 
     event Register(address secretContract, bytes32 name, bool _success);
     event Deposit(address secretContract, address user, address token, uint amount, uint balance, bool _success);
     event Withdraw(address secretContract, address user, address token, uint amount, uint balance, bool _success);
+    event ApplyComputations(address secretContract, bytes32 hashes, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -54,8 +55,25 @@ contract Enigma is SafeMath {
         Register(secretContract, name, true);
     }
 
-    function debitComputations() {
+    function applyComputations(address secretContract, bytes32[] hashes, mapping(address => uint)[] fees, address[][] validators) {
+        SecretContract sc = _secretContracts[secretContract];
+        if (sc.name == "") revert();
 
+        for (uint i = 0; i < hashes.length; i++) {
+            sc.computations[hashes[i]] = fees[i];
+
+            // Divide the ENG computation fees between validators
+            // TODO: reward the worker
+            uint reward = fees[i][0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4] / validators[i].length;
+            for (uint iv = 0; iv < validators[i].length; iv++) {
+                if (_validators[validators[i][iv]] > 0) {
+                    _validators[validators[i][iv]] = safeAdd(_validators[validators[i][iv]], reward);
+                } else {
+                    _validators[validators[i][iv]] = reward;
+                }
+            }
+        }
+        ApplyComputations(secretContract, hashes, true);
     }
 
     function depositToken(address secretContract, address token, uint amount) {
