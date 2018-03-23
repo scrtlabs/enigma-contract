@@ -1,7 +1,8 @@
 pragma solidity ^0.4.19;
 
+import "./EnigmaLib.sol";
 
-contract CoinMixer {
+contract CoinMixer is EnigmaLib {
     struct Deal {
         bytes32 title;
         mapping(address => uint) deposit;
@@ -34,8 +35,6 @@ contract CoinMixer {
 
     event DealFullyFunded(uint indexed _dealId);
 
-    // The generic Enigma computation event
-    event SecretCall(bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint max_cost);
 
     // TODO: switch to require() once it accepts a message parameter
     enum ReturnValue {Ok, Error}
@@ -134,8 +133,7 @@ contract CoinMixer {
             for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
                 args[i + 1] = deal.encryptedDestAddresses[i];
             }
-            // Calls the Enigma computation
-            SecretCall("mixAddresses", args, "distribute", 0);
+            compute("mixAddresses", args, "distribute", 0);
         }
         return ReturnValue.Ok;
     }

@@ -55,25 +55,34 @@ contract Enigma is SafeMath {
         Register(secretContract, name, true);
     }
 
-    function applyComputations(address secretContract, bytes32[] hashes, mapping(address => uint)[] fees, address[][] validators) {
-        SecretContract sc = _secretContracts[secretContract];
-        if (sc.name == "") revert();
+    //    function applyComputations(address secretContract, bytes32[] hashes, mapping(address => uint)[] fees, address[][] validators) {
+    //        SecretContract sc = _secretContracts[secretContract];
+    //        if (sc.name == "") revert();
+    //
+    ////        for (uint i = 0; i < hashes.length; i++) {
+    ////            sc.computations[hashes[i]] = fees[i];
+    ////
+    ////            // Divide the ENG computation fees between validators
+    ////            // TODO: reward the worker
+    ////            uint reward = fees[i][0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4] / validators[i].length;
+    ////            for (uint iv = 0; iv < validators[i].length; iv++) {
+    ////                if (_validators[validators[i][iv]] > 0) {
+    ////                    _validators[validators[i][iv]] = safeAdd(_validators[validators[i][iv]], reward);
+    ////                } else {
+    ////                    _validators[validators[i][iv]] = reward;
+    ////                }
+    ////            }
+    ////        }
+    ////        ApplyComputations(secretContract, hashes, true);
+    //    }
 
-        for (uint i = 0; i < hashes.length; i++) {
-            sc.computations[hashes[i]] = fees[i];
+    function handleDeposit(address secretContract, address user) public payable returns (ReturnValue){
+//        SecretContract sc = _secretContracts[secretContract];
+//        if (sc.name == "") revert();
 
-            // Divide the ENG computation fees between validators
-            // TODO: reward the worker
-            uint reward = fees[i][0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4] / validators[i].length;
-            for (uint iv = 0; iv < validators[i].length; iv++) {
-                if (_validators[validators[i][iv]] > 0) {
-                    _validators[validators[i][iv]] = safeAdd(_validators[validators[i][iv]], reward);
-                } else {
-                    _validators[validators[i][iv]] = reward;
-                }
-            }
-        }
-        ApplyComputations(secretContract, hashes, true);
+        address token = 0x0000000000000000000000000000000000000000;
+        Deposit(secretContract, user, token, msg.value, msg.value, true);
+        return ReturnValue.Ok;
     }
 
     function depositToken(address secretContract, address token, uint amount) {
