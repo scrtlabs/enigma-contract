@@ -43,10 +43,12 @@ contract CoinMixer {
 
     function CoinMixer() public {
         // TODO: consider externalizing in library
-        enigma = Enigma(0xf12b5dd4ead5f743c6baa640b0216200e89b60da);
+        enigma = Enigma(0x74e3fc764c2474f25369b9d021b7f92e8441a2dc);
     }
 
-    function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants) public returns (ReturnValue) {
+    function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants)
+    public
+    returns (ReturnValue) {
         uint dealId = _deals.length;
 
         _deals.length++;
@@ -85,7 +87,10 @@ contract CoinMixer {
         return ret;
     }
 
-    function makeDeposit(uint dealId, bytes32 encryptedDestAddress) public payable returns (ReturnValue){
+    function makeDeposit(uint dealId, bytes32 encryptedDestAddress)
+    public
+    payable
+    returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
         // validations
@@ -142,18 +147,23 @@ contract CoinMixer {
             // 1. Decrypt arguments
             // 2. Apply service parameters
             // TODO: pass randomization parameters
-            enigma.compute.value(msg.value)(this, "mixAddresses", args, "distribute");
+            //            enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute");
         }
         return ReturnValue.Ok;
     }
 
-    function mixAddresses(uint dealId, address[] destAddresses) public pure returns (uint, address[]) {
+    function mixAddresses(uint dealId, address[] destAddresses)
+    public
+    pure
+    returns (uint, address[]) {
         // TODO: put mixing logic here
         //        random()
         return (dealId, destAddresses);
     }
 
-    function distribute(uint dealId, address[] destAddresses) public returns (ReturnValue){
+    function distribute(uint dealId, address[] destAddresses)
+    public
+    returns (ReturnValue){
         bool errorDetected = false;
         string memory error;
 
@@ -167,6 +177,7 @@ contract CoinMixer {
             errorDetected = true;
         }
         if (errorDetected) {
+            Distribute(dealId, false, error);
             return ReturnValue.Error;
         }
         deal.destAddresses = destAddresses;

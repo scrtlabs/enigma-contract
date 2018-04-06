@@ -57,15 +57,15 @@ contract ('CoinMixer', function (accounts) {
             assert.equal (event.args._success, true, "Determined participation successfully.");
         });
     });
-    it ("...distributing.", function () {
-        return CoinMixer.deployed ().then (function (instance) {
-            coinMixerInstance = instance;
-
-            return coinMixerInstance.distribute (0, ['0xf08df3efdd854fede77ed3b2e515090eee765154'], { from: accounts[0] });
-        }).then (function (result) {
-            let event = result.logs[0];
-            console.log ('the result:', JSON.stringify (event));
-            assert.equal (event.args._success, true, "Distributed successfully.");
-        });
-    });
+    // it ("...distributing.", function () {
+    //     return CoinMixer.deployed ().then (function (instance) {
+    //         coinMixerInstance = instance;
+    //
+    //         return coinMixerInstance.distribute (0, ['0xf08df3efdd854fede77ed3b2e515090eee765154'], { from: accounts[0] });
+    //     }).then (function (result) {
+    //         let event = result.logs[0];
+    //         console.log ('the result:', JSON.stringify (event));
+    //         assert.equal (event.args._success, true, "Distributed successfully.");
+    //     });
+    // });
 });
