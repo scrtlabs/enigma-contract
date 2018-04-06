@@ -24,16 +24,22 @@ contract SafeMath {
 }
 
 contract Enigma is SafeMath {
+    struct Computation {
+        address worker;
+        bytes32 proof;
+        uint reward;
+    }
+
     struct SecretContract {
         bytes32 name;
-        mapping(address => uint) balance;
-        mapping(bytes32 => mapping(address => uint)) computations; // Computation hash mapped to fees
+        uint balance;
+        mapping(address => Computation) computations; // Computation hash mapped to fees
     }
 
     struct Worker {
         bytes32 pkey;
         bytes32 quote;
-        uint stake;
+        uint balance;
         uint rate;
         uint reward;
     }
@@ -44,10 +50,14 @@ contract Enigma is SafeMath {
     mapping(address => uint) _bank;
     mapping(address => uint) public _validators; // funds assigned to validators
 
+    event RegisterContract(address secretContract, bytes32 name, bool _success);
+    event RegisterWorker(address user, bytes32 pkey, uint rate, bool _success);
+    event UpdateRate(address user, uint rate, bool _success);
+
     event Register(address secretContract, bytes32 name, bool _success);
-    event Deposit(address secretContract, address user, address token, uint amount, uint balance, bool _success);
-    event Withdraw(address secretContract, address user, address token, uint amount, uint balance, bool _success);
-    event ApplyComputations(address secretContract, bytes32 hashes, bool _success);
+    event Deposit(address secretContract, address user, uint amount, uint balance, bool _success);
+    event Withdraw(address user, uint amount, uint balance, bool _success);
+    event ApplyComputation(address secretContract, address worker, bytes32 proof, uint reward, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -61,8 +71,10 @@ contract Enigma is SafeMath {
 
         _workers[user].pkey = pkey;
         _workers[user].quote = quote;
-        _workers[user].stake = msg.value;
+        _workers[user].balance = msg.value;
         _workers[user].rate = rate;
+
+        RegisterWorker(user, pkey, rate, true);
     }
 
     function updateRate(address user, uint rate) {
@@ -70,38 +82,19 @@ contract Enigma is SafeMath {
         require(_workers[user] != "");
 
         _workers[user].rate = rate;
+
+        UpdateRate(user, rate, true);
     }
 
     function registerContract(address secretContract, bytes32 name) {
+        // Register a secret contract
         require(_secretContracts[secretContract].name == "");
 
         _secretContracts[secretContract].name = name;
-        _secretContracts[secretContract].balance[0x0000000000000000000000000000000000000000] = 0;
-        _secretContracts[secretContract].balance[0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4] = 0;
+        _secretContracts[secretContract].balance = 0;
 
-        Register(secretContract, name, true);
+        RegisterContract(secretContract, name, true);
     }
-
-    //    function applyComputations(address secretContract, bytes32[] hashes, mapping(address => uint)[] fees, address[][] validators) {
-    //        SecretContract sc = _secretContracts[secretContract];
-    //        if (sc.name == "") revert();
-    //
-    ////        for (uint i = 0; i < hashes.length; i++) {
-    ////            sc.computations[hashes[i]] = fees[i];
-    ////
-    ////            // Divide the ENG computation fees between validators
-    ////            // TODO: reward the worker
-    ////            uint reward = fees[i][0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4] / validators[i].length;
-    ////            for (uint iv = 0; iv < validators[i].length; iv++) {
-    ////                if (_validators[validators[i][iv]] > 0) {
-    ////                    _validators[validators[i][iv]] = safeAdd(_validators[validators[i][iv]], reward);
-    ////                } else {
-    ////                    _validators[validators[i][iv]] = reward;
-    ////                }
-    ////            }
-    ////        }
-    ////        ApplyComputations(secretContract, hashes, true);
-    //    }
 
     modifier contractRegistered(address secretContract) {
         SecretContract memory sc = _secretContracts[secretContract];
@@ -109,42 +102,58 @@ contract Enigma is SafeMath {
         _;
     }
 
-    function handleDeposit(address secretContract, address user)
-    external
-    payable
-    contractRegistered(secretContract)
-    returns (ReturnValue){
-        address token = 0x0000000000000000000000000000000000000000;
-        Deposit(secretContract, user, token, msg.value, msg.value, true);
-        return ReturnValue.Ok;
+    modifier workerRegistered(address user) {
+        Worker memory worker = _workers[user];
+        require(worker.pkey != "");
+        _;
     }
 
-
-    function depositToken(address secretContract, address token)
+    function deposit(address secretContract)
     public
     payable
     contractRegistered(secretContract)
     returns (ReturnValue) {
+        // Deposit tokens to a smart contract for computation
         require(msg.value > 0);
 
         SecretContract storage sc = _secretContracts[secretContract];
         sc.balance[token] = safeAdd(sc.balance[token], msg.value);
-        Deposit(secretContract, msg.sender, token, msg.value, sc.balance[token], true);
+        Deposit(secretContract, msg.sender, msg.value, sc.balance[token], true);
         return ReturnValue.Ok;
     }
 
-    function withdrawToken(address secretContract, address token, uint amount)
+    function withdraw(uint amount)
+    public
+    workerRegistered(msg.sender)
+    returns (ReturnValue) {
+        // Withdraw from stake and rewards balance
+        Worker storage worker = _workers[msg.sender];
+        require(worker.balance > amount);
+
+        worker.balance = safeSub(worker.balance, amount);
+        msg.sender.transfer(amount);
+
+        Withdraw(msg.sender, amount, worker.balance[token], true);
+    }
+
+
+    function applyComputation(address secretContract, bytes32 proof, uint reward)
     public
     contractRegistered(secretContract)
+    workerRegistered(msg.sender)
     returns (ReturnValue) {
-        // TODO: implement support for the ENG token
-        require(token == 0x0000000000000000000000000000000000000000);
-
+        // Record executed computation and distribute rewards
         SecretContract storage sc = _secretContracts[secretContract];
-        require(sc.balance[token] > amount);
+        Worker storage worker = _workers[msg.sender];
 
-        sc.balance[token] = safeSub(sc.balance[token], amount);
-        msg.sender.transfer(amount);
-        Withdraw(secretContract, msg.sender, token, amount, sc.balance[token], true);
+        require(sc.balance > reward);
+
+        sc.computations[secretContract].worker = msg.sender;
+        sc.computations[secretContract].proof = proof;
+        sc.computations[secretContract].reward = reward;
+
+        worker.balance = safeAdd(worker.balance, reward);
+
+        ApplyComputation(secretContract, msg.sender, proof, reward, true);
     }
 }
