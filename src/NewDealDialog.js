@@ -1,5 +1,4 @@
 import React from 'react';
-import Button from 'material-ui/Button';
 import TextField from 'material-ui/TextField';
 import Dialog, {
     DialogActions,
@@ -7,6 +6,7 @@ import Dialog, {
     DialogContentText,
     DialogTitle,
 } from 'material-ui/Dialog';
+import Button from 'material-ui/Button';
 
 class NewDealDialog extends React.Component {
     constructor (props) {
@@ -16,7 +16,8 @@ class NewDealDialog extends React.Component {
 
     state = {
         open: false,
-        newDeal: {}
+        newDeal: {},
+        activeStep: 0
     };
 
     componentWillReceiveProps (nextProps) {
@@ -30,7 +31,7 @@ class NewDealDialog extends React.Component {
 
     handleClose = () => {
         this.setState ({ open: false });
-        this.props.onClose()
+        this.props.onClose ()
     };
 
     updateDealState (event) {
@@ -51,7 +52,7 @@ class NewDealDialog extends React.Component {
                 onClose={evt => this.handleClose ()}
             >
                 <DialogTitle>
-                    Create Mixer
+                    Create Deal
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText>You are about to initiate a new

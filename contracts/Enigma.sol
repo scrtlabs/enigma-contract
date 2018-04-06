@@ -30,7 +30,17 @@ contract Enigma is SafeMath {
         mapping(bytes32 => mapping(address => uint)) computations; // Computation hash mapped to fees
     }
 
+    struct Worker {
+        bytes32 pkey;
+        bytes32 quote;
+        uint stake;
+        uint rate;
+        uint reward;
+    }
+
+    mapping(address => Worker) _workers;
     mapping(address => SecretContract) _secretContracts;
+
     mapping(address => uint) _bank;
     mapping(address => uint) public _validators; // funds assigned to validators
 
@@ -45,8 +55,25 @@ contract Enigma is SafeMath {
 
     }
 
-    function register(address secretContract, bytes32 name) {
-        if (_secretContracts[secretContract].name != "") revert();
+    function registerWorker(address user, bytes32 pkey, bytes32 quote, uint rate) {
+        // Register a new worker and collect stake
+        require(_workers[user] == "");
+
+        _workers[user].pkey = pkey;
+        _workers[user].quote = quote;
+        _workers[user].stake = msg.value;
+        _workers[user].rate = rate;
+    }
+
+    function updateRate(address user, uint rate) {
+        // Update the ENG/GAS rate
+        require(_workers[user] != "");
+
+        _workers[user].rate = rate;
+    }
+
+    function registerContract(address secretContract, bytes32 name) {
+        require(_secretContracts[secretContract].name == "");
 
         _secretContracts[secretContract].name = name;
         _secretContracts[secretContract].balance[0x0000000000000000000000000000000000000000] = 0;
@@ -76,33 +103,45 @@ contract Enigma is SafeMath {
     ////        ApplyComputations(secretContract, hashes, true);
     //    }
 
-    function handleDeposit(address secretContract, address user) public payable returns (ReturnValue){
-//        SecretContract sc = _secretContracts[secretContract];
-//        if (sc.name == "") revert();
+    modifier contractRegistered(address secretContract) {
+        SecretContract memory sc = _secretContracts[secretContract];
+        require(sc.name != "");
+        _;
+    }
 
+    function handleDeposit(address secretContract, address user)
+    external
+    payable
+    contractRegistered(secretContract)
+    returns (ReturnValue){
         address token = 0x0000000000000000000000000000000000000000;
         Deposit(secretContract, user, token, msg.value, msg.value, true);
         return ReturnValue.Ok;
     }
 
-    function depositToken(address secretContract, address token, uint amount) {
-        if (token == 0) revert();
 
-        SecretContract sc = _secretContracts[secretContract];
-        if (sc.name == "") revert();
+    function depositToken(address secretContract, address token)
+    public
+    payable
+    contractRegistered(secretContract)
+    returns (ReturnValue) {
+        require(msg.value > 0);
 
-        sc.balance[token] = safeAdd(sc.balance[token], amount);
-        Deposit(secretContract, msg.sender, token, amount, sc.balance[token], true);
+        SecretContract storage sc = _secretContracts[secretContract];
+        sc.balance[token] = safeAdd(sc.balance[token], msg.value);
+        Deposit(secretContract, msg.sender, token, msg.value, sc.balance[token], true);
+        return ReturnValue.Ok;
     }
 
-    function withdrawToken(address secretContract, address token, uint amount) {
+    function withdrawToken(address secretContract, address token, uint amount)
+    public
+    contractRegistered(secretContract)
+    returns (ReturnValue) {
         // TODO: implement support for the ENG token
-        if (secretContract != 0x0000000000000000000000000000000000000000) revert();
-        if (amount == 0) revert();
+        require(token == 0x0000000000000000000000000000000000000000);
 
-        SecretContract sc = _secretContracts[secretContract];
-        if (sc.name == "") revert();
-        if (sc.balance[token] < amount) revert();
+        SecretContract storage sc = _secretContracts[secretContract];
+        require(sc.balance[token] > amount);
 
         sc.balance[token] = safeSub(sc.balance[token], amount);
         msg.sender.transfer(amount);

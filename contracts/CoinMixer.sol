@@ -133,13 +133,17 @@ contract CoinMixer is EnigmaLib {
             for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
                 args[i + 1] = deal.encryptedDestAddresses[i];
             }
-            compute("mixAddresses", args, "distribute", 0);
+            // Pre-processing
+            // 1. Decrypt arguments
+            // 2. Apply service parameters
+            compute("mixAddresses", args, "distribute", 0, {randomize: 1});
         }
         return ReturnValue.Ok;
     }
 
     function mixAddresses(uint dealId, address[] destAddresses) public pure returns (uint, address[]) {
         // TODO: put mixing logic here
+        random()
         return (dealId, destAddresses);
     }
 
