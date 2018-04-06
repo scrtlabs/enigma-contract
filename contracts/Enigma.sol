@@ -24,7 +24,8 @@ contract SafeMath {
 }
 
 contract Enigma is SafeMath {
-    struct Computation {
+    struct Task {
+        uint taskId;
         address worker;
         bytes32 proof;
         uint reward;
@@ -33,7 +34,7 @@ contract Enigma is SafeMath {
     struct SecretContract {
         bytes32 name;
         uint balance;
-        mapping(address => Computation) computations; // Computation hash mapped to fees
+        Task[] tasks; // Computation hash mapped to fees
     }
 
     struct Worker {
@@ -41,7 +42,7 @@ contract Enigma is SafeMath {
         bytes32 quote;
         uint balance;
         uint rate;
-        uint reward;
+        uint status;
     }
 
     address[] _workerIndex;
@@ -58,7 +59,7 @@ contract Enigma is SafeMath {
     event SolveTask(address secretContract, address worker, bytes32 proof, uint reward, bool _success);
 
     // Enigma computation task
-    event Task(address callingContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint max_fee, bool _success);
+    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint max_fee, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -78,34 +79,55 @@ contract Enigma is SafeMath {
         _;
     }
 
-    function registerWorker(address user, bytes32 pkey, bytes32 quote, uint rate)
+    function registerWorker(bytes32 pkey, bytes32 quote, uint rate)
     public
     returns (ReturnValue) {
         // Register a new worker and collect stake
-        require(_workers[user].pkey == "");
+        require(_workers[msg.sender].pkey == "");
 
-        _workerIndex.push(user);
+        _workerIndex.push(msg.sender);
 
-        _workers[user].pkey = pkey;
-        _workers[user].quote = quote;
-        _workers[user].balance = msg.value;
-        _workers[user].rate = rate;
+        _workers[msg.sender].pkey = pkey;
+        _workers[msg.sender].quote = quote;
+        _workers[msg.sender].balance = msg.value;
+        _workers[msg.sender].rate = rate;
+        _workers[msg.sender].status = 0;
 
-        RegisterWorker(user, pkey, rate, true);
+        RegisterWorker(msg.sender, pkey, rate, true);
 
         return ReturnValue.Ok;
     }
 
-    function updateRate(address user, uint rate)
+    function login()
     public
-    workerRegistered(user)
+    workerRegistered(msg.sender)
+    returns (ReturnValue) {
+        // A worker accepts tasks
+        _workers[msg.sender].status = 1;
+
+        return ReturnValue.Ok;
+    }
+
+    function logout()
+    public
+    workerRegistered(msg.sender)
+    returns (ReturnValue) {
+        // A worker stops accepting tasks
+        _workers[msg.sender].status = 0;
+
+        return ReturnValue.Ok;
+    }
+
+    function updateRate(uint rate)
+    public
+    workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Update the ENG/GAS rate
-        require(_workers[user].pkey != "");
+        require(_workers[msg.sender].pkey != "");
 
-        _workers[user].rate = rate;
+        _workers[msg.sender].rate = rate;
 
-        UpdateRate(user, rate, true);
+        UpdateRate(msg.sender, rate, true);
 
         return ReturnValue.Ok;
     }
@@ -160,36 +182,47 @@ contract Enigma is SafeMath {
     function compute(address user, address secretContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback)
     public
     payable
-        //    contractRegistered(secretContract)
+    contractRegistered(secretContract)
     returns (ReturnValue) {
+        require(msg.value > 0);
+
+        // Each registered has a bank which holds computation deposits
         // Deposit fee amount in the specified contract bank
-        // Emit the task event
-        //        require(msg.value > 0);
-        //
-        //        SecretContract storage sc = _secretContracts[secretContract];
-        //        sc.balance = safeAdd(sc.balance, msg.value);
-        //
-        //        Deposit(secretContract, msg.sender, msg.value, sc.balance, true);
-        //        Task(secretContract, callable, callableArgs, callback, msg.value, true);
+        SecretContract storage sc = _secretContracts[secretContract];
+        sc.balance = safeAdd(sc.balance, msg.value);
+
+        Deposit(secretContract, msg.sender, msg.value, sc.balance, true);
+
+        // Each task invoked by a contract has a sequential id
+        uint taskId = sc.tasks.length;
+        sc.tasks.length++;
+
+        // Emit the ComputeTask event which each node is watching for
+        ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, true);
 
         return ReturnValue.Ok;
     }
 
-    function solveTask(address secretContract, bytes32 proof, uint reward)
+    function solveTask(address secretContract, uint taskId, bytes32 proof, uint reward)
     public
     contractRegistered(secretContract)
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Record executed computation and distribute rewards
         SecretContract storage sc = _secretContracts[secretContract];
-        Worker storage worker = _workers[msg.sender];
-
+        // The contract must hold enough fund to distribute reward
         require(sc.balance > reward);
+        // Task must be solved only once
+        require(sc.tasks[taskId].worker == address(0));
 
-        sc.computations[secretContract].worker = msg.sender;
-        sc.computations[secretContract].proof = proof;
-        sc.computations[secretContract].reward = reward;
+        // Keep a trace of the task worker and proof
+        sc.tasks[taskId].worker = msg.sender;
+        sc.tasks[taskId].proof = proof;
+        sc.tasks[taskId].reward = reward;
 
+        // Put the reward in the worker's bank
+        // He can withdraw later
+        Worker storage worker = _workers[msg.sender];
         worker.balance = safeAdd(worker.balance, reward);
 
         SolveTask(secretContract, msg.sender, proof, reward, true);
@@ -219,14 +252,13 @@ contract Enigma is SafeMath {
     public
     view
     workerRegistered(msg.sender)
-    returns (bytes32[5]){
+    returns (bytes32[4]){
         // Returns data about the specified worker
         Worker memory worker = _workers[user];
 
         bytes32 strBalance = bytes32(worker.balance);
         bytes32 strRate = bytes32(worker.rate);
-        bytes32 strReward = bytes32(worker.reward);
 
-        return [worker.pkey, worker.quote, strBalance, strRate, strReward];
+        return [worker.pkey, worker.quote, strBalance, strRate];
     }
 }
