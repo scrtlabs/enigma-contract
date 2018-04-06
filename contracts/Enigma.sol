@@ -47,53 +47,20 @@ contract Enigma is SafeMath {
     mapping(address => Worker) _workers;
     mapping(address => SecretContract) _secretContracts;
 
-    mapping(address => uint) _bank;
-    mapping(address => uint) public _validators; // funds assigned to validators
-
     event RegisterContract(address secretContract, bytes32 name, bool _success);
     event RegisterWorker(address user, bytes32 pkey, uint rate, bool _success);
     event UpdateRate(address user, uint rate, bool _success);
-
-    event Register(address secretContract, bytes32 name, bool _success);
     event Deposit(address secretContract, address user, uint amount, uint balance, bool _success);
     event Withdraw(address user, uint amount, uint balance, bool _success);
     event ApplyComputation(address secretContract, address worker, bytes32 proof, uint reward, bool _success);
+
+    // Enigma computation task
+    event Task(address callingContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint max_fee, bool _success);
 
     enum ReturnValue {Ok, Error}
 
     function Enigma() public {
 
-    }
-
-    function registerWorker(address user, bytes32 pkey, bytes32 quote, uint rate) {
-        // Register a new worker and collect stake
-        require(_workers[user] == "");
-
-        _workers[user].pkey = pkey;
-        _workers[user].quote = quote;
-        _workers[user].balance = msg.value;
-        _workers[user].rate = rate;
-
-        RegisterWorker(user, pkey, rate, true);
-    }
-
-    function updateRate(address user, uint rate) {
-        // Update the ENG/GAS rate
-        require(_workers[user] != "");
-
-        _workers[user].rate = rate;
-
-        UpdateRate(user, rate, true);
-    }
-
-    function registerContract(address secretContract, bytes32 name) {
-        // Register a secret contract
-        require(_secretContracts[secretContract].name == "");
-
-        _secretContracts[secretContract].name = name;
-        _secretContracts[secretContract].balance = 0;
-
-        RegisterContract(secretContract, name, true);
     }
 
     modifier contractRegistered(address secretContract) {
@@ -108,7 +75,51 @@ contract Enigma is SafeMath {
         _;
     }
 
-    function deposit(address secretContract)
+    function registerWorker(address user, bytes32 pkey, bytes32 quote, uint rate)
+    public
+    returns (ReturnValue) {
+        // Register a new worker and collect stake
+        require(_workers[user].pkey == "");
+
+        _workers[user].pkey = pkey;
+        _workers[user].quote = quote;
+        _workers[user].balance = msg.value;
+        _workers[user].rate = rate;
+
+        RegisterWorker(user, pkey, rate, true);
+
+        return ReturnValue.Ok;
+    }
+
+    function updateRate(address user, uint rate)
+    public
+    workerRegistered(user)
+    returns (ReturnValue) {
+        // Update the ENG/GAS rate
+        require(_workers[user].pkey != "");
+
+        _workers[user].rate = rate;
+
+        UpdateRate(user, rate, true);
+
+        return ReturnValue.Ok;
+    }
+
+    function registerContract(address secretContract, bytes32 name)
+    public
+    returns (ReturnValue) {
+        // Register a secret contract
+        require(_secretContracts[secretContract].name == "");
+
+        _secretContracts[secretContract].name = name;
+        _secretContracts[secretContract].balance = 0;
+
+        RegisterContract(secretContract, name, true);
+
+        return ReturnValue.Ok;
+    }
+
+    function deposit(address secretContract, uint amount)
     public
     payable
     contractRegistered(secretContract)
@@ -117,8 +128,9 @@ contract Enigma is SafeMath {
         require(msg.value > 0);
 
         SecretContract storage sc = _secretContracts[secretContract];
-        sc.balance[token] = safeAdd(sc.balance[token], msg.value);
-        Deposit(secretContract, msg.sender, msg.value, sc.balance[token], true);
+        sc.balance = safeAdd(sc.balance, amount);
+        Deposit(secretContract, msg.sender, amount, sc.balance, true);
+
         return ReturnValue.Ok;
     }
 
@@ -133,9 +145,28 @@ contract Enigma is SafeMath {
         worker.balance = safeSub(worker.balance, amount);
         msg.sender.transfer(amount);
 
-        Withdraw(msg.sender, amount, worker.balance[token], true);
+        Withdraw(msg.sender, amount, worker.balance, true);
+
+        return ReturnValue.Ok;
     }
 
+    function compute(address secretContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback)
+    public
+    payable
+    contractRegistered(secretContract)
+    returns (ReturnValue) {
+        // Deposit fee amount in the specified contract bank
+        // Emit the task event
+        require(msg.value > 0);
+
+        SecretContract storage sc = _secretContracts[secretContract];
+        sc.balance = safeAdd(sc.balance, msg.value);
+
+        Deposit(secretContract, msg.sender, msg.value, sc.balance, true);
+        Task(secretContract, callable, callableArgs, callback, msg.value, true);
+
+        return ReturnValue.Ok;
+    }
 
     function applyComputation(address secretContract, bytes32 proof, uint reward)
     public
@@ -155,5 +186,7 @@ contract Enigma is SafeMath {
         worker.balance = safeAdd(worker.balance, reward);
 
         ApplyComputation(secretContract, msg.sender, proof, reward, true);
+
+        return ReturnValue.Ok;
     }
 }

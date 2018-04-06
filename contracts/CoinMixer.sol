@@ -1,8 +1,10 @@
 pragma solidity ^0.4.19;
 
-import "./EnigmaLib.sol";
+import "./Enigma.sol";
 
-contract CoinMixer is EnigmaLib {
+contract CoinMixer {
+    Enigma enigma;
+
     struct Deal {
         bytes32 title;
         mapping(address => uint) deposit;
@@ -40,6 +42,8 @@ contract CoinMixer is EnigmaLib {
     enum ReturnValue {Ok, Error}
 
     function CoinMixer() public {
+        // TODO: consider externalizing in library
+        enigma = Enigma(0xf12b5dd4ead5f743c6baa640b0216200e89b60da);
     }
 
     function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants) public returns (ReturnValue) {
@@ -125,6 +129,7 @@ contract CoinMixer is EnigmaLib {
             deal.fullyFunded = true;
             DealFullyFunded(dealId);
 
+            // TODO: consider encapsulating param encoding in library
             // For now, I'm adding adding the dealId as the first argument.
             // The logic looks like this: f(bytes32 dealId, bytes32 encryptedDestAddresses1, bytes32 encryptedDestAddresses1, ...)
             // This works fine until we have to support more than one dynamic array.
@@ -136,14 +141,15 @@ contract CoinMixer is EnigmaLib {
             // Pre-processing
             // 1. Decrypt arguments
             // 2. Apply service parameters
-            compute("mixAddresses", args, "distribute", 0, {randomize: 1});
+            // TODO: pass randomization parameters
+            enigma.compute.value(msg.value)(this, "mixAddresses", args, "distribute");
         }
         return ReturnValue.Ok;
     }
 
     function mixAddresses(uint dealId, address[] destAddresses) public pure returns (uint, address[]) {
         // TODO: put mixing logic here
-        random()
+        //        random()
         return (dealId, destAddresses);
     }
 
