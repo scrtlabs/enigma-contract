@@ -32,20 +32,20 @@ contract Enigma is SafeMath {
     }
 
     struct Worker {
-        bytes32 pkey;
-        bytes32 quote;
+        string pkey;
+        string quote;
         uint balance;
         uint rate;
-        uint status;
+        uint status; // Uninitialized: 0; Inactive:1; Active: 2
     }
 
-    address[] _workerIndex;
-    mapping(address => Worker) _workers;
+    address[] public workerIndex;
+    mapping(address => Worker) public workers;
+    mapping(address => Task[]) public tasks;
 
-    address[] _contractIndex;
-    mapping(address => Task[]) _tasks;
-
-    event Register(address user, bytes32 pkey, uint rate, bool _success);
+    event Register(address user, string pkey, uint rate, bool _success);
+    event Login(address user, bool _success);
+    event Logout(address user, bool _success);
     event UpdateRate(address user, uint rate, bool _success);
     event Deposit(address secretContract, address user, uint amount, uint balance, bool _success);
     event Withdraw(address user, uint amount, uint balance, bool _success);
@@ -61,24 +61,24 @@ contract Enigma is SafeMath {
     }
 
     modifier workerRegistered(address user) {
-        Worker memory worker = _workers[user];
-        require(worker.pkey != "");
+        Worker memory worker = workers[user];
+        require(worker.status > 0);
         _;
     }
 
-    function register(bytes32 pkey, bytes32 quote, uint rate)
+    function register(string pkey, string quote, uint rate)
     public
     returns (ReturnValue) {
         // Register a new worker and collect stake
-        require(_workers[msg.sender].pkey == "");
+        require(workers[msg.sender].status == 0);
 
-        _workerIndex.push(msg.sender);
+        workerIndex.push(msg.sender);
 
-        _workers[msg.sender].pkey = pkey;
-        _workers[msg.sender].quote = quote;
-        _workers[msg.sender].balance = msg.value;
-        _workers[msg.sender].rate = rate;
-        _workers[msg.sender].status = 0;
+        workers[msg.sender].pkey = pkey;
+        workers[msg.sender].quote = quote;
+        workers[msg.sender].balance = msg.value;
+        workers[msg.sender].rate = rate;
+        workers[msg.sender].status = 1;
 
         Register(msg.sender, pkey, rate, true);
 
@@ -90,7 +90,9 @@ contract Enigma is SafeMath {
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // A worker accepts tasks
-        _workers[msg.sender].status = 1;
+        workers[msg.sender].status = 2;
+
+        Login(msg.sender, true);
 
         return ReturnValue.Ok;
     }
@@ -100,7 +102,9 @@ contract Enigma is SafeMath {
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // A worker stops accepting tasks
-        _workers[msg.sender].status = 0;
+        workers[msg.sender].status = 1;
+
+        Logout(msg.sender, true);
 
         return ReturnValue.Ok;
     }
@@ -110,9 +114,7 @@ contract Enigma is SafeMath {
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Update the ENG/GAS rate
-        require(_workers[msg.sender].pkey != "");
-
-        _workers[msg.sender].rate = rate;
+        workers[msg.sender].rate = rate;
 
         UpdateRate(msg.sender, rate, true);
 
@@ -124,7 +126,7 @@ contract Enigma is SafeMath {
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Withdraw from stake and rewards balance
-        Worker storage worker = _workers[msg.sender];
+        Worker storage worker = workers[msg.sender];
         require(worker.balance > amount);
 
         worker.balance = safeSub(worker.balance, amount);
@@ -142,9 +144,9 @@ contract Enigma is SafeMath {
         require(msg.value > 0);
 
         // Each task invoked by a contract has a sequential id
-        uint taskId = _tasks[secretContract].length;
-        _tasks[secretContract].length++;
-        _tasks[secretContract][taskId].reward = msg.value;
+        uint taskId = tasks[secretContract].length;
+        tasks[secretContract].length++;
+        tasks[secretContract][taskId].reward = msg.value;
 
         // Emit the ComputeTask event which each node is watching for
         ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, true);
@@ -157,55 +159,24 @@ contract Enigma is SafeMath {
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
-        require(_tasks[secretContract][taskId].worker == address(0));
+        require(tasks[secretContract][taskId].worker == address(0));
 
         // The contract must hold enough fund to distribute reward
-        uint reward = _tasks[secretContract][taskId].reward;
+        // TODO: validate that the reward matches the opcodes computed
+        uint reward = tasks[secretContract][taskId].reward;
         require(reward > 0);
 
         // Keep a trace of the task worker and proof
-        _tasks[secretContract][taskId].worker = msg.sender;
-        _tasks[secretContract][taskId].proof = proof;
+        tasks[secretContract][taskId].worker = msg.sender;
+        tasks[secretContract][taskId].proof = proof;
 
         // Put the reward in the worker's bank
         // He can withdraw later
-        Worker storage worker = _workers[msg.sender];
+        Worker storage worker = workers[msg.sender];
         worker.balance = safeAdd(worker.balance, reward);
 
         SolveTask(secretContract, msg.sender, proof, reward, true);
 
         return ReturnValue.Ok;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-    //VIEWS/////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-
-    function listActiveWorkers() public view returns (address[]) {
-        //Returns a list of all active workers
-        address[] memory keys = new address[](_workerIndex.length);
-        for (uint i = 0; i < _workerIndex.length; i++) {
-            // Filter out inactive workers
-            Worker memory worker = _workers[_workerIndex[i]];
-            if (worker.pkey != "") {
-                keys[i] = _workerIndex[i];
-            }
-        }
-        return keys;
-    }
-
-    function getWorkerData(address user)
-    public
-    view
-    workerRegistered(msg.sender)
-    returns (bytes32[5]){
-        // Returns data about the specified worker
-        Worker memory worker = _workers[user];
-
-        bytes32 strBalance = bytes32(worker.balance);
-        bytes32 strRate = bytes32(worker.rate);
-        bytes32 strStatus = bytes32(worker.status);
-
-        return [worker.pkey, worker.quote, strBalance, strRate, strStatus];
     }
 }
