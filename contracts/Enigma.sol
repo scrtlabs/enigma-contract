@@ -35,7 +35,7 @@ contract Enigma is SafeMath {
         string pkey;
         string quote;
         uint balance;
-        uint rate;
+        uint rate; // TODO: we don't want this
         uint status; // Uninitialized: 0; Inactive:1; Active: 2
     }
 
@@ -52,7 +52,7 @@ contract Enigma is SafeMath {
     event SolveTask(address secretContract, address worker, bytes32 proof, uint reward, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint max_fee, bool _success);
+    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint fee, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -66,6 +66,7 @@ contract Enigma is SafeMath {
         _;
     }
 
+    //TODO: we don't want this
     function register(string pkey, string quote, uint rate)
     public
     returns (ReturnValue) {
@@ -85,6 +86,7 @@ contract Enigma is SafeMath {
         return ReturnValue.Ok;
     }
 
+    //TODO: we don't want this
     function login()
     public
     workerRegistered(msg.sender)
@@ -97,6 +99,7 @@ contract Enigma is SafeMath {
         return ReturnValue.Ok;
     }
 
+    //TODO: we don't want this
     function logout()
     public
     workerRegistered(msg.sender)
@@ -109,6 +112,7 @@ contract Enigma is SafeMath {
         return ReturnValue.Ok;
     }
 
+    //TODO: we don't want this
     function updateRate(uint rate)
     public
     workerRegistered(msg.sender)
@@ -121,6 +125,7 @@ contract Enigma is SafeMath {
         return ReturnValue.Ok;
     }
 
+    //TODO: we don't want this
     function withdraw(uint amount)
     public
     workerRegistered(msg.sender)
