@@ -50,8 +50,6 @@ contract ('Enigma', function (accounts) {
         }).then (function (result) {
             console.log ('new rate', result);
             assert.equal (event.args._success, true, "Unable to update rate.");
-
-            firstWorkerAddress = result[0];
         });
     });
 
