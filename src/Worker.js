@@ -8,6 +8,7 @@ import Typography from "material-ui/Typography";
 import IconButton from "material-ui/IconButton";
 import MenuIcon from 'material-ui-icons/Menu';
 import Button from 'material-ui/Button';
+import TxModal from './TxDialog';
 
 import blue from 'material-ui/colors/blue';
 
@@ -74,6 +75,38 @@ class Worker extends Component {
 
     handleCompute = (event) => {
         console.log ('computing');
+        const account = this.state.accounts[0];
+        return this.state.contract.compute (account, '0x1eed094939a2d4a2048a0b267edb4e5952345856', 'mixAddresses', ['0', 'test'], 'distribute', {
+            from: account,
+            gas: 4712388,
+            gasPrice: 1000000000
+        }).then ((result) => {
+            debugger;
+            // We can loop through result.logs to see if we triggered the Transfer event.
+            for (var i = 0; i < result.logs.length; i++) {
+                var log = result.logs[i];
+
+                if (log.event == 'ComputeTask') {
+                    // We found the event!
+                    console.log ('new computation created', log.event);
+
+                    this.setState ({ lastEvent: log }, () => this.openTxModal ());
+                    break;
+                }
+            }
+        }, (err) => {
+            console.error ('unable to run computation', err);
+            debugger;
+        });
+    };
+
+    openTxModal = () => {
+        this.setState ({ txModalOpen: true });
+    };
+
+    closeTxModal = () => {
+        this.setState ({ txModalOpen: false });
+        this.fetchDeals ();
     };
 
     render () {
@@ -106,7 +139,12 @@ class Worker extends Component {
                             Compute
                         </Button>
                     </div>
-
+                    <TxModal
+                        open={this.state.txModalOpen}
+                        evt={this.state.lastEvent}
+                        onClose={this.closeTxModal}
+                    >
+                    </TxModal>
                 </div>
             </MuiThemeProvider>
         );
