@@ -9,6 +9,7 @@ import IconButton from "material-ui/IconButton";
 import MenuIcon from 'material-ui-icons/Menu';
 import Button from 'material-ui/Button';
 import TxModal from './TxDialog';
+import utils from 'web3-utils'
 
 import blue from 'material-ui/colors/blue';
 
@@ -76,10 +77,12 @@ class Worker extends Component {
     handleCompute = (event) => {
         console.log ('computing');
         const account = this.state.accounts[0];
-        return this.state.contract.compute (account, '0x1eed094939a2d4a2048a0b267edb4e5952345856', 'mixAddresses', ['0', 'test'], 'distribute', {
+        const feeWei = utils.toWei ('1', 'ether');
+        return this.state.contract.compute (account, '0x345ca3e014aaf5dca488057592ee47305d9b3e10', 'mixAddresses', ['0', 'test'], 'distribute', {
             from: account,
             gas: 4712388,
-            gasPrice: 1000000000
+            gasPrice: 1000000000,
+            value: feeWei
         }).then ((result) => {
             debugger;
             // We can loop through result.logs to see if we triggered the Transfer event.
@@ -106,7 +109,6 @@ class Worker extends Component {
 
     closeTxModal = () => {
         this.setState ({ txModalOpen: false });
-        this.fetchDeals ();
     };
 
     render () {
