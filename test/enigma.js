@@ -9,7 +9,7 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            return enigma.register (PKEY, QUOTE, 10, { from: accounts[0] });
+            return enigma.register (PKEY, 10, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
             console.log (event);
@@ -21,7 +21,7 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            return enigma.login ({}, { from: accounts[0] });
+            return enigma.login (QUOTE, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
             console.log (event);

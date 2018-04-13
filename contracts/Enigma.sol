@@ -67,7 +67,7 @@ contract Enigma is SafeMath {
     }
 
     //TODO: we don't want this
-    function register(string pkey, string quote, uint rate)
+    function register(string pkey, uint rate)
     public
     returns (ReturnValue) {
         // Register a new worker and collect stake
@@ -76,7 +76,6 @@ contract Enigma is SafeMath {
         workerIndex.push(msg.sender);
 
         workers[msg.sender].pkey = pkey;
-        workers[msg.sender].quote = quote;
         workers[msg.sender].balance = msg.value;
         workers[msg.sender].rate = rate;
         workers[msg.sender].status = 1;
@@ -87,11 +86,14 @@ contract Enigma is SafeMath {
     }
 
     //TODO: we don't want this
-    function login()
+    function login(string quote)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
-        // A worker accepts tasks
+        // The worker is ready to receive tasks
+
+        // TODO: validate quote signature here
+        workers[msg.sender].quote = quote;
         workers[msg.sender].status = 2;
 
         Login(msg.sender, true);
@@ -159,6 +161,7 @@ contract Enigma is SafeMath {
         return ReturnValue.Ok;
     }
 
+    // TODO: how big is a proof?
     function solveTask(address secretContract, uint taskId, bytes32 proof)
     public
     workerRegistered(msg.sender)
