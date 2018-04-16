@@ -6,6 +6,7 @@ contract CoinMixer {
     Enigma enigma;
 
     struct Deal {
+        address organizer;
         bytes32 title;
         mapping(address => uint) deposit;
         uint depositSum;
@@ -52,6 +53,7 @@ contract CoinMixer {
         uint dealId = _deals.length;
 
         _deals.length++;
+        _deals[dealId].organizer = msg.sender;
         _deals[dealId].title = _title;
         _deals[dealId].depositSum = 0;
         _deals[dealId].numDeposits = 0;
@@ -138,11 +140,11 @@ contract CoinMixer {
             // For now, I'm adding adding the dealId as the first argument.
             // The logic looks like this: f(bytes32 dealId, bytes32 encryptedDestAddresses1, bytes32 encryptedDestAddresses1, ...)
             // This works fine until we have to support more than one dynamic array.
-            bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
-            args[0] = uintToBytes(dealId);
-            for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
-                args[i + 1] = deal.encryptedDestAddresses[i];
-            }
+//            bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
+//            args[0] = uintToBytes(dealId);
+//            for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
+//                args[i + 1] = deal.encryptedDestAddresses[i];
+//            }
             // Pre-processing
             // 1. Decrypt arguments
             // 2. Apply service parameters
