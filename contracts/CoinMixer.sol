@@ -19,15 +19,10 @@ contract CoinMixer {
         bytes32[] encryptedDestAddresses;
         address[] destAddresses;
 
-        bool active;
-        bool fullyFunded;
+        uint status; // 0: active; 1: funded; 2: executed; 3: cancelled
     }
 
-    struct DealSummary {
-        bytes32 title;
-    }
-
-    Deal[]  _deals;
+    Deal[] public deals;
 
     event NewDeal(address indexed user, uint indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
     event Deposit(address indexed _depositor, uint indexed _dealId, bytes32 _encryptedDestAddress, uint _value, bool _success, string _err);
@@ -50,20 +45,19 @@ contract CoinMixer {
     function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants)
     public
     returns (ReturnValue) {
-        uint dealId = _deals.length;
+        uint dealId = deals.length;
 
-        _deals.length++;
-        _deals[dealId].organizer = msg.sender;
-        _deals[dealId].title = _title;
-        _deals[dealId].depositSum = 0;
-        _deals[dealId].numDeposits = 0;
-        _deals[dealId].startTime = now;
-        _deals[dealId].depositInWei = _depositInWei;
-        _deals[dealId].numParticipants = _numParticipants;
-        _deals[dealId].encryptedDestAddresses = new bytes32[](_numParticipants);
-        _deals[dealId].destAddresses = new address[](_numParticipants);
-        _deals[dealId].fullyFunded = false;
-        _deals[dealId].active = true;
+        deals.length++;
+        deals[dealId].organizer = msg.sender;
+        deals[dealId].title = _title;
+        deals[dealId].depositSum = 0;
+        deals[dealId].numDeposits = 0;
+        deals[dealId].startTime = now;
+        deals[dealId].depositInWei = _depositInWei;
+        deals[dealId].numParticipants = _numParticipants;
+        deals[dealId].encryptedDestAddresses = new bytes32[](_numParticipants);
+        deals[dealId].destAddresses = new address[](_numParticipants);
+        deals[dealId].status = 0;
         NewDeal(msg.sender,
             dealId,
             now,
@@ -100,12 +94,12 @@ contract CoinMixer {
             error = "deposit value must be positive";
             errorDetected = true;
         }
-        if (!_deals[dealId].active) {
+        if (deals[dealId].status != 0) {
             error = "deal is not active";
             errorDetected = true;
         }
 
-        Deal storage deal = _deals[dealId];
+        Deal storage deal = deals[dealId];
         if ((msg.value % deal.depositInWei) > 0) {
             error = "deposit value must be a multiple of claim value";
             errorDetected = true;
@@ -114,7 +108,7 @@ contract CoinMixer {
             error = "cannot deposit twice with the same address";
             errorDetected = true;
         }
-        if (deal.fullyFunded) {
+        if (deal.status == 1) {
             error = "deal is already fulling funded";
             errorDetected = true;
         }
@@ -133,18 +127,18 @@ contract CoinMixer {
         Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, true, "all good");
 
         if (deal.numDeposits >= deal.numParticipants) {
-            deal.fullyFunded = true;
+            deal.status = 1;
             DealFullyFunded(dealId);
 
             // TODO: consider encapsulating param encoding in library
             // For now, I'm adding adding the dealId as the first argument.
             // The logic looks like this: f(bytes32 dealId, bytes32 encryptedDestAddresses1, bytes32 encryptedDestAddresses1, ...)
             // This works fine until we have to support more than one dynamic array.
-//            bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
-//            args[0] = uintToBytes(dealId);
-//            for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
-//                args[i + 1] = deal.encryptedDestAddresses[i];
-//            }
+            //            bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
+            //            args[0] = uintToBytes(dealId);
+            //            for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
+            //                args[i + 1] = deal.encryptedDestAddresses[i];
+            //            }
             // Pre-processing
             // 1. Decrypt arguments
             // 2. Apply service parameters
@@ -169,12 +163,12 @@ contract CoinMixer {
         bool errorDetected = false;
         string memory error;
 
-        Deal storage deal = _deals[dealId];
-        if (!deal.active) {
+        Deal storage deal = deals[dealId];
+        if (deal.status != 0) {
             error = "deal is not active";
             errorDetected = true;
         }
-        if (!deal.fullyFunded) {
+        if (deal.status != 1) {
             error = "deal is not fulling funded";
             errorDetected = true;
         }
@@ -202,38 +196,27 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////
-    //VIEWS/////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
+    function listDeals() public view returns (bytes32[], uint[], uint[], uint[]) {
+        // A list of deals with their key properties
+        bytes32[] memory titles = new bytes32[](deals.length);
+        uint[] memory status = new uint[](deals.length);
+        uint[] memory participates = new uint[](deals.length);
+        uint[] memory organizes = new uint[](deals.length);
 
-    function listDealTitles() public view returns (bytes32[]) {
-        bytes32[] memory titles = new bytes32[](_deals.length);
-        uint dealId = 0;
-        while (dealId < _deals.length) {
-            titles[dealId] = _deals[dealId].title;
-            dealId++;
+        for (uint i = 0; i < deals.length; i++) {
+            titles[i] = deals[i].title;
+            status[i] = deals[i].status;
+
+            if (deals[i].deposit[msg.sender] > 0) {
+                participates[i] = 1;
+            }
+
+            if (deals[i].organizer == msg.sender) {
+                organizes[i] = 1;
+            }
         }
-        return titles;
+        return (titles, status, participates, organizes);
     }
 
-    function dealStatus(uint _dealId) public view returns (uint[6]){
-        uint active = _deals[_dealId].active ? 1 : 0;
-        uint numParticipants = _deals[_dealId].numParticipants;
-        uint deposit = _deals[_dealId].depositInWei;
-        uint numDeposits = _deals[_dealId].numDeposits;
-        uint depositSum = _deals[_dealId].depositSum;
-        uint numDestAddresses = _deals[_dealId].destAddresses.length;
-
-
-        return [active, numParticipants, deposit, numDeposits, depositSum, numDestAddresses];
-    }
-
-    function isParticipating(uint _dealId) public view returns (bool) {
-        bool participating = false;
-        if (_deals[_dealId].deposit[msg.sender] > 0) {
-            participating = true;
-        }
-        return participating;
-    }
 }
 

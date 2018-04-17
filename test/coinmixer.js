@@ -18,9 +18,9 @@ contract ('CoinMixer', function (accounts) {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.dealStatus (0);
+            return coinMixerInstance.deals (0);
         }).then (function (deal) {
-            let numParticipants = deal[1];
+            let numParticipants = deal[7];
             console.log ('the deal: ' + deal);
             for (let i = 0; i < numParticipants; i++) {
 
@@ -37,24 +37,40 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
-    it ("...listing deal titles.", function () {
+    it ("...querying active deals.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.listDealTitles.call ();
-        }).then (function (result) {
-            console.log (result);
-            assert.equal (event.args._success, true, "Deal creation failed.");
+            return coinMixerInstance.listDeals.call ();
+        }).then (function (deals) {
+            let statuses = deals[1];
+            let activeDeals = [];
+            for (let i = 0; i < statuses.length; i++) {
+                if (statuses[i] < 2) {
+                    activeDeals.push (i)
+                }
+            }
+            console.log ('active deals', activeDeals);
+            assert (activeDeals.length > 0, "Active deals not found.");
         });
     });
+
     it ("...is participating to deal.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.isParticipating.call (0, { from: accounts[0] });
-        }).then (function (result) {
-            console.log (result);
-            assert.equal (event.args._success, true, "Determined participation successfully.");
+            return coinMixerInstance.listDeals.call ();
+        }).then (function (deals) {
+            console.log ('deal statuses', deals);
+            let participates = deals[2];
+            let participatingDeals = [];
+            for (let i = 0; i < participates.length; i++) {
+                if (participates[i] == 1) {
+                    participatingDeals.push (i)
+                }
+            }
+            console.log ('participating deals', participatingDeals);
+            assert (participatingDeals.length > 0, "Participating deals not found.");
         });
     });
     // it ("...distributing.", function () {
