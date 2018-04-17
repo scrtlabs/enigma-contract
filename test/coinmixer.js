@@ -14,13 +14,24 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
+    it ("...deal status.", function () {
+        return CoinMixer.deployed ().then (function (instance) {
+            coinMixerInstance = instance;
+
+            return coinMixerInstance.dealStatus.call (0, { from: accounts[0] });
+        }).then (function (deal) {
+            console.log ('deal status', deal);
+            assert.equal (deal[1], 1, "Deal not found.");
+        });
+    });
+
     it ("...making a deposit.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.deals (0);
+            return coinMixerInstance.dealStatus.call (0, { from: accounts[0] });
         }).then (function (deal) {
-            let numParticipants = deal[7];
+            let numParticipants = deal[1];
             console.log ('the deal: ' + deal);
             for (let i = 0; i < numParticipants; i++) {
 
@@ -41,9 +52,9 @@ contract ('CoinMixer', function (accounts) {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.listDeals.call ();
+            return coinMixerInstance.listDeals.call ({}, { from: accounts[0] });
         }).then (function (deals) {
-            let statuses = deals[1];
+            let statuses = deals[0];
             let activeDeals = [];
             for (let i = 0; i < statuses.length; i++) {
                 if (statuses[i] < 2) {
@@ -59,10 +70,10 @@ contract ('CoinMixer', function (accounts) {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.listDeals.call ();
+            return coinMixerInstance.listDeals.call ({}, { from: accounts[0] });
         }).then (function (deals) {
             console.log ('deal statuses', deals);
-            let participates = deals[2];
+            let participates = deals[1];
             let participatingDeals = [];
             for (let i = 0; i < participates.length; i++) {
                 if (participates[i] == 1) {
@@ -73,6 +84,18 @@ contract ('CoinMixer', function (accounts) {
             assert (participatingDeals.length > 0, "Participating deals not found.");
         });
     });
+
+    it ("...retrieving encrypted addresses.", function () {
+        return CoinMixer.deployed ().then (function (instance) {
+            coinMixerInstance = instance;
+
+            return coinMixerInstance.getEncryptedAddresses.call (0, { from: accounts[0] });
+        }).then (function (encryptedAddresses) {
+            console.log ('encrypted addresses', encryptedAddresses);
+            assert (encryptedAddresses.length > 0, "Encrypted addresses not found.");
+        });
+    });
+
     // it ("...distributing.", function () {
     //     return CoinMixer.deployed ().then (function (instance) {
     //         coinMixerInstance = instance;

@@ -50,6 +50,7 @@ class DealTable extends React.Component {
 
     handleSelectFilter = (event, index) => {
         this.setState ({ selectedIndex: index, anchorEl: null });
+        this.props.selectFilter(index);
     };
 
     handleCloseFilter = event => {
@@ -58,7 +59,7 @@ class DealTable extends React.Component {
 
     getFilterLabel = index => {
         return FILTER_LABELS[index];
-    }
+    };
 
     render () {
         const { anchorEl } = this.state;

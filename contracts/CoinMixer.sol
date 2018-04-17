@@ -22,7 +22,7 @@ contract CoinMixer {
         uint status; // 0: active; 1: funded; 2: executed; 3: cancelled
     }
 
-    Deal[] public deals;
+    Deal[] deals;
 
     event NewDeal(address indexed user, uint indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
     event Deposit(address indexed _depositor, uint indexed _dealId, bytes32 _encryptedDestAddress, uint _value, bool _success, string _err);
@@ -67,20 +67,6 @@ contract CoinMixer {
             true,
             "all good");
         return ReturnValue.Ok;
-    }
-
-    function uintToBytes(uint v) private pure returns (bytes32 ret) {
-        if (v == 0) {
-            ret = '0';
-        }
-        else {
-            while (v > 0) {
-                ret = bytes32(uint(ret) / (2 ** 8));
-                ret |= bytes32(((v % 10) + 48) * 2 ** (8 * 31));
-                v /= 10;
-            }
-        }
-        return ret;
     }
 
     function makeDeposit(uint dealId, bytes32 encryptedDestAddress)
@@ -196,15 +182,13 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-    function listDeals() public view returns (bytes32[], uint[], uint[], uint[]) {
+    function listDeals() public view returns (uint[], uint[], uint[]) {
         // A list of deals with their key properties
-        bytes32[] memory titles = new bytes32[](deals.length);
         uint[] memory status = new uint[](deals.length);
         uint[] memory participates = new uint[](deals.length);
         uint[] memory organizes = new uint[](deals.length);
 
         for (uint i = 0; i < deals.length; i++) {
-            titles[i] = deals[i].title;
             status[i] = deals[i].status;
 
             if (deals[i].deposit[msg.sender] > 0) {
@@ -215,7 +199,43 @@ contract CoinMixer {
                 organizes[i] = 1;
             }
         }
-        return (titles, status, participates, organizes);
+        return (status, participates, organizes);
+    }
+
+    function dealStatus(uint _dealId)
+    public
+    view
+    returns (bytes32, uint, uint, uint, uint, uint){
+        // Key attributes of a deal
+        bytes32 title = deals[_dealId].title;
+        uint numParticipants = deals[_dealId].numParticipants;
+        uint deposit = deals[_dealId].depositInWei;
+        uint numDeposits = deals[_dealId].numDeposits;
+        uint depositSum = deals[_dealId].depositSum;
+        uint numDestAddresses = deals[_dealId].destAddresses.length;
+
+        return (title, numParticipants, deposit, numDeposits, depositSum, numDestAddresses);
+    }
+
+    function getEncryptedAddresses(uint _dealId) public view returns (bytes32[]) {
+        // Returns an array of encrypted addresses
+        return deals[_dealId].encryptedDestAddresses;
+    }
+
+    function uintToBytes(uint v) private pure returns (bytes32 ret) {
+        // Serialize bytes to int
+        // TODO: cleanup and externalize
+        if (v == 0) {
+            ret = '0';
+        }
+        else {
+            while (v > 0) {
+                ret = bytes32(uint(ret) / (2 ** 8));
+                ret |= bytes32(((v % 10) + 48) * 2 ** (8 * 31));
+                v /= 10;
+            }
+        }
+        return ret;
     }
 
 }
