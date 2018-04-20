@@ -32,6 +32,7 @@ contract Enigma is SafeMath {
     }
 
     struct Worker {
+        bytes32 url;
         string pkey;
         string quote;
         uint balance;
@@ -43,7 +44,7 @@ contract Enigma is SafeMath {
     mapping(address => Worker) public workers;
     mapping(address => Task[]) public tasks;
 
-    event Register(address user, string pkey, uint rate, bool _success);
+    event Register(bytes32 url, address user, string pkey, uint rate, bool _success);
     event Login(address user, bool _success);
     event Logout(address user, bool _success);
     event UpdateRate(address user, uint rate, bool _success);
@@ -52,7 +53,7 @@ contract Enigma is SafeMath {
     event SolveTask(address secretContract, address worker, bytes32 proof, uint reward, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint fee, bool _success);
+    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint fee, bytes32[] preprocessors, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -67,7 +68,7 @@ contract Enigma is SafeMath {
     }
 
     //TODO: we don't want this
-    function register(string pkey, uint rate)
+    function register(bytes32 url, string pkey, uint rate)
     public
     returns (ReturnValue) {
         // Register a new worker and collect stake
@@ -75,12 +76,13 @@ contract Enigma is SafeMath {
 
         workerIndex.push(msg.sender);
 
+        workers[msg.sender].url = url;
         workers[msg.sender].pkey = pkey;
         workers[msg.sender].balance = msg.value;
         workers[msg.sender].rate = rate;
         workers[msg.sender].status = 1;
 
-        Register(msg.sender, pkey, rate, true);
+        Register(url, msg.sender, pkey, rate, true);
 
         return ReturnValue.Ok;
     }
@@ -144,7 +146,7 @@ contract Enigma is SafeMath {
         return ReturnValue.Ok;
     }
 
-    function compute(address user, address secretContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback)
+    function compute(address user, address secretContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback, bytes32[] preprocessors)
     public
     payable
     returns (ReturnValue) {
@@ -156,7 +158,7 @@ contract Enigma is SafeMath {
         tasks[secretContract][taskId].reward = msg.value;
 
         // Emit the ComputeTask event which each node is watching for
-        ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, true);
+        ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
 
         return ReturnValue.Ok;
     }

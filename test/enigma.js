@@ -1,3 +1,4 @@
+const URL = 'localhost:3001';
 const PKEY = 'AAAAB3NzaC1yc2EAAAADAQABAAABAQC4ReB9wai5xcNnlYpFWfMv+Dwz1wC6vac0HRQ099/mthViVImDzIWUEVqQitWbWpGR7y8bNw+j/OZDbOWQy0Rl8kfYbjgpVOEREal87hxCFKF4D47NODH145Q9M9Jd2UqiK6GVeQHh4a4mEXWb6padpi1FwFPkHVNwDNDn/o1rbhJeARfHuFUHLUiR+jnJEWnHlsVyXWe5Wih8UiY6pmyKgLCc1wfMnRpGlSWKSQrYcdVSHSM6+lGirUUOOAlq0g8PcboKEoPWlpPycf7TEB3jYF0W6rmwxlf4gOr3da+b4lRoZZlXpiBxAeWqkez2+gZQlHaa+O2Dqk093AZGSMQz';
 const SECRET_CONTRACT = '0x98d9f9e8debd4a632682ba207670d2a5acd3c489';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
@@ -9,7 +10,7 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            return enigma.register (PKEY, 10, { from: accounts[0] });
+            return enigma.register (URL, PKEY, 10, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
             console.log (event);
@@ -69,9 +70,12 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
+            let preprocessor = [null, 'shuffle'];
+            // let args = ['0', '[test, test2]'];
+            let args = ['0', 'test', 'test2'];
             return enigma.compute (accounts[0],
                 SECRET_CONTRACT,
-                'mixAddresses', ['0', 'test'], 'distribute',
+                'mixAddresses', args, 'distribute', preprocessor,
                 { from: accounts[0], value: 1 });
         }).then (function (result) {
             let event = result.logs[0];
