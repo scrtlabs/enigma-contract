@@ -61,7 +61,7 @@ contract ('Enigma', function (accounts) {
             return enigma.workers.call (accounts[0], { from: accounts[0] });
         }).then (function (result) {
             console.log ('my worker details', result);
-            assert.equal (result[3], 2, "Incorrect rate.");
+            assert.equal (result[4], 2, "Incorrect rate.");
         });
     });
 

@@ -137,7 +137,7 @@ contract CoinMixer is EnigmaP {
         bytes32[] memory preprocessors = new bytes32[](2);
         preprocessors[1] = "shuffle";
 
-        enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute", preprocessors);
+//        enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute", preprocessors);
         DealExecuted(dealId, true);
     }
 
