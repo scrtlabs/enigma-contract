@@ -33,7 +33,7 @@ contract CoinMixer is EnigmaP {
     event FailedTransfer(address indexed to, uint256 value);
 
     event DealFullyFunded(uint indexed _dealId);
-    event DealExecuted(uint indexed _dealId, int8 n1, int24 n2, bool _success);
+    event DealExecuted(uint indexed _dealId, bool _success);
 
 
     // TODO: switch to require() once it accepts a message parameter
@@ -128,46 +128,17 @@ contract CoinMixer is EnigmaP {
         // Execute the deal and pay for computation
         Deal storage deal = deals[dealId];
 
-        bytes memory buffer = new bytes(64);
-        bytes32[] out7 = new bytes32[](2);
-        out7[0] = 'dsdsfsdfs';
-        out8[0] = 'dfsdfssdfsdfsf';
+        // TODO: find a more generic way to serialize arguments
+        bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
+        addUintArg(args, 0, dealId);
+        addBytes32Arg(args, 1, deal.encryptedDestAddresses);
 
-        // Serializing
-        uint offset = 64;
+        // TODO: find a more generic way to serialize preprocessors
+        bytes32[] memory preprocessors = new bytes32[](2);
+        preprocessors[1] = "shuffle";
 
-        addressToBytes(offset, out7[0], buffer);
-        addressToBytes(offset, out7[1], buffer);
-
-        // Deserializing
-        offset = 64;
-
-        address a1 = bytesToAddress(offset, buffer);
-        offset -= sizeOfAddress();
-        address a2 = bytesToInt8(offset, buffer);
-        offset -= sizeOfAddress();
-
-        int24 n2 = bytesToInt24(offset, buffer);
-        offset -= sizeOfUint(24);
-        //
-        //        int32 n3 = bytesToUint8(offset, buffer);
-        //        offset -= sizeOfInt(32);
-
-        DealExecuted(dealId, n1, n2, true);
-        // TODO: consider encapsulating param encoding in library
-        // For now, I'm adding adding the dealId as the first argument.
-        // The logic looks like this: f(bytes32 dealId, bytes32 encryptedDestAddresses1, bytes32 encryptedDestAddresses1, ...)
-        // This works fine until we have to support more than one dynamic array.
-        //        bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
-        //        args[0] = uintToBytes(dealId);
-        //        for (uint i = 0; i < deal.encryptedDestAddresses.length; i++) {
-        //            args[i + 1] = deal.encryptedDestAddresses[i];
-        //        }
-        // Pre-processing
-        // 1. Decrypt arguments
-        // 2. Apply service parameters
-        // TODO: pass randomization parameters
-        //            enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute");
+        enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute", preprocessors);
+        DealExecuted(dealId, true);
     }
 
     function mixAddresses(uint dealId, address[] destAddresses, address[] second)
@@ -258,21 +229,6 @@ contract CoinMixer is EnigmaP {
         return deals[_dealId].encryptedDestAddresses;
     }
 
-    function uintToBytes(uint v) private pure returns (bytes32 ret) {
-        // Serialize bytes to int
-        // TODO: cleanup and externalize
-        if (v == 0) {
-            ret = '0';
-        }
-        else {
-            while (v > 0) {
-                ret = bytes32(uint(ret) / (2 ** 8));
-                ret |= bytes32(((v % 10) + 48) * 2 ** (8 * 31));
-                v /= 10;
-            }
-        }
-        return ret;
-    }
 
 }
 
