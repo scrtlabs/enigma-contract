@@ -15,7 +15,7 @@ class Enigma {
     compute (callObject, options) {
         // Calls the compute function of the Engima contract
         // See diagram for details: doc/poc-compute-sequence.png
-        return this.contract.compute (callObject.from, callObject.secretContract,
+        return this.contract.compute (callObject.secretContract,
             callObject.callable, callObject.args, callObject.callback, options)
             .then ((result) => {
                 let event = null;

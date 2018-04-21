@@ -5,7 +5,7 @@ contract EnigmaP {
     function EnigmaP() public {
     }
 
-    function addArg(bytes32[] args, bytes32 arg, uint offset, uint value) pure returns (uint){
+    function addArg(bytes32[] args, bytes32 arg, uint offset, uint value) public pure returns (uint){
         // Add a uint value to the computation argument
         args[offset] = arg;
         offset++;
@@ -15,7 +15,7 @@ contract EnigmaP {
         return offset;
     }
 
-    function addEncryptedArg(bytes32[] args, bytes32 arg, uint offset, bytes32[] value) pure returns (uint){
+    function addEncryptedArg(bytes32[] args, bytes32 arg, uint offset, bytes32[] value) public pure returns (uint){
         // Add addresses values to the computation argument
         args[offset] = arg;
         offset++;

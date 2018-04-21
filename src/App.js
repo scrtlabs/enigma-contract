@@ -269,7 +269,6 @@ class App extends Component {
                 addrs.unshift (deal.id);
 
                 let params = {
-                    from: this.state.accounts[0],
                     secretContract: this.state.contract.address,
                     callable: 'mixAddresses',
                     args: addrs,

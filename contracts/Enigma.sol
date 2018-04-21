@@ -1,25 +1,25 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.22;
 
 contract SafeMath {
-    function safeMul(uint a, uint b) internal returns (uint) {
+    function safeMul(uint a, uint b) internal pure returns (uint) {
         uint c = a * b;
         assert(a == 0 || c / a == b);
         return c;
     }
 
-    function safeSub(uint a, uint b) internal returns (uint) {
+    function safeSub(uint a, uint b) internal pure returns (uint) {
         assert(b <= a);
         return a - b;
     }
 
-    function safeAdd(uint a, uint b) internal returns (uint) {
+    function safeAdd(uint a, uint b) internal pure returns (uint) {
         uint c = a + b;
         assert(c >= a && c >= b);
         return c;
     }
 
-    function assert(bool assertion) internal {
-        if (!assertion) throw;
+    function assert(bool assertion) internal pure {
+        require(assertion, "Invalid assertion.");
     }
 }
 
@@ -70,8 +70,9 @@ contract Enigma is SafeMath {
     //TODO: we don't want this
     function register(bytes32 url, string pkey, uint rate)
     public
+    payable
     returns (ReturnValue) {
-        // Register a new worker and collect stake
+        // Register a new worker and deposit stake
         require(workers[msg.sender].status == 0);
 
         workerIndex.push(msg.sender);
@@ -82,7 +83,7 @@ contract Enigma is SafeMath {
         workers[msg.sender].rate = rate;
         workers[msg.sender].status = 1;
 
-        Register(url, msg.sender, pkey, rate, true);
+        emit Register(url, msg.sender, pkey, rate, true);
 
         return ReturnValue.Ok;
     }
@@ -98,7 +99,7 @@ contract Enigma is SafeMath {
         workers[msg.sender].quote = quote;
         workers[msg.sender].status = 2;
 
-        Login(msg.sender, true);
+        emit Login(msg.sender, true);
 
         return ReturnValue.Ok;
     }
@@ -111,7 +112,7 @@ contract Enigma is SafeMath {
         // A worker stops accepting tasks
         workers[msg.sender].status = 1;
 
-        Logout(msg.sender, true);
+        emit Logout(msg.sender, true);
 
         return ReturnValue.Ok;
     }
@@ -124,7 +125,7 @@ contract Enigma is SafeMath {
         // Update the ENG/GAS rate
         workers[msg.sender].rate = rate;
 
-        UpdateRate(msg.sender, rate, true);
+        emit UpdateRate(msg.sender, rate, true);
 
         return ReturnValue.Ok;
     }
@@ -141,24 +142,22 @@ contract Enigma is SafeMath {
         worker.balance = safeSub(worker.balance, amount);
         msg.sender.transfer(amount);
 
-        Withdraw(msg.sender, amount, worker.balance, true);
+        emit Withdraw(msg.sender, amount, worker.balance, true);
 
         return ReturnValue.Ok;
     }
 
-    function compute(address user, address secretContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback, bytes32[] preprocessors)
+    function compute(address secretContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback, bytes32[] preprocessors)
     public
     payable
     returns (ReturnValue) {
-        require(msg.value > 0);
-
         // Each task invoked by a contract has a sequential id
         uint taskId = tasks[secretContract].length;
         tasks[secretContract].length++;
         tasks[secretContract][taskId].reward = msg.value;
 
         // Emit the ComputeTask event which each node is watching for
-        ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
+        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
 
         return ReturnValue.Ok;
     }
@@ -185,7 +184,7 @@ contract Enigma is SafeMath {
         Worker storage worker = workers[msg.sender];
         worker.balance = safeAdd(worker.balance, reward);
 
-        SolveTask(secretContract, msg.sender, proof, reward, true);
+        emit SolveTask(secretContract, msg.sender, proof, reward, true);
 
         return ReturnValue.Ok;
     }

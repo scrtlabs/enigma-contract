@@ -41,7 +41,7 @@ contract CoinMixer is EnigmaP {
 
     function CoinMixer() public {
         // TODO: can we make this dynamic?
-        enigma = Enigma(0x2c2b9c9a4a25e24b174f26114e8926a9f2128fe4);
+        enigma = Enigma(0x345ca3e014aaf5dca488057592ee47305d9b3e10);
     }
 
     function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants)
@@ -60,14 +60,8 @@ contract CoinMixer is EnigmaP {
         deals[dealId].encryptedDestAddresses = new bytes32[](_numParticipants);
         deals[dealId].destAddresses = new address[](_numParticipants);
         deals[dealId].status = 0;
-        NewDeal(msg.sender,
-            dealId,
-            now,
-            _title,
-            _depositInWei,
-            _numParticipants,
-            true,
-            "all good");
+        emit NewDeal(msg.sender, dealId, now, _title, _depositInWei, _numParticipants, true, "all good");
+
         return ReturnValue.Ok;
     }
 
@@ -75,36 +69,12 @@ contract CoinMixer is EnigmaP {
     public
     payable
     returns (ReturnValue){
-        bool errorDetected = false;
-        string memory error;
-        // validations
-        if (msg.value == 0) {
-            error = "deposit value must be positive";
-            errorDetected = true;
-        }
-        if (deals[dealId].status != 0) {
-            error = "deal is not active";
-            errorDetected = true;
-        }
+        require(msg.value > 0, "Deposit value must be positive.");
+        require(deals[dealId].status == 0, "Illegal state for deposits.");
 
         Deal storage deal = deals[dealId];
-        if ((msg.value % deal.depositInWei) > 0) {
-            error = "deposit value must be a multiple of claim value";
-            errorDetected = true;
-        }
-        if (deal.deposit[msg.sender] > 0) {
-            error = "cannot deposit twice with the same address";
-            errorDetected = true;
-        }
-        if (deal.status == 1) {
-            error = "deal is already fulling funded";
-            errorDetected = true;
-        }
-        if (errorDetected) {
-            Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, false, error);
-            // send money back
-            return ReturnValue.Error;
-        }
+        require((msg.value % deal.depositInWei) == 0, "Deposit value must be a multiple of claim value");
+        require(deal.deposit[msg.sender] == 0, "Cannot deposit twice with the same address");
 
         // actual deposit
         deal.depositSum += msg.value;
@@ -112,11 +82,11 @@ contract CoinMixer is EnigmaP {
         deal.encryptedDestAddresses[deal.numDeposits] = encryptedDestAddress;
         deal.numDeposits += 1;
 
-        Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, true, "all good");
+        emit Deposit(msg.sender, dealId, encryptedDestAddress, msg.value, true, "all good");
 
         if (deal.numDeposits >= deal.numParticipants) {
             deal.status = 1;
-            DealFullyFunded(dealId);
+            emit DealFullyFunded(dealId);
         }
         return ReturnValue.Ok;
     }
@@ -147,8 +117,8 @@ contract CoinMixer is EnigmaP {
         bytes32[] memory preprocessors = new bytes32[](1);
         preprocessors[0] = "shuffle(destAddresses)";
 
-        //        enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute", preprocessors);
-        DealExecuted(dealId, true);
+        enigma.compute.value(msg.value)(this, "mixAddresses", args, "distribute", preprocessors);
+        emit DealExecuted(dealId, true);
     }
 
     function mixAddresses(uint dealId, address[] destAddresses, address[] second)
@@ -163,39 +133,19 @@ contract CoinMixer is EnigmaP {
     function distribute(uint dealId, address[] destAddresses)
     public
     returns (ReturnValue){
-        bool errorDetected = false;
-        string memory error;
-
         Deal storage deal = deals[dealId];
-        if (deal.status != 0) {
-            error = "deal is not active";
-            errorDetected = true;
-        }
-        if (deal.status != 1) {
-            error = "deal is not fulling funded";
-            errorDetected = true;
-        }
-        if (errorDetected) {
-            Distribute(dealId, false, error);
-            return ReturnValue.Error;
-        }
+        require(deal.status == 2, "Deal is not executed.");
+
         deal.destAddresses = destAddresses;
 
         bool enoughAddresses = deal.destAddresses.length == deal.numParticipants;
-        if (!enoughAddresses) {
-            error = "missing some destination addresses";
-            errorDetected = true;
-        }
-        if (errorDetected) {
-            Distribute(dealId, false, error);
-            return ReturnValue.Error;
-        }
+        require(enoughAddresses, "missing some destination addresses");
 
         for (uint i = 0; i < deal.destAddresses.length; i++) {
             deal.destAddresses[i].transfer(deal.depositSum);
         }
 
-        Distribute(dealId, true, "all good");
+        emit Distribute(dealId, true, "all good");
         return ReturnValue.Ok;
     }
 
@@ -238,7 +188,5 @@ contract CoinMixer is EnigmaP {
         // Returns an array of encrypted addresses
         return deals[_dealId].encryptedDestAddresses;
     }
-
-
 }
 

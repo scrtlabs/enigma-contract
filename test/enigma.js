@@ -70,11 +70,9 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            let preprocessor = [null, 'shuffle'];
-            // let args = ['0', '[test, test2]'];
-            let args = ['0', 'test', 'test2'];
-            return enigma.compute (accounts[0],
-                SECRET_CONTRACT,
+            let args = ['uint dealId', '0', 'address[] destAddresses', 'test', 'test2'];
+            let preprocessor = ['shuffle(destAddresses)'];
+            return enigma.compute (SECRET_CONTRACT,
                 'mixAddresses', args, 'distribute', preprocessor,
                 { from: accounts[0], value: 1 });
         }).then (function (result) {
