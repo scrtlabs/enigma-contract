@@ -4,7 +4,7 @@ import "./Enigma.sol";
 import "./EnigmaP.sol";
 
 contract CoinMixer is EnigmaP {
-    Enigma enigma;
+    Enigma public enigma;
 
     struct Deal {
         address organizer;
@@ -40,8 +40,8 @@ contract CoinMixer is EnigmaP {
     enum ReturnValue {Ok, Error}
 
     function CoinMixer() public {
-        // TODO: consider externalizing in library
-        enigma = Enigma(0x74e3fc764c2474f25369b9d021b7f92e8441a2dc);
+        // TODO: can we make this dynamic?
+        enigma = Enigma(0x2c2b9c9a4a25e24b174f26114e8926a9f2128fe4);
     }
 
     function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants)
@@ -128,16 +128,26 @@ contract CoinMixer is EnigmaP {
         // Execute the deal and pay for computation
         Deal storage deal = deals[dealId];
 
-        // TODO: find a more generic way to serialize arguments
-        bytes32[] memory args = new bytes32[](deal.numDeposits + 1);
-        addUintArg(args, 0, dealId);
-        addBytes32Arg(args, 1, deal.encryptedDestAddresses);
+        // After giving this some thought, this is what I came up with to serialize arguments
+        // To avoid unecessary complexity, arguments will be provided as a bytes32 array
+        // Each argument will start by it's declaration like in the target function
+        //    name type (e.g. uint dealId)
+        // Followed by bytes32 encoded values.
+        // If the value is an array, just add each value sequentially.
+        // The EnigmaP contract has helper function to populate the arguments.
+        bytes32[] memory args = new bytes32[](deal.numDeposits + 3);
+        uint offset = 0;
+        offset = addArg(args, "uint dealId", offset, dealId);
+        offset = addEncryptedArg(args, "address[] destAddresses", offset, deal.encryptedDestAddresses);
 
-        // TODO: find a more generic way to serialize preprocessors
-        bytes32[] memory preprocessors = new bytes32[](2);
-        preprocessors[1] = "shuffle";
+        // This is the most generic way I came up with for the preprocessors.
+        // We can accept an unlimited number of preprocessors, each of which
+        // might have arbitrary attributes.
+        // The enclave will know who to apply each preprocessor by convention.
+        bytes32[] memory preprocessors = new bytes32[](1);
+        preprocessors[0] = "shuffle(destAddresses)";
 
-//        enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute", preprocessors);
+        //        enigma.compute.value(msg.value)(msg.sender, this, "mixAddresses", args, "distribute", preprocessors);
         DealExecuted(dealId, true);
     }
 

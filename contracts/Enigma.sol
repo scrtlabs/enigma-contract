@@ -57,9 +57,9 @@ contract Enigma is SafeMath {
 
     enum ReturnValue {Ok, Error}
 
-    function Enigma() public {
-
-    }
+//    function Enigma() public {
+//
+//    }
 
     modifier workerRegistered(address user) {
         Worker memory worker = workers[user];
