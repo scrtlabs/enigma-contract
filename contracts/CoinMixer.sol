@@ -35,7 +35,6 @@ contract CoinMixer is EnigmaP {
     event DealFullyFunded(uint indexed _dealId);
     event DealExecuted(uint indexed _dealId, bool _success);
 
-
     // TODO: switch to require() once it accepts a message parameter
     enum ReturnValue {Ok, Error}
 

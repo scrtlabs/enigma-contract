@@ -67,13 +67,11 @@ contract Enigma is SafeMath {
         _;
     }
 
-    //TODO: we don't want this
     function register(bytes32 url, string pkey, uint rate)
     public
-    payable
     returns (ReturnValue) {
         // Register a new worker and deposit stake
-        require(workers[msg.sender].status == 0);
+        // require(workers[msg.sender].status == 0, "Worker already register.");
 
         workerIndex.push(msg.sender);
 
