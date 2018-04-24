@@ -99,7 +99,7 @@ contract ('Enigma', function (accounts) {
             enigma = instance;
 
             let results = ['uint dealId', '0', 'address[] destAddresses', 'test', 'test2'];
-            return enigma.solveTask (SECRET_CONTRACT, 0, results, 'proof', { from: accounts[0] });
+            return enigma.solveTask (SECRET_CONTRACT, 0, results, 'sig', 'hash', { from: accounts[0] });
         }).then (function (result) {
             let event = result.logs[0];
             console.log ('solved task event', event);

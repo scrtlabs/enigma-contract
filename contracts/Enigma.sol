@@ -28,7 +28,7 @@ contract Enigma {
         bytes32[] callableArgs;
         bytes32 callback;
         address worker;
-        bytes32 proof;
+        bytes sig;
         uint reward;
     }
 
@@ -51,7 +51,7 @@ contract Enigma {
     event UpdateRate(address user, uint rate, bool _success);
     event Deposit(address secretContract, address user, uint amount, uint balance, bool _success);
     event Withdraw(address user, uint amount, uint balance, bool _success);
-    event SolveTask(address secretContract, address worker, bytes32 proof, uint reward, bool _success);
+    event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
     event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint fee, bytes32[] preprocessors, bool _success);
@@ -165,7 +165,8 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function solveTask(address secretContract, uint taskId, bytes32[] results, bytes32 proof)
+    // TODO: remove the hash parameter and recreate it in the function
+    function solveTask(address secretContract, uint taskId, bytes32[] results, bytes sig, bytes32 hash)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
@@ -179,14 +180,14 @@ contract Enigma {
 
         // Keep a trace of the task worker and proof
         tasks[secretContract][taskId].worker = msg.sender;
-        tasks[secretContract][taskId].proof = proof;
+        tasks[secretContract][taskId].sig = sig;
 
         // Put the reward in the worker's bank
         // He can withdraw later
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit SolveTask(secretContract, msg.sender, proof, reward, true);
+        emit SolveTask(secretContract, msg.sender, sig, reward, true);
 
         return ReturnValue.Ok;
     }
