@@ -1,31 +1,32 @@
 pragma solidity ^0.4.22;
 
-contract SafeMath {
-    function safeMul(uint a, uint b) internal pure returns (uint) {
-        uint c = a * b;
-        assert(a == 0 || c / a == b);
-        return c;
-    }
+import "./zeppelin/SafeMath.sol";
 
-    function safeSub(uint a, uint b) internal pure returns (uint) {
-        assert(b <= a);
-        return a - b;
-    }
-
-    function safeAdd(uint a, uint b) internal pure returns (uint) {
-        uint c = a + b;
-        assert(c >= a && c >= b);
-        return c;
-    }
-
-    function assert(bool assertion) internal pure {
-        require(assertion, "Invalid assertion.");
+library GetCode {
+    function at(address _addr) public view returns (bytes o_code) {
+        assembly {
+            // retrieve the size of the code, this needs assembly
+            let size := extcodesize(_addr)
+            // allocate output byte array - this could also be done without assembly
+            // by using o_code = new bytes(size)
+            o_code := mload(0x40)
+            // new "memory end" including padding
+            mstore(0x40, add(o_code, and(add(add(size, 0x20), 0x1f), not(0x1f))))
+            // store length in memory
+            mstore(o_code, size)
+            // actually retrieve the code, this needs assembly
+            extcodecopy(_addr, add(o_code, 0x20), 0, size)
+        }
     }
 }
 
-contract Enigma is SafeMath {
+contract Enigma {
+    using SafeMath for uint256;
+
     struct Task {
-        uint taskId;
+        bytes32 callable;
+        bytes32[] callableArgs;
+        bytes32 callback;
         address worker;
         bytes32 proof;
         uint reward;
@@ -35,7 +36,7 @@ contract Enigma is SafeMath {
         bytes32 url;
         string pkey;
         string quote;
-        uint balance;
+        uint256 balance;
         uint rate; // TODO: we don't want this
         uint status; // Uninitialized: 0; Inactive:1; Active: 2
     }
@@ -63,15 +64,16 @@ contract Enigma is SafeMath {
 
     modifier workerRegistered(address user) {
         Worker memory worker = workers[user];
-        require(worker.status > 0);
+        require(worker.status > 0, "Unregistered worker.");
         _;
     }
 
     function register(bytes32 url, string pkey, uint rate)
     public
+    payable
     returns (ReturnValue) {
         // Register a new worker and deposit stake
-        // require(workers[msg.sender].status == 0, "Worker already register.");
+        require(workers[msg.sender].status == 0, "Worker already register.");
 
         workerIndex.push(msg.sender);
 
@@ -135,9 +137,9 @@ contract Enigma is SafeMath {
     returns (ReturnValue) {
         // Withdraw from stake and rewards balance
         Worker storage worker = workers[msg.sender];
-        require(worker.balance > amount);
+        require(worker.balance > amount, "Not enough funds to withdraw.");
 
-        worker.balance = safeSub(worker.balance, amount);
+        worker.balance = worker.balance.sub(amount);
         msg.sender.transfer(amount);
 
         emit Withdraw(msg.sender, amount, worker.balance, true);
@@ -153,6 +155,9 @@ contract Enigma is SafeMath {
         uint taskId = tasks[secretContract].length;
         tasks[secretContract].length++;
         tasks[secretContract][taskId].reward = msg.value;
+        tasks[secretContract][taskId].callable = callable;
+        tasks[secretContract][taskId].callableArgs = callableArgs;
+        tasks[secretContract][taskId].callback = callback;
 
         // Emit the ComputeTask event which each node is watching for
         emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
@@ -160,18 +165,17 @@ contract Enigma is SafeMath {
         return ReturnValue.Ok;
     }
 
-    // TODO: how big is a proof?
-    function solveTask(address secretContract, uint taskId, bytes32 proof)
+    function solveTask(address secretContract, uint taskId, bytes32[] results, bytes32 proof)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
-        require(tasks[secretContract][taskId].worker == address(0));
+        require(tasks[secretContract][taskId].worker == address(0), "Task already solved.");
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
         uint reward = tasks[secretContract][taskId].reward;
-        require(reward > 0);
+        require(reward > 0, "Reward cannot be zero.");
 
         // Keep a trace of the task worker and proof
         tasks[secretContract][taskId].worker = msg.sender;
@@ -180,7 +184,7 @@ contract Enigma is SafeMath {
         // Put the reward in the worker's bank
         // He can withdraw later
         Worker storage worker = workers[msg.sender];
-        worker.balance = safeAdd(worker.balance, reward);
+        worker.balance = worker.balance.add(reward);
 
         emit SolveTask(secretContract, msg.sender, proof, reward, true);
 

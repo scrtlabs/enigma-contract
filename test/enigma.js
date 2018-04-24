@@ -98,7 +98,8 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            return enigma.solveTask (SECRET_CONTRACT, 0, 'proof', { from: accounts[0] });
+            let results = ['uint dealId', '0', 'address[] destAddresses', 'test', 'test2'];
+            return enigma.solveTask (SECRET_CONTRACT, 0, results, 'proof', { from: accounts[0] });
         }).then (function (result) {
             let event = result.logs[0];
             console.log ('solved task event', event);

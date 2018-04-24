@@ -2,9 +2,6 @@ pragma solidity ^0.4.22;
 
 contract EnigmaP {
 
-    function EnigmaP() public {
-    }
-
     function addArg(bytes32[] args, bytes32 arg, uint offset, uint value) public pure returns (uint){
         // Add a uint value to the computation argument
         args[offset] = arg;
