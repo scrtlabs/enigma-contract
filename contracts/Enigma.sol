@@ -73,7 +73,7 @@ contract Enigma {
     payable
     returns (ReturnValue) {
         // Register a new worker and deposit stake
-        require(workers[msg.sender].status == 0, "Worker already register.");
+        // require(workers[msg.sender].status == 0, "Worker already register.");
 
         workerIndex.push(msg.sender);
 
