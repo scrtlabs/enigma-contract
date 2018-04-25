@@ -111,6 +111,21 @@ contract ('CoinMixer', function (accounts) {
             assert.equal (event.args._success, true, "Deal execution failed.");
         });
     });
+
+    it ("...mixing addresses.", function () {
+        return CoinMixer.deployed ().then (function (instance) {
+            coinMixerInstance = instance;
+
+            const seed = Math.floor (Math.random () * 256);
+            return coinMixerInstance.mixAddresses.call (0, ["0x8f0483125fcb9aaaefa9209d8e9d7b9c8b9fb90f", "0x1622c3352f54f66e2b86583958d30db50695ec4c"], seed, {
+                from: accounts[0],
+            });
+        }).then (function (result) {
+            console.log ('the mixed addresses', result);
+            assert.equal (result[1].length, 5, "Unable to mix addresses.");
+        });
+    });
+
     // it ("...distributing.", function () {
     //     return CoinMixer.deployed ().then (function (instance) {
     //         coinMixerInstance = instance;

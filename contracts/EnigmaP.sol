@@ -25,6 +25,7 @@ contract EnigmaP {
         return offset;
     }
 
+    //TODO: this has unsafe math
     function uintToBytes(uint v) private pure returns (bytes32 ret) {
         // Serialize bytes to int
         // TODO: optimize with assembly if possible

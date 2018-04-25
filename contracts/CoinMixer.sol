@@ -114,19 +114,29 @@ contract CoinMixer is EnigmaP {
         // might have arbitrary attributes.
         // The enclave will know who to apply each preprocessor by convention.
         bytes32[] memory preprocessors = new bytes32[](1);
-        preprocessors[0] = "shuffle(destAddresses)";
+        preprocessors[0] = "rand()";
 
         enigma.compute.value(msg.value)(this, "mixAddresses", args, "distribute", preprocessors);
         emit DealExecuted(dealId, true);
     }
 
-    function mixAddresses(uint dealId, address[] destAddresses)
+    function mixAddresses(uint dealId, address[] destAddresses, uint rand)
     public
     pure
     returns (uint, address[]) {
-        // TODO: put mixing logic here
-        //        random()
-        return (dealId, destAddresses);
+        // Shuffling the specified address using a random seed
+        // TODO: having trouble making this work
+        address[] memory shuffledAddrs = new address[](destAddresses.length);
+        uint i = destAddresses.length;
+        while (i > 0) {
+            uint j = uint(sha256(rand + 1)) % i;
+
+            if (shuffledAddrs[j] == address(0)) {
+                shuffledAddrs[j] = destAddresses[i-1];
+                i--;
+            }
+        }
+        return (dealId, shuffledAddrs);
     }
 
     function distribute(uint dealId, address[] destAddresses)
