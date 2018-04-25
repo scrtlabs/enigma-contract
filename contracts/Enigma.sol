@@ -167,6 +167,41 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
+    function verifySignature(address secretContract, Task task, bytes32[] results, bytes sig) internal constant
+    returns (address) {
+        // Recreating a data hash to validate the signature
+
+        uint size = 2 + task.callableArgs.length + results.length;
+        bytes32[] memory parts = new bytes32[](size);
+        parts[0] = bytes32(secretContract);
+        parts[1] = bytes32(task.callable);
+
+        uint offset = 2;
+        for(uint i1=0; i1 < task.callableArgs.length; i1++) {
+            parts[offset] = task.callableArgs[i1];
+            offset++;
+        }
+        for(uint i2=0; i2 < results.length; i2++) {
+            parts[offset] = results[i2];
+            offset++;
+        }
+
+        // Build a hash to validate that the I/Os are matching
+        bytes32 hash = keccak256(parts);
+        //bytes32 hash = 'Test';
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHash = sha3(prefix, hash);
+
+        // TODO: this returns an address where we want to verify a public key
+        // I don't believe that Solidity has a general purpose signature
+        // validator. However, we know that an Ethereum address is the hash
+        // of a public key, so we can use our public key to generate a
+        // virtual address for validation.
+        address workerAddr = prefixedHash.recover(sig);
+
+        return workerAddr;
+    }
+
     // TODO: remove the hash parameter and recreate it in the function
     function solveTask(address secretContract, uint taskId, bytes32[] results, bytes sig)
     public
@@ -175,14 +210,9 @@ contract Enigma {
         // Task must be solved only once
         require(tasks[secretContract][taskId].worker == address(0), "Task already solved.");
 
-        // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256('Test');
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = sha3(prefix, hash);
-        address workerAddr = prefixedHash.recover(sig);
-
-        require(workerAddr != address(0), "Cannot verify this signature.");
-        require(workerAddr == msg.sender, "Invalid signature.");
+        address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], results, sig);
+        // require(sigAddr != address(0), "Cannot verify this signature.");
+        // require(sigAddr == msg.sender, "Invalid signature.");
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
@@ -198,7 +228,7 @@ contract Enigma {
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit SolveTask(secretContract, workerAddr, sig, reward, true);
+        emit SolveTask(secretContract, msg.sender, sig, reward, true);
 
         return ReturnValue.Ok;
     }
