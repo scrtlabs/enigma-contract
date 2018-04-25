@@ -117,8 +117,8 @@ contract ('Enigma', function (accounts) {
 
             const results = ['uint dealId', '0', 'address[] destAddresses', 'test', 'test2'];
             const signature = signMessage (accounts[0], 'Test');
-            const hash = hashMessage ('Test');
-            return enigma.solveTask (SECRET_CONTRACT, 0, results, signature, hash, { from: accounts[0] });
+            // const hash = hashMessage ('Test');
+            return enigma.solveTask (SECRET_CONTRACT, 0, results, signature, { from: accounts[0] });
         }).then (function (result) {
             let event = result.logs[0];
             console.log ('solved task event', event);

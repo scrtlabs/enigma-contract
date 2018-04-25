@@ -168,14 +168,19 @@ contract Enigma {
     }
 
     // TODO: remove the hash parameter and recreate it in the function
-    function solveTask(address secretContract, uint taskId, bytes32[] results, bytes sig, bytes32 hash)
+    function solveTask(address secretContract, uint taskId, bytes32[] results, bytes sig)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
         require(tasks[secretContract][taskId].worker == address(0), "Task already solved.");
 
-        address workerAddr = hash.recover(sig);
+        // Build a hash to validate that the I/Os are matching
+        bytes32 hash = keccak256('Test');
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHash = sha3(prefix, hash);
+        address workerAddr = prefixedHash.recover(sig);
+
         require(workerAddr != address(0), "Cannot verify this signature.");
         require(workerAddr == msg.sender, "Invalid signature.");
 
