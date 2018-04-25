@@ -1,6 +1,7 @@
 pragma solidity ^0.4.22;
 
 import "./zeppelin/SafeMath.sol";
+import "./zeppelin/ECRecovery.sol";
 
 library GetCode {
     function at(address _addr) public view returns (bytes o_code) {
@@ -22,6 +23,7 @@ library GetCode {
 
 contract Enigma {
     using SafeMath for uint256;
+    using ECRecovery for bytes32;
 
     struct Task {
         bytes32 callable;
@@ -173,6 +175,10 @@ contract Enigma {
         // Task must be solved only once
         require(tasks[secretContract][taskId].worker == address(0), "Task already solved.");
 
+        address workerAddr = hash.recover(sig);
+        require(workerAddr != address(0), "Cannot verify this signature.");
+        require(workerAddr == msg.sender, "Invalid signature.");
+
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
         uint reward = tasks[secretContract][taskId].reward;
@@ -187,7 +193,7 @@ contract Enigma {
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit SolveTask(secretContract, msg.sender, sig, reward, true);
+        emit SolveTask(secretContract, workerAddr, sig, reward, true);
 
         return ReturnValue.Ok;
     }
