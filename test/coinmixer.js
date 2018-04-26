@@ -112,17 +112,18 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
+    const addresses = ["0x8f0483125fcb9aaaefa9209d8e9d7b9c8b9fb90f", "0x1622c3352f54f66e2b86583958d30db50695ec4c", "0x98d9f9e8debd4a632682ba207670d2a5acd3c489"];
     it ("...mixing addresses.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
             const seed = Math.floor (Math.random () * 256);
-            return coinMixerInstance.mixAddresses.call (0, ["0x8f0483125fcb9aaaefa9209d8e9d7b9c8b9fb90f", "0x1622c3352f54f66e2b86583958d30db50695ec4c"], seed, {
+            return coinMixerInstance.mixAddresses.call (0, addresses, seed, {
                 from: accounts[0],
             });
         }).then (function (result) {
             console.log ('the mixed addresses', result);
-            assert.equal (result[1].length, 2, "Unable to mix addresses.");
+            assert.equal (result[1].length, addresses.length, "Unable to mix addresses.");
         });
     });
 
