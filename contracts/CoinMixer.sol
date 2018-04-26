@@ -124,19 +124,23 @@ contract CoinMixer is EnigmaP {
     public
     pure
     returns (uint, address[]) {
-        // Shuffling the specified address using a random seed
-        // TODO: having trouble making this work
-        address[] memory shuffledAddrs = new address[](destAddresses.length);
+        // Shuffling the specified address using a random seed.
+        // Doing a Fisher-Yates Shuffle with a single integer
+        // between 0 and 127. To get more numbers in the loop,
+        // we'll add 1 to our seed and hash it.
         uint i = destAddresses.length;
         while (i > 0) {
             uint j = uint(sha256(rand + 1)) % i;
 
-            if (shuffledAddrs[j] == address(0)) {
-                shuffledAddrs[j] = destAddresses[i-1];
-                i--;
+            // Array swap
+            if (destAddresses[j] != destAddresses[i - 1]) {
+                address destAddress = destAddresses[i - 1];
+                destAddresses[i - 1] = destAddresses[j];
+                destAddresses[j] = destAddress;
             }
+            i--;
         }
-        return (dealId, shuffledAddrs);
+        return (dealId, destAddresses);
     }
 
     function distribute(uint dealId, address[] destAddresses)

@@ -122,7 +122,7 @@ contract ('CoinMixer', function (accounts) {
             });
         }).then (function (result) {
             console.log ('the mixed addresses', result);
-            assert.equal (result[1].length, 5, "Unable to mix addresses.");
+            assert.equal (result[1].length, 2, "Unable to mix addresses.");
         });
     });
 
