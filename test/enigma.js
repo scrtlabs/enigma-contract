@@ -116,14 +116,16 @@ contract ('Enigma', function (accounts) {
             enigma = instance;
 
             const results = ['uint dealId', '0', 'address[] destAddresses', 'test', 'test2'];
-            const signature = signMessage (accounts[0], 'Test');
+            const signature = signMessage (accounts[0], 'TestTest');
             // const hash = hashMessage ('Test');
             return enigma.solveTask (SECRET_CONTRACT, 0, results, signature, { from: accounts[0] });
         }).then (function (result) {
-            let event = result.logs[0];
-            console.log ('solved task event', event);
+            let event1 = result.logs[0];
+            let event2 = result.logs[1];
+            console.log ('solved task event', event1);
 
-            assert.equal (event.args._success, true, "Unable to solve task.");
+            assert.equal (event1.args._success, true, "Unable to verify hash.");
+            assert.equal (event2.args._success, true, "Unable to solve task.");
         });
     });
 });

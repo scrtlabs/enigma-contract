@@ -53,6 +53,7 @@ contract Enigma {
     event UpdateRate(address user, uint rate, bool _success);
     event Deposit(address secretContract, address user, uint amount, uint balance, bool _success);
     event Withdraw(address user, uint amount, uint balance, bool _success);
+    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
@@ -167,28 +168,48 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
+    function bytes32ArrayToBytes (bytes32[] data) returns (bytes) {
+        // Merges parts of a bytes32[] into bytes
+        // TODO: may be unsafe and suboptimal
+        bytes memory bytesString = new bytes(data.length * 32);
+        uint urlLength;
+        for (uint i=0; i<data.length; i++) {
+            for (uint j=0; j<32; j++) {
+                byte char = byte(bytes32(uint(data[i]) * 2 ** (8 * j)));
+                if (char != 0) {
+                    bytesString[urlLength] = char;
+                    urlLength += 1;
+                }
+            }
+        }
+        bytes memory bytesStringTrimmed = new bytes(urlLength);
+        for (i=0; i<urlLength; i++) {
+            bytesStringTrimmed[i] = bytesString[i];
+        }
+        return bytesStringTrimmed;
+    }
+
     function verifySignature(address secretContract, Task task, bytes32[] results, bytes sig) internal constant
     returns (address) {
         // Recreating a data hash to validate the signature
 
-        uint size = 2 + task.callableArgs.length + results.length;
-        bytes32[] memory parts = new bytes32[](size);
-        parts[0] = bytes32(secretContract);
-        parts[1] = bytes32(task.callable);
+        uint size = 1 + task.callableArgs.length + results.length;
+        bytes32[] memory parts = new bytes32[](2);
+        parts[0] = 'Test';
+        parts[1] = 'Test';
 
-        uint offset = 2;
-        for(uint i1=0; i1 < task.callableArgs.length; i1++) {
-            parts[offset] = task.callableArgs[i1];
-            offset++;
-        }
-        for(uint i2=0; i2 < results.length; i2++) {
-            parts[offset] = results[i2];
-            offset++;
-        }
+        //uint offset = 1;
+        //for(uint i1=0; i1 < task.callableArgs.length; i1++) {
+        //    parts[offset] = task.callableArgs[i1];
+        //    offset++;
+        //}
+        //for(uint i2=0; i2 < results.length; i2++) {
+        //    parts[offset] = results[i2];
+        //    offset++;
+        //}
 
         // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(parts);
-        //bytes32 hash = 'Test';
+        bytes32 hash = keccak256(bytes32ArrayToBytes(parts));
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = sha3(prefix, hash);
 
@@ -199,6 +220,7 @@ contract Enigma {
         // virtual address for validation.
         address workerAddr = prefixedHash.recover(sig);
 
+        emit ValidateSig(sig, prefixedHash, workerAddr, true);
         return workerAddr;
     }
 
@@ -211,8 +233,8 @@ contract Enigma {
         require(tasks[secretContract][taskId].worker == address(0), "Task already solved.");
 
         address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], results, sig);
-        // require(sigAddr != address(0), "Cannot verify this signature.");
-        // require(sigAddr == msg.sender, "Invalid signature.");
+        require(sigAddr != address(0), "Cannot verify this signature.");
+        require(sigAddr == msg.sender, "Invalid signature.");
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
@@ -221,7 +243,7 @@ contract Enigma {
 
         // Keep a trace of the task worker and proof
         tasks[secretContract][taskId].worker = msg.sender;
-        tasks[secretContract][taskId].sig = sig;
+        // tasks[secretContract][taskId].sig = sig;
 
         // Put the reward in the worker's bank
         // He can withdraw later

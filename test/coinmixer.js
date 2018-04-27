@@ -117,7 +117,7 @@ contract ('CoinMixer', function (accounts) {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            const seed = Math.floor (Math.random () * 256);
+            const seed = Math.floor (Math.random () * 128);
             return coinMixerInstance.mixAddresses.call (0, addresses, seed, {
                 from: accounts[0],
             });
