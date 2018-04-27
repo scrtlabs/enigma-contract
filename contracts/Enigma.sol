@@ -194,18 +194,27 @@ contract Enigma {
         // Recreating a data hash to validate the signature
 
         uint size = 1 + task.callableArgs.length + results.length;
-        bytes32[] memory parts = new bytes32[](2);
-        parts[0] = 'Test';
-        parts[1] = 'Test';
+        bytes32[] memory parts = new bytes32[](7);
+        parts[0] = 'mixAddresses';
+        parts[1] = 'address[] destAddresses';
+        parts[2] = 'test';
+        parts[3] = 'test2';
+        parts[4] = 'address[] destAddresses';
+        parts[5] = 'test';
+        parts[6] = 'test2';
 
         //uint offset = 1;
         //for(uint i1=0; i1 < task.callableArgs.length; i1++) {
-        //    parts[offset] = task.callableArgs[i1];
-        //    offset++;
+        //    if (i1 > 1) {
+        //        parts[offset] = task.callableArgs[i1];
+        //        offset++;
+        //    }
         //}
         //for(uint i2=0; i2 < results.length; i2++) {
-        //    parts[offset] = results[i2];
-        //    offset++;
+        //    if (i2 > 1) {
+        //        parts[offset] = results[i2];
+        //        offset++;
+        //    }
         //}
 
         // Build a hash to validate that the I/Os are matching

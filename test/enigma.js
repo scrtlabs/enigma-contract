@@ -111,12 +111,19 @@ contract ('Enigma', function (accounts) {
         });
     });
 
+    let msg;
     it ("...solving task", function () {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            const results = ['uint dealId', '0', 'address[] destAddresses', 'test', 'test2'];
-            const signature = signMessage (accounts[0], 'TestTest');
+            const results = [
+                'mixAddresses',
+                'address[] destAddresses', 'test', 'test2',
+                'address[] destAddresses', 'test', 'test2'
+            ];
+            msg = results.join ('');
+            console.log ('the message string', msg);
+            const signature = signMessage (accounts[0], msg);
             // const hash = hashMessage ('Test');
             return enigma.solveTask (SECRET_CONTRACT, 0, results, signature, { from: accounts[0] });
         }).then (function (result) {
