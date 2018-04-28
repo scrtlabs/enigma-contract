@@ -31,7 +31,7 @@ contract EnigmaToken is StandardToken {
    * @dev SesnseToken Constructor
    * Runs only on initial contract creation.
    */
-  function EnigmaToken(address testValue) {
+  function EnigmaToken() {
     totalSupply = INITIAL_SUPPLY;                               // Set the total supply
     balances[msg.sender] = INITIAL_SUPPLY;                      // Creator address is assigned all
     Transfer(0x0, msg.sender, INITIAL_SUPPLY);

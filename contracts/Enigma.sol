@@ -2,6 +2,15 @@ pragma solidity ^0.4.22;
 
 import "./zeppelin/SafeMath.sol";
 import "./zeppelin/ECRecovery.sol";
+contract IERC20 {
+  function balanceOf(address who) public constant returns (uint256);
+  function transfer(address to, uint256 value) public returns (bool);
+  function allowance(address owner, address spender) public constant returns (uint256);
+  function transferFrom(address from, address to, uint256 value) public returns (bool);
+  function approve(address spender, uint256 value) public returns (bool);
+  event Transfer(address indexed from, address indexed to, uint256 value);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
+}
 
 library GetCode {
     function at(address _addr) public view returns (bytes o_code) {
@@ -25,6 +34,7 @@ contract Enigma {
     using SafeMath for uint256;
     using ECRecovery for bytes32;
 
+    IERC20 public engToken;
     struct Task {
         bytes32 callable;
         bytes32[] callableArgs;
@@ -61,9 +71,9 @@ contract Enigma {
 
     enum ReturnValue {Ok, Error}
 
-//    function Enigma() public {
-//
-//    }
+    function Enigma(address _tokenAddress) public {
+        engToken = IERC20(_tokenAddress);
+    }
 
     modifier workerRegistered(address user) {
         Worker memory worker = workers[user];

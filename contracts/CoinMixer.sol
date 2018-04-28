@@ -38,9 +38,8 @@ contract CoinMixer is EnigmaP {
     // TODO: switch to require() once it accepts a message parameter
     enum ReturnValue {Ok, Error}
 
-    function CoinMixer() public {
-        // TODO: can we make this dynamic?
-        enigma = Enigma(0x345ca3e014aaf5dca488057592ee47305d9b3e10);
+    function CoinMixer(address _enigmaAddress) public {
+        enigma = Enigma(_enigmaAddress);
     }
 
     function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants)

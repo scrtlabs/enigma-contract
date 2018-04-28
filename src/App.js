@@ -1,6 +1,7 @@
 import React, {Component} from 'react'
 import CoinMixerContract from '../build/contracts/CoinMixer.json'
 import EnigmaContract from '../build/contracts/Enigma.json'
+import EnigmaTokenContract from '../build/contracts/EnigmaToken.json'
 import getWeb3 from './utils/getWeb3'
 import utils from 'web3-utils'
 
@@ -22,7 +23,6 @@ import DealTable from './DealTable';
 import {MuiThemeProvider, createMuiTheme} from 'material-ui/styles';
 import blue from 'material-ui/colors/blue';
 import Enigma from './enigma-utils/enigma';
-import Web3 from 'web3'
 
 
 const theme = createMuiTheme ({
@@ -82,17 +82,22 @@ class App extends Component {
          */
         const contract = require ('truffle-contract');
         const coinMixer = contract (CoinMixerContract);
+        const token = contract (EnigmaTokenContract);
         const enigma = contract (EnigmaContract);
 
-        // TODO: use the HTTP provider to trigger listener events
         coinMixer.setProvider (this.state.web3.currentProvider);
         enigma.setProvider (this.state.web3.currentProvider);
+        token.setProvider (this.state.web3.currentProvider);
 
         // Get accounts.
         this.state.web3.eth.getAccounts ((error, accounts) => {
             this.state.web3.eth.defaultAccount = accounts[0];
             this.setState ({ accounts: accounts });
 
+            token.deployed ().then ((instance) => {
+                console.log ('enigma contract deployed', instance);
+                this.setState ({ token: instance });
+            });
             enigma.deployed ().then ((instance) => {
                 console.log ('enigma contract deployed', instance);
                 let enigma = new Enigma (instance);
@@ -278,13 +283,14 @@ class App extends Component {
                 // Users are free to set their computation fee.
                 // The `estimateEngFee` is simply a guide.
                 let engFee = this.state.enigma.estimateEngFee (params);
+                return this.state.token.approve (this.state.accounts[0], engFee, { from: this.state.accounts[0] });
 
                 // TODO: wrap into utility library
                 // I'm leaving the code here for now short term readability
-                return this.state.enigma.compute (params, {
-                    from: this.state.accounts[0],
-                    value: engFee
-                });
+                // return this.state.enigma.compute (params, {
+                //     from: this.state.accounts[0],
+                //     value: engFee
+                // });
             })
             .then ((result) => {
                 console.log ('computation task created', result);
