@@ -27,7 +27,7 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            return enigma.register (URL, PKEY, 10, { from: accounts[0] });
+            return enigma.register (URL, PKEY, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
             console.log (event);
@@ -59,29 +59,6 @@ contract ('Enigma', function (accounts) {
             assert (result.length > 0, "No worker details.");
         });
     });
-
-    it ("...updating rate", function () {
-        return Enigma.deployed ().then (function (instance) {
-            enigma = instance;
-
-            return enigma.updateRate (2, { from: accounts[0] });
-        }).then (function (result) {
-            console.log ('new rate', result);
-            assert.equal (event.args._success, true, "Unable to update rate.");
-        });
-    });
-
-    it ("...checking my new rate", function () {
-        return Enigma.deployed ().then (function (instance) {
-            enigma = instance;
-
-            return enigma.workers.call (accounts[0], { from: accounts[0] });
-        }).then (function (result) {
-            console.log ('my worker details', result);
-            assert.equal (result[4], 2, "Incorrect rate.");
-        });
-    });
-
 
     it ("...executing computation", function () {
         return Enigma.deployed ().then (function (instance) {

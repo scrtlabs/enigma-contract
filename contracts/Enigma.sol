@@ -49,7 +49,6 @@ contract Enigma {
         string pkey;
         string quote;
         uint256 balance;
-        uint rate; // TODO: we don't want this
         uint status; // Uninitialized: 0; Inactive:1; Active: 2
     }
 
@@ -57,12 +56,10 @@ contract Enigma {
     mapping(address => Worker) public workers;
     mapping(address => Task[]) public tasks;
 
-    event Register(bytes32 url, address user, string pkey, uint rate, bool _success);
+    event Register(bytes32 url, address user, string pkey, bool _success);
     event Login(address user, bool _success);
     event Logout(address user, bool _success);
     event UpdateRate(address user, uint rate, bool _success);
-    event Deposit(address secretContract, address user, uint amount, uint balance, bool _success);
-    event Withdraw(address user, uint amount, uint balance, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
@@ -81,7 +78,7 @@ contract Enigma {
         _;
     }
 
-    function register(bytes32 url, string pkey, uint rate)
+    function register(bytes32 url, string pkey)
     public
     payable
     returns (ReturnValue) {
@@ -93,10 +90,9 @@ contract Enigma {
         workers[msg.sender].url = url;
         workers[msg.sender].pkey = pkey;
         workers[msg.sender].balance = msg.value;
-        workers[msg.sender].rate = rate;
         workers[msg.sender].status = 1;
 
-        emit Register(url, msg.sender, pkey, rate, true);
+        emit Register(url, msg.sender, pkey, true);
 
         return ReturnValue.Ok;
     }
@@ -126,36 +122,6 @@ contract Enigma {
         workers[msg.sender].status = 1;
 
         emit Logout(msg.sender, true);
-
-        return ReturnValue.Ok;
-    }
-
-    //TODO: we don't want this
-    function updateRate(uint rate)
-    public
-    workerRegistered(msg.sender)
-    returns (ReturnValue) {
-        // Update the ENG/GAS rate
-        workers[msg.sender].rate = rate;
-
-        emit UpdateRate(msg.sender, rate, true);
-
-        return ReturnValue.Ok;
-    }
-
-    //TODO: we don't want this
-    function withdraw(uint amount)
-    public
-    workerRegistered(msg.sender)
-    returns (ReturnValue) {
-        // Withdraw from stake and rewards balance
-        Worker storage worker = workers[msg.sender];
-        require(worker.balance > amount, "Not enough funds to withdraw.");
-
-        worker.balance = worker.balance.sub(amount);
-        msg.sender.transfer(amount);
-
-        emit Withdraw(msg.sender, amount, worker.balance, true);
 
         return ReturnValue.Ok;
     }
