@@ -27,25 +27,11 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            return enigma.register (URL, PKEY, { from: accounts[0] });
+            return enigma.register (URL, PKEY, QUOTE, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
             console.log (event);
             assert.equal (event.args._success, true, "Worker registration failed.");
-        });
-    });
-
-    it ("...login worker", function () {
-        return Enigma.deployed ().then (function (instance) {
-            enigma = instance;
-
-            return enigma.login (QUOTE, { from: accounts[0] });
-        }).then (function (result) {
-            event = result.logs[0];
-            console.log (event);
-            assert.equal (event.args._success, true, "Login failed.");
-
-            worker = event.args.user;
         });
     });
 

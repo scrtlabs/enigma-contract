@@ -49,7 +49,7 @@ contract Enigma {
         string pkey;
         string quote;
         uint256 balance;
-        uint status; // Uninitialized: 0; Inactive:1; Active: 2
+        uint status; // Uninitialized: 0; Active: 1; Inactive: 2
     }
 
     address[] public workerIndex;
@@ -57,9 +57,7 @@ contract Enigma {
     mapping(address => Task[]) public tasks;
 
     event Register(bytes32 url, address user, string pkey, bool _success);
-    event Login(address user, bool _success);
     event Logout(address user, bool _success);
-    event UpdateRate(address user, uint rate, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
@@ -78,7 +76,7 @@ contract Enigma {
         _;
     }
 
-    function register(bytes32 url, string pkey)
+    function register(bytes32 url, string pkey, string quote)
     public
     payable
     returns (ReturnValue) {
@@ -90,25 +88,10 @@ contract Enigma {
         workers[msg.sender].url = url;
         workers[msg.sender].pkey = pkey;
         workers[msg.sender].balance = msg.value;
+        workers[msg.sender].quote = quote;
         workers[msg.sender].status = 1;
 
         emit Register(url, msg.sender, pkey, true);
-
-        return ReturnValue.Ok;
-    }
-
-    //TODO: we don't want this
-    function login(string quote)
-    public
-    workerRegistered(msg.sender)
-    returns (ReturnValue) {
-        // The worker is ready to receive tasks
-
-        // TODO: validate quote signature here
-        workers[msg.sender].quote = quote;
-        workers[msg.sender].status = 2;
-
-        emit Login(msg.sender, true);
 
         return ReturnValue.Ok;
     }
@@ -119,7 +102,7 @@ contract Enigma {
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // A worker stops accepting tasks
-        workers[msg.sender].status = 1;
+        workers[msg.sender].status = 2;
 
         emit Logout(msg.sender, true);
 
