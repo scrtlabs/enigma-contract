@@ -1,4 +1,5 @@
 const web3Utils = require ('web3-utils');
+const RLP = require ('rlp');
 
 const URL = 'localhost:3001';
 const PKEY = 'AAAAB3NzaC1yc2EAAAADAQABAAABAQC4ReB9wai5xcNnlYpFWfMv+Dwz1wC6vac0HRQ099/mthViVImDzIWUEVqQitWbWpGR7y8bNw+j/OZDbOWQy0Rl8kfYbjgpVOEREal87hxCFKF4D47NODH145Q9M9Jd2UqiK6GVeQHh4a4mEXWb6padpi1FwFPkHVNwDNDn/o1rbhJeARfHuFUHLUiR+jnJEWnHlsVyXWe5Wih8UiY6pmyKgLCc1wfMnRpGlSWKSQrYcdVSHSM6+lGirUUOOAlq0g8PcboKEoPWlpPycf7TEB3jYF0W6rmwxlf4gOr3da+b4lRoZZlXpiBxAeWqkez2+gZQlHaa+O2Dqk093AZGSMQz';
@@ -36,6 +37,9 @@ contract ('Enigma', function (accounts) {
             enigma = instance;
 
             let args = ['uint dealId', 'abc', 'address[] destAddresses', 'test', 'test2'];
+            let encoded = RLP.encode(args);
+            console.log('the rlp encoded string', encoded);
+
             let preprocessor = ['shuffle(destAddresses)'];
             return enigma.compute (SECRET_CONTRACT,
                 'mixAddresses', args, 'distribute', preprocessor,
