@@ -2,39 +2,30 @@ pragma solidity ^0.4.22;
 
 import "./zeppelin/SafeMath.sol";
 import "./zeppelin/ECRecovery.sol";
+import "./utils/GetCode2.sol";
+
 contract IERC20 {
-  function balanceOf(address who) public constant returns (uint256);
-  function transfer(address to, uint256 value) public returns (bool);
-  function allowance(address owner, address spender) public constant returns (uint256);
-  function transferFrom(address from, address to, uint256 value) public returns (bool);
-  function approve(address spender, uint256 value) public returns (bool);
-  event Transfer(address indexed from, address indexed to, uint256 value);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
+    function balanceOf(address who) public constant returns (uint256);
+
+    function transfer(address to, uint256 value) public returns (bool);
+
+    function allowance(address owner, address spender) public constant returns (uint256);
+
+    function transferFrom(address from, address to, uint256 value) public returns (bool);
+
+    function approve(address spender, uint256 value) public returns (bool);
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-library GetCode {
-    function at(address _addr) public view returns (bytes o_code) {
-        assembly {
-            // retrieve the size of the code, this needs assembly
-            let size := extcodesize(_addr)
-            // allocate output byte array - this could also be done without assembly
-            // by using o_code = new bytes(size)
-            o_code := mload(0x40)
-            // new "memory end" including padding
-            mstore(0x40, add(o_code, and(add(add(size, 0x20), 0x1f), not(0x1f))))
-            // store length in memory
-            mstore(o_code, size)
-            // actually retrieve the code, this needs assembly
-            extcodecopy(_addr, add(o_code, 0x20), 0, size)
-        }
-    }
-}
 
 contract Enigma {
     using SafeMath for uint256;
     using ECRecovery for bytes32;
 
     IERC20 public engToken;
+
     struct Task {
         bytes32 callable;
         bytes32[] callableArgs;
@@ -58,7 +49,7 @@ contract Enigma {
 
     event Register(bytes32 url, address user, string pkey, bool _success);
     event Logout(address user, bool _success);
-    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
+    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
@@ -127,13 +118,13 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function bytes32ArrayToBytes (bytes32[] data) returns (bytes) {
+    function bytes32ArrayToBytes(bytes32[] data) returns (bytes) {
         // Merges parts of a bytes32[] into bytes
         // TODO: may be unsafe and suboptimal
         bytes memory bytesString = new bytes(data.length * 32);
         uint urlLength;
-        for (uint i=0; i<data.length; i++) {
-            for (uint j=0; j<32; j++) {
+        for (uint i = 0; i < data.length; i++) {
+            for (uint j = 0; j < 32; j++) {
                 byte char = byte(bytes32(uint(data[i]) * 2 ** (8 * j)));
                 if (char != 0) {
                     bytesString[urlLength] = char;
@@ -142,7 +133,7 @@ contract Enigma {
             }
         }
         bytes memory bytesStringTrimmed = new bytes(urlLength);
-        for (i=0; i<urlLength; i++) {
+        for (i = 0; i < urlLength; i++) {
             bytesStringTrimmed[i] = bytesString[i];
         }
         return bytesStringTrimmed;
@@ -162,6 +153,9 @@ contract Enigma {
         parts[5] = 'test';
         parts[6] = 'test2';
 
+        bytes memory code = GetCode2.at(secretContract);
+        bytes memory args = bytes32ArrayToBytes(parts);
+
         //uint offset = 1;
         //for(uint i1=0; i1 < task.callableArgs.length; i1++) {
         //    if (i1 > 1) {
@@ -177,7 +171,7 @@ contract Enigma {
         //}
 
         // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(bytes32ArrayToBytes(parts));
+        bytes32 hash = keccak256(args, code);
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = sha3(prefix, hash);
 
@@ -188,7 +182,7 @@ contract Enigma {
         // virtual address for validation.
         address workerAddr = prefixedHash.recover(sig);
 
-        emit ValidateSig(sig, prefixedHash, workerAddr, true);
+        emit ValidateSig(sig, prefixedHash, workerAddr, code, true);
         return workerAddr;
     }
 

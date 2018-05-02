@@ -64,9 +64,10 @@
     "rmwc": "^1.2.1",
     "sjcl": "1.0.7",
     "solc": "^0.4.22",
+    "solidity-sha3": "^0.4.1",
     "truffle": "^4.1.6",
     "web3": "^1.0.0-beta.34",
-    "web3-utils": "^1.0.0-beta.30"
+    "web3-utils": "^1.0.0-beta.34"
   },
   "scripts": {
     "start": "node scripts/start.js",
