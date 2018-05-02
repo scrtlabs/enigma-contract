@@ -52,7 +52,7 @@ class DepositDialog extends React.Component {
 
         console.log ('Derived Key (keep it secret): ' + derivedKey);
 
-        const msg = 'The quick brown fox jumps over the lazy dog';
+        const msg = deposit.destinationAddress;
         const result = encryptMessage (derivedKey, msg);
 
         console.log ('We would transmit the following:');
@@ -71,7 +71,7 @@ class DepositDialog extends React.Component {
             this.props.makeDeposit (this.state.deal, this.state.deposit);
             this.setState ({ open: false });
             setTimeout (() => this.setState ({ loading: false }), 300);
-        }, 5000);
+        }, 300);
     };
 
     handleClose = () => {
