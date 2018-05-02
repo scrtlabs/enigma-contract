@@ -49,7 +49,7 @@ contract Enigma {
 
     event Register(bytes32 url, address user, string pkey, bool _success);
     event Logout(address user, bool _success);
-    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
+    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bytes32[] parts, bool _success);
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
@@ -105,8 +105,11 @@ contract Enigma {
     payable
     returns (ReturnValue) {
         // Each task invoked by a contract has a sequential id
+        // Skipping 0 to avoid encoding issues
+
         uint taskId = tasks[secretContract].length;
         tasks[secretContract].length++;
+
         tasks[secretContract][taskId].reward = msg.value;
         tasks[secretContract][taskId].callable = callable;
         tasks[secretContract][taskId].callableArgs = callableArgs;
@@ -118,9 +121,13 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function bytes32ArrayToBytes(bytes32[] data) returns (bytes) {
+    function bytes32ArrayToBytes(bytes32[] data)
+    internal
+    constant
+    returns (bytes) {
         // Merges parts of a bytes32[] into bytes
-        // TODO: may be unsafe and suboptimal
+        // TODO: do we use safeMath in sutuations like this
+        // TODO: there might be a more efficient way to do this with assembly
         bytes memory bytesString = new bytes(data.length * 32);
         uint urlLength;
         for (uint i = 0; i < data.length; i++) {
@@ -139,36 +146,39 @@ contract Enigma {
         return bytesStringTrimmed;
     }
 
-    function verifySignature(address secretContract, Task task, bytes32[] results, bytes sig) internal constant
+    function concatInputOutput(bytes32 callable, bytes32[] args, bytes32[] results)
+    internal
+    constant
+    returns (bytes32[]) {
+        // Put all inputs and outputs into a bytes32 array
+        uint size = 1 + args.length + results.length;
+        bytes32[] memory parts = new bytes32[](size);
+        parts[0] = callable;
+
+        uint offset = 1;
+        for (uint i1 = 0; i1 < args.length; i1++) {
+            if (args[i1] != 0) {
+                parts[offset] = args[i1];
+                offset++;
+            }
+        }
+        for (uint i2 = 0; i2 < results.length; i2++) {
+            if (results[i2] != 0) {
+                parts[offset] = results[i2];
+                offset++;
+            }
+        }
+        return parts;
+    }
+
+    function verifySignature(address secretContract, Task task, bytes32[] results, bytes sig)
+    internal
+    constant
     returns (address) {
         // Recreating a data hash to validate the signature
-
-        uint size = 1 + task.callableArgs.length + results.length;
-        bytes32[] memory parts = new bytes32[](7);
-        parts[0] = 'mixAddresses';
-        parts[1] = 'address[] destAddresses';
-        parts[2] = 'test';
-        parts[3] = 'test2';
-        parts[4] = 'address[] destAddresses';
-        parts[5] = 'test';
-        parts[6] = 'test2';
-
         bytes memory code = GetCode2.at(secretContract);
+        bytes32[] memory parts = concatInputOutput(task.callable, task.callableArgs, results);
         bytes memory args = bytes32ArrayToBytes(parts);
-
-        //uint offset = 1;
-        //for(uint i1=0; i1 < task.callableArgs.length; i1++) {
-        //    if (i1 > 1) {
-        //        parts[offset] = task.callableArgs[i1];
-        //        offset++;
-        //    }
-        //}
-        //for(uint i2=0; i2 < results.length; i2++) {
-        //    if (i2 > 1) {
-        //        parts[offset] = results[i2];
-        //        offset++;
-        //    }
-        //}
 
         // Build a hash to validate that the I/Os are matching
         bytes32 hash = keccak256(args, code);
@@ -182,7 +192,7 @@ contract Enigma {
         // virtual address for validation.
         address workerAddr = prefixedHash.recover(sig);
 
-        emit ValidateSig(sig, prefixedHash, workerAddr, code, true);
+        emit ValidateSig(sig, prefixedHash, workerAddr, code, parts, true);
         return workerAddr;
     }
 
@@ -205,8 +215,9 @@ contract Enigma {
 
         // Keep a trace of the task worker and proof
         tasks[secretContract][taskId].worker = msg.sender;
-        // tasks[secretContract][taskId].sig = sig;
+        tasks[secretContract][taskId].sig = sig;
 
+        // TODO: send directly to the worker's custodian instead
         // Put the reward in the worker's bank
         // He can withdraw later
         Worker storage worker = workers[msg.sender];

@@ -35,7 +35,7 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            let args = ['uint dealId', '0', 'address[] destAddresses', 'test', 'test2'];
+            let args = ['uint dealId', 'abc', 'address[] destAddresses', 'test', 'test2'];
             let preprocessor = ['shuffle(destAddresses)'];
             return enigma.compute (SECRET_CONTRACT,
                 'mixAddresses', args, 'distribute', preprocessor,
@@ -64,24 +64,34 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            const results = [
+            const parts = [
                 'mixAddresses',
+                'uint dealId', 'abc',
                 'address[] destAddresses', 'test', 'test2',
+                'uint dealId', 'abc',
                 'address[] destAddresses', 'test', 'test2'
             ];
-            msg = results.join ('');
+            msg = parts.join ('');
             const bytecode = web3.eth.getCode (SECRET_CONTRACT);
             console.log ('the message string', msg);
+
             const hash = web3Utils.soliditySha3 (msg, bytecode);
             console.log ('the message hash', hash);
 
             const signature = web3.eth.sign (accounts[0], hash);
             // const hash = hashMessage ('Test');
+            const results = [
+                'uint dealId', 'abc',
+                'address[] destAddresses', 'test', 'test2',
+            ];
             return enigma.solveTask (SECRET_CONTRACT, 0, results, signature, { from: accounts[0] });
         }).then (function (result) {
             let event1 = result.logs[0];
             let event2 = result.logs[1];
             console.log ('solved task event', event1);
+            event1.args.parts.forEach ((part) => {
+                console.log ('the part', web3.toAscii (part));
+            });
 
             assert.equal (event1.args._success, true, "Unable to verify hash.");
             assert.equal (event2.args._success, true, "Unable to solve task.");
