@@ -6,7 +6,7 @@ const PKEY = 'AAAAB3NzaC1yc2EAAAADAQABAAABAQC4ReB9wai5xcNnlYpFWfMv+Dwz1wC6vac0HR
 const SECRET_CONTRACT = '0x2467636bea0f3c2441227eedbffac59f11d54a80';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
 
-console.log('web3 version', web3)
+console.log ('web3 version', web3)
 let Enigma = artifacts.require ("./contracts/Enigma.sol");
 contract ('Enigma', function (accounts) {
 
@@ -37,14 +37,20 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            let args = ['uint dealId', 'abc', 'address[] destAddresses', '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972', '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'];
-            let encoded = "0x" + RLP.encode (args).toString ("hex");
+            const callable = 'mixAddresses';
+            const callback = 'distribute';
+            const args = ['abc', [
+                '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
+                '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
+            ]];
+            const encoded = "0x" + RLP.encode (args).toString ("hex");
             console.log ('the rlp encoded string', encoded);
 
-            let preprocessor = ['shuffle(destAddresses)'];
-            return enigma.compute (SECRET_CONTRACT,
-                'mixAddresses', encoded, 'distribute', preprocessor,
-                { from: accounts[0], value: 1 });
+            let preprocessor = ['rand()'];
+            return enigma.compute (
+                SECRET_CONTRACT, callable, encoded, callback, preprocessor,
+                { from: accounts[0], value: 1 }
+            );
         }).then (function (result) {
             let event = result.logs[0];
             console.log ('secret call event', event);

@@ -94,6 +94,7 @@ contract CoinMixer is EnigmaP {
     payable
     {
         // Execute the deal and pay for computation
+        // TODO: refactor for RLP
         Deal storage deal = deals[dealId];
 
         // After giving this some thought, this is what I came up with to serialize arguments
@@ -116,7 +117,7 @@ contract CoinMixer is EnigmaP {
         bytes32[] memory preprocessors = new bytes32[](1);
         preprocessors[0] = "rand()";
 
-        enigma.compute.value(msg.value)(this, "mixAddresses", args, "distribute", preprocessors);
+        // enigma.compute.value(msg.value)(this, "mixAddresses", args, "distribute", preprocessors);
         emit DealExecuted(dealId, true);
     }
 

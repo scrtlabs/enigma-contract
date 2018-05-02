@@ -57,7 +57,7 @@ contract Enigma {
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes callableArgs, bytes32 callback, uint fee, bytes32[] preprocessors, string lastArg, bool _success);
+    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes callableArgs, bytes32 callback, uint fee, bytes32[] preprocessors, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -104,22 +104,36 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
+    function invokeCallback(address secretContact, bytes32 callable, bytes callableArgs)
+    internal
+    constant
+    returns (ReturnValue) {
+        // Invoke the callback function
+        // TODO: incomplete
+        var args = callableArgs.toRLPItem(true);
+        var iter = args.iterator();
+
+        string memory arg;
+        while (iter.hasNext()) {
+            var item = iter.next();
+            if (item.isList()) {
+
+            } else {
+                arg = item.toAscii();
+            }
+        }
+        return ReturnValue.Ok;
+    }
+
     function compute(address secretContract, bytes32 callable, bytes callableArgs, bytes32 callback, bytes32[] preprocessors)
     public
     payable
     returns (ReturnValue) {
-        // Each task invoked by a contract has a sequential id
-        // Skipping 0 to avoid encoding issues
-
-        var args = callableArgs.toRLPItem(true);
-        var iter = args.iterator();
-
-        while(iter.hasNext()) {
-            string memory arg = iter.next().toAscii();
-        }
-
+        // Create a computation task and save the fee in escrow
         uint taskId = tasks[secretContract].length;
         tasks[secretContract].length++;
+
+        invokeCallback(secretContract, callable, callableArgs);
 
         tasks[secretContract][taskId].reward = msg.value;
         tasks[secretContract][taskId].callable = callable;
@@ -127,7 +141,7 @@ contract Enigma {
         tasks[secretContract][taskId].callback = callback;
 
         // Emit the ComputeTask event which each node is watching for
-        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, arg, true);
+        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
 
         return ReturnValue.Ok;
     }
@@ -155,8 +169,7 @@ contract Enigma {
         return workerAddr;
     }
 
-    // TODO: remove the hash parameter and recreate it in the function
-    function solveTask(address secretContract, uint taskId, bytes results, bytes sig)
+    function commitResults(address secretContract, uint taskId, bytes results, bytes sig)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
