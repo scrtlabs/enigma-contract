@@ -3,6 +3,7 @@ pragma solidity ^0.4.22;
 import "./zeppelin/SafeMath.sol";
 import "./zeppelin/ECRecovery.sol";
 import "./utils/GetCode2.sol";
+import "./utils/RLP.sol";
 
 contract IERC20 {
     function balanceOf(address who) public constant returns (uint256);
@@ -23,12 +24,15 @@ contract IERC20 {
 contract Enigma {
     using SafeMath for uint256;
     using ECRecovery for bytes32;
+    using RLP for RLP.RLPItem;
+    using RLP for RLP.Iterator;
+    using RLP for bytes;
 
     IERC20 public engToken;
 
     struct Task {
         bytes32 callable;
-        bytes32[] callableArgs;
+        bytes callableArgs;
         bytes32 callback;
         address worker;
         bytes sig;
@@ -49,11 +53,11 @@ contract Enigma {
 
     event Register(bytes32 url, address user, string pkey, bool _success);
     event Logout(address user, bool _success);
-    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bytes32[] parts, bool _success);
+    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes32[] callableArgs, bytes32 callback, uint fee, bytes32[] preprocessors, bool _success);
+    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes callableArgs, bytes32 callback, uint fee, bytes32[] preprocessors, string lastArg, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -100,12 +104,19 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function compute(address secretContract, bytes32 callable, bytes32[] callableArgs, bytes32 callback, bytes32[] preprocessors)
+    function compute(address secretContract, bytes32 callable, bytes callableArgs, bytes32 callback, bytes32[] preprocessors)
     public
     payable
     returns (ReturnValue) {
         // Each task invoked by a contract has a sequential id
         // Skipping 0 to avoid encoding issues
+
+        var args = callableArgs.toRLPItem(true);
+        var iter = args.iterator();
+
+        while(iter.hasNext()) {
+            string memory arg = iter.next().toAscii();
+        }
 
         uint taskId = tasks[secretContract].length;
         tasks[secretContract].length++;
@@ -116,72 +127,20 @@ contract Enigma {
         tasks[secretContract][taskId].callback = callback;
 
         // Emit the ComputeTask event which each node is watching for
-        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
+        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, arg, true);
 
         return ReturnValue.Ok;
     }
 
-    function bytes32ArrayToBytes(bytes32[] data)
-    internal
-    constant
-    returns (bytes) {
-        // Merges parts of a bytes32[] into bytes
-        // TODO: do we use safeMath in sutuations like this
-        // TODO: there might be a more efficient way to do this with assembly
-        bytes memory bytesString = new bytes(data.length * 32);
-        uint urlLength;
-        for (uint i = 0; i < data.length; i++) {
-            for (uint j = 0; j < 32; j++) {
-                byte char = byte(bytes32(uint(data[i]) * 2 ** (8 * j)));
-                if (char != 0) {
-                    bytesString[urlLength] = char;
-                    urlLength += 1;
-                }
-            }
-        }
-        bytes memory bytesStringTrimmed = new bytes(urlLength);
-        for (i = 0; i < urlLength; i++) {
-            bytesStringTrimmed[i] = bytesString[i];
-        }
-        return bytesStringTrimmed;
-    }
-
-    function concatInputOutput(bytes32 callable, bytes32[] args, bytes32[] results)
-    internal
-    constant
-    returns (bytes32[]) {
-        // Put all inputs and outputs into a bytes32 array
-        uint size = 1 + args.length + results.length;
-        bytes32[] memory parts = new bytes32[](size);
-        parts[0] = callable;
-
-        uint offset = 1;
-        for (uint i1 = 0; i1 < args.length; i1++) {
-            if (args[i1] != 0) {
-                parts[offset] = args[i1];
-                offset++;
-            }
-        }
-        for (uint i2 = 0; i2 < results.length; i2++) {
-            if (results[i2] != 0) {
-                parts[offset] = results[i2];
-                offset++;
-            }
-        }
-        return parts;
-    }
-
-    function verifySignature(address secretContract, Task task, bytes32[] results, bytes sig)
+    function verifySignature(address secretContract, Task task, bytes results, bytes sig)
     internal
     constant
     returns (address) {
         // Recreating a data hash to validate the signature
         bytes memory code = GetCode2.at(secretContract);
-        bytes32[] memory parts = concatInputOutput(task.callable, task.callableArgs, results);
-        bytes memory args = bytes32ArrayToBytes(parts);
 
         // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(args, code);
+        bytes32 hash = keccak256(task.callable, task.callableArgs, results, code);
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = sha3(prefix, hash);
 
@@ -192,12 +151,12 @@ contract Enigma {
         // virtual address for validation.
         address workerAddr = prefixedHash.recover(sig);
 
-        emit ValidateSig(sig, prefixedHash, workerAddr, code, parts, true);
+        emit ValidateSig(sig, prefixedHash, workerAddr, code, true);
         return workerAddr;
     }
 
     // TODO: remove the hash parameter and recreate it in the function
-    function solveTask(address secretContract, uint taskId, bytes32[] results, bytes sig)
+    function solveTask(address secretContract, uint taskId, bytes results, bytes sig)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {

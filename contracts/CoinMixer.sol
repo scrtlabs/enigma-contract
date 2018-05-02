@@ -103,10 +103,11 @@ contract CoinMixer is EnigmaP {
         // Followed by bytes32 encoded values.
         // If the value is an array, just add each value sequentially.
         // The EnigmaP contract has helper function to populate the arguments.
-        bytes32[] memory args = new bytes32[](deal.numDeposits + 3);
-        uint offset = 0;
-        offset = addArg(args, "uint dealId", offset, dealId);
-        offset = addEncryptedArg(args, "address[] destAddresses", offset, deal.encryptedDestAddresses);
+//        bytes32[] memory args = new bytes32[](deal.numDeposits + 3);
+//        uint offset = 0;
+//        offset = addArg(args, "uint dealId", offset, dealId);
+//        offset = addEncryptedArg(args, "address[] destAddresses", offset, deal.encryptedDestAddresses);
+        bytes memory args = new bytes(64);
 
         // This is the most generic way I came up with for the preprocessors.
         // We can accept an unlimited number of preprocessors, each of which
