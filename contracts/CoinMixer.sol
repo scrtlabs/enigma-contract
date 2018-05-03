@@ -25,15 +25,15 @@ contract CoinMixer is EnigmaP {
 
     Deal[] deals;
 
-    event NewDeal(address indexed user, uint indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
-    event Deposit(address indexed _depositor, uint indexed _dealId, bytes32 _encryptedDestAddress, uint _value, bool _success, string _err);
-    event Distribute(uint indexed _dealId, bool _success, string _err);
+    event NewDeal(address indexed user, uint32 indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
+    event Deposit(address indexed _depositor, uint32 indexed _dealId, bytes32 _encryptedDestAddress, uint _value, bool _success, string _err);
+    event Distribute(uint32 indexed _dealId, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
     event FailedTransfer(address indexed to, uint256 value);
 
-    event DealFullyFunded(uint indexed _dealId);
-    event DealExecuted(uint indexed _dealId, bool _success);
+    event DealFullyFunded(uint32 indexed _dealId);
+    event DealExecuted(uint32 indexed _dealId, bool _success);
 
     // TODO: switch to require() once it accepts a message parameter
     enum ReturnValue {Ok, Error}
@@ -45,7 +45,7 @@ contract CoinMixer is EnigmaP {
     function newDeal(bytes32 _title, uint _depositInWei, uint _numParticipants)
     public
     returns (ReturnValue) {
-        uint dealId = deals.length;
+        uint32 dealId = uint32(deals.length);
 
         deals.length++;
         deals[dealId].organizer = msg.sender;
@@ -63,7 +63,7 @@ contract CoinMixer is EnigmaP {
         return ReturnValue.Ok;
     }
 
-    function makeDeposit(uint dealId, bytes32 encryptedDestAddress)
+    function makeDeposit(uint32 dealId, bytes32 encryptedDestAddress)
     public
     payable
     returns (ReturnValue){
@@ -89,7 +89,7 @@ contract CoinMixer is EnigmaP {
         return ReturnValue.Ok;
     }
 
-    function executeDeal(uint dealId)
+    function executeDeal(uint32 dealId)
     public
     payable
     {
@@ -104,10 +104,10 @@ contract CoinMixer is EnigmaP {
         // Followed by bytes32 encoded values.
         // If the value is an array, just add each value sequentially.
         // The EnigmaP contract has helper function to populate the arguments.
-//        bytes32[] memory args = new bytes32[](deal.numDeposits + 3);
-//        uint offset = 0;
-//        offset = addArg(args, "uint dealId", offset, dealId);
-//        offset = addEncryptedArg(args, "address[] destAddresses", offset, deal.encryptedDestAddresses);
+        //        bytes32[] memory args = new bytes32[](deal.numDeposits + 3);
+        //        uint offset = 0;
+        //        offset = addArg(args, "uint dealId", offset, dealId);
+        //        offset = addEncryptedArg(args, "address[] destAddresses", offset, deal.encryptedDestAddresses);
         bytes memory args = new bytes(64);
 
         // This is the most generic way I came up with for the preprocessors.
@@ -121,7 +121,7 @@ contract CoinMixer is EnigmaP {
         emit DealExecuted(dealId, true);
     }
 
-    function mixAddresses(uint dealId, address[] destAddresses, uint rand)
+    function mixAddresses(uint32 dealId, address[] destAddresses, uint rand)
     public
     pure
     returns (uint, address[]) {
@@ -144,21 +144,21 @@ contract CoinMixer is EnigmaP {
         return (dealId, destAddresses);
     }
 
-    function distribute(uint dealId, address[] destAddresses)
+    function distribute(uint32 dealId, address[] destAddresses)
     public
     returns (ReturnValue){
-        Deal storage deal = deals[dealId];
-        require(deal.status == 2, "Deal is not executed.");
-
-        deal.destAddresses = destAddresses;
-
-        bool enoughAddresses = deal.destAddresses.length == deal.numParticipants;
-        require(enoughAddresses, "missing some destination addresses");
-
-        for (uint i = 0; i < deal.destAddresses.length; i++) {
-            deal.destAddresses[i].transfer(deal.depositSum);
-        }
-
+        //        Deal storage deal = deals[dealId];
+        //        require(deal.status == 2, "Deal is not executed.");
+        //
+        //        deal.destAddresses = destAddresses;
+        //
+        //        bool enoughAddresses = deal.destAddresses.length == deal.numParticipants;
+        //        require(enoughAddresses, "missing some destination addresses");
+        //
+        //        for (uint i = 0; i < deal.destAddresses.length; i++) {
+        //            deal.destAddresses[i].transfer(deal.depositSum);
+        //        }
+        //
         emit Distribute(dealId, true, "all good");
         return ReturnValue.Ok;
     }
@@ -183,7 +183,7 @@ contract CoinMixer is EnigmaP {
         return (status, participates, organizes);
     }
 
-    function dealStatus(uint _dealId)
+    function dealStatus(uint32 _dealId)
     public
     view
     returns (bytes32, uint, uint, uint, uint, uint){
@@ -198,7 +198,7 @@ contract CoinMixer is EnigmaP {
         return (title, numParticipants, deposit, numDeposits, depositSum, numDestAddresses);
     }
 
-    function getEncryptedAddresses(uint _dealId) public view returns (bytes32[]) {
+    function getEncryptedAddresses(uint32 _dealId) public view returns (bytes32[]) {
         // Returns an array of encrypted addresses
         return deals[_dealId].encryptedDestAddresses;
     }

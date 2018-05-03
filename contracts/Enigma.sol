@@ -54,7 +54,7 @@ contract Enigma {
     event Register(bytes32 url, address user, string pkey, bool _success);
     event Logout(address user, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
-    event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
+    event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
     event ComputeTask(address callingContract, uint taskId, string callable, bytes callableArgs, string callback, uint fee, bytes32[] preprocessors, bool _success);
@@ -181,9 +181,9 @@ contract Enigma {
         worker.balance = worker.balance.add(reward);
 
         // Invoking the callback method of the original contract
-        // require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
+        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
-        emit SolveTask(secretContract, msg.sender, sig, reward, true);
+        emit CommitResults(secretContract, msg.sender, sig, reward, true);
 
         return ReturnValue.Ok;
     }

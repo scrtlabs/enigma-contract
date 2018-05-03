@@ -36,7 +36,7 @@ contract ('Enigma', function (accounts) {
     });
 
     const callable = 'mixAddresses(uint,address[],uint)';
-    const callback = 'distribute(uint,address[])';
+    const callback = 'distribute(uint32,address[])';
     const args = [
         'abc', [
             '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
@@ -124,18 +124,18 @@ contract ('Enigma', function (accounts) {
     });
     // Changing a character in one of the two results should break the validation
     const localResults = [
-        'abc', [
+        0, [
             '0x2467636bea0f3c2441227eedbffac59f11d54a80',
             '0x8e4c131b37383e431b9cd0635d3cf9f3f628edae'
         ]
     ];
     const contractResults = [
-        'abc', [
+        0, [
             '0x2467636bea0f3c2441227eedbffac59f11d54a80',
             '0x8e4c131b37383e431b9cd0635d3cf9f3f628edae'
         ]
     ];
-    it ("...solving task", function () {
+    it ("...committing results", function () {
         return Enigma.deployed ()
             .then (function (instance) {
                 enigma = instance;
@@ -169,10 +169,10 @@ contract ('Enigma', function (accounts) {
             }).then (function (result) {
                 let event1 = result.logs[0];
                 let event2 = result.logs[1];
-                console.log ('solved task event', event1);
+                console.log ('commit results event', event2);
 
                 assert.equal (event1.args._success, true, "Unable to verify hash.");
-                assert.equal (event2.args._success, true, "Unable to solve task.");
+                assert.equal (event2.args._success, true, "Unable to commit results.");
             });
     });
 });
