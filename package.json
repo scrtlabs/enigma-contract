@@ -52,6 +52,8 @@
     "@trust/webcrypto": "^0.9.0",
     "dotenv": "^2.0.0",
     "elliptic": "6.4.0",
+    "eth-signer": "^0.3.4",
+    "ethereumjs-abi": "^0.6.5",
     "fbemitter": "^2.1.1",
     "js-cookie": "^2.2.0",
     "material-ui": "^1.0.0-beta.38",
@@ -66,8 +68,8 @@
     "solc": "^0.4.22",
     "solidity-sha3": "^0.4.1",
     "truffle": "^4.1.6",
-    "web3-utils": "^1.0.0-beta.30",
-    "web3": "0.20.6"
+    "web3": "0.20.6",
+    "web3-utils": "^1.0.0-beta.30"
   },
   "scripts": {
     "start": "node scripts/start.js",

@@ -31,9 +31,9 @@ contract Enigma {
     IERC20 public engToken;
 
     struct Task {
-        bytes32 callable;
+        string callable;
         bytes callableArgs;
-        bytes32 callback;
+        string callback;
         address worker;
         bytes sig;
         uint reward;
@@ -57,7 +57,7 @@ contract Enigma {
     event SolveTask(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address callingContract, uint taskId, bytes32 callable, bytes callableArgs, bytes32 callback, uint fee, bytes32[] preprocessors, bool _success);
+    event ComputeTask(address callingContract, uint taskId, string callable, bytes callableArgs, string callback, uint fee, bytes32[] preprocessors, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -104,36 +104,13 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function invokeCallback(address secretContact, bytes32 callable, bytes callableArgs)
-    internal
-    constant
-    returns (ReturnValue) {
-        // Invoke the callback function
-        // TODO: incomplete
-        var args = callableArgs.toRLPItem(true);
-        var iter = args.iterator();
-
-        string memory arg;
-        while (iter.hasNext()) {
-            var item = iter.next();
-            if (item.isList()) {
-
-            } else {
-                arg = item.toAscii();
-            }
-        }
-        return ReturnValue.Ok;
-    }
-
-    function compute(address secretContract, bytes32 callable, bytes callableArgs, bytes32 callback, bytes32[] preprocessors)
+    function compute(address secretContract, string callable, bytes callableArgs, string callback, bytes32[] preprocessors)
     public
     payable
     returns (ReturnValue) {
         // Create a computation task and save the fee in escrow
         uint taskId = tasks[secretContract].length;
         tasks[secretContract].length++;
-
-        invokeCallback(secretContract, callable, callableArgs);
 
         tasks[secretContract][taskId].reward = msg.value;
         tasks[secretContract][taskId].callable = callable;
@@ -146,7 +123,7 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function verifySignature(address secretContract, Task task, bytes results, bytes sig)
+    function verifySignature(address secretContract, Task task, bytes data, bytes sig)
     internal
     constant
     returns (address) {
@@ -154,7 +131,7 @@ contract Enigma {
         bytes memory code = GetCode2.at(secretContract);
 
         // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(task.callableArgs, results, code);
+        bytes32 hash = keccak256(task.callableArgs, data, code);
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = sha3(prefix, hash);
 
@@ -169,14 +146,22 @@ contract Enigma {
         return workerAddr;
     }
 
-    function commitResults(address secretContract, uint taskId, bytes results, bytes sig)
+    // copied from GnosisSafe
+    // https://github.com/gnosis/gnosis-safe-contracts/blob/master/contracts/GnosisSafe.sol
+    function executeCall(address to, uint256 value, bytes data) internal returns (bool success) {
+        assembly {
+            success := call(gas, to, value, add(data, 0x20), mload(data), 0, 0)
+        }
+    }
+
+    function commitResults(address secretContract, uint taskId, bytes data, bytes sig)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
         require(tasks[secretContract][taskId].worker == address(0), "Task already solved.");
 
-        address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], results, sig);
+        address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
         require(sigAddr == msg.sender, "Invalid signature.");
 
@@ -196,8 +181,7 @@ contract Enigma {
         worker.balance = worker.balance.add(reward);
 
         // Invoking the callback method of the original contract
-        // TODO: not fully implemented
-        invokeCallback(secretContract, tasks[secretContract][taskId].callable, results);
+        // require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         emit SolveTask(secretContract, msg.sender, sig, reward, true);
 
