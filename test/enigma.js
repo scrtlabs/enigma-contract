@@ -99,13 +99,13 @@ contract ('Enigma', function (accounts) {
     });
 
     it ("...testing dynamic encoding", () => {
-        // Following the first example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
+        // Following the last example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
         const functionDef = 'f(uint256,uint32[],bytes10,bytes)';
         const rx = /f\((.*)\)/g;
-        const args = rx.exec (functionDef)[1].split (',');
-        console.log ('the args', args);
+        const resultArgs = rx.exec (functionDef)[1].split (',');
+        console.log ('the args', resultArgs);
         const functionId = web3Utils.soliditySha3 (functionDef).slice (0, 10);
-        const encoded = abi.rawEncode ([args[0], args[1], args[2], args[3]], [0x123, [0x456, 0x789], "1234567890", "Hello, world!"]).toString ("hex");
+        const encoded = abi.rawEncode ([resultArgs[0], resultArgs[1], resultArgs[2], resultArgs[3]], [0x123, [0x456, 0x789], "1234567890", "Hello, world!"]).toString ("hex");
 
         const hash = functionId + encoded;
 
@@ -145,30 +145,27 @@ contract ('Enigma', function (accounts) {
             .then (function (instance) {
                 coinMixer = instance;
 
-                const functionDef = 'baz(uint32,bool)';
-                var rx = /baz\((.*)\)/g;
-                var args = rx.exec (functionDef)[1].split (',');
-                const functionId = web3Utils.soliditySha3 (functionDef).slice (0, 10);
-                const arg1 = abi.rawEncode ([args[0]], [69]).toString ("hex");
-                const arg2 = abi.rawEncode ([args[1]], [true]).toString ("hex");
-
-                console.log ('the function id', functionId, arg1, arg2);
-
                 const encodedArgs = "0x" + RLP.encode (args).toString ("hex");
-                let encodedData = "0x" + RLP.encode (localResults).toString ("hex");
+
+                const fName = callback.substr (0, callback.indexOf ('('));
+                console.log ('the function name', fName);
+                const rx = /distribute\((.*)\)/g;
+                const resultArgs = rx.exec (callback)[1].split (',');
+                console.log ('the args', resultArgs);
+                const functionId = web3Utils.soliditySha3 (callback).slice (0, 10);
+                const localData = functionId + abi.rawEncode (resultArgs, localResults).toString ("hex");
+                console.log ('the encoded data', localData);
+
                 const bytecode = web3.eth.getCode (coinMixer.address);
-                console.log ('the encoded parts string', encodedArgs, encodedData);
                 console.log ('the bytecode', bytecode);
 
                 // The holy grail, behaves exactly as keccak256() in Solidity
-                const hash = web3Utils.soliditySha3 (encodedArgs, encodedData, bytecode);
+                const hash = web3Utils.soliditySha3 (encodedArgs, localData, bytecode);
                 console.log ('the message hash', hash);
-
                 const signature = web3.eth.sign (accounts[0], hash);
 
-                let data = '0x' + RLP.encode (contractResults).toString ("hex");
-                console.log ('the callback data', data);
-                return enigma.commitResults (coinMixer.address, 0, data, signature, { from: accounts[0] });
+                const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ("hex");
+                return enigma.commitResults (coinMixer.address, 0, contractData, signature, { from: accounts[0] });
             }).then (function (result) {
                 let event1 = result.logs[0];
                 let event2 = result.logs[1];
