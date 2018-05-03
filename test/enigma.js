@@ -33,16 +33,18 @@ contract ('Enigma', function (accounts) {
         });
     });
 
+    const callable = 'mixAddresses';
+    const args = [
+        'abc', [
+            '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
+            '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
+        ]
+    ];
     it ("...executing computation", function () {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            const callable = 'mixAddresses';
             const callback = 'distribute';
-            const args = ['abc', [
-                '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
-                '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
-            ]];
             const encoded = "0x" + RLP.encode (args).toString ("hex");
             console.log ('the rlp encoded string', encoded);
 
@@ -70,42 +72,41 @@ contract ('Enigma', function (accounts) {
         });
     });
 
-    // let msg;
-    // it ("...solving task", function () {
-    //     return Enigma.deployed ().then (function (instance) {
-    //         enigma = instance;
-    //
-    //         const parts = [
-    //             'mixAddresses',
-    //             'uint dealId', 'abc',
-    //             'address[] destAddresses', 'test', 'test2',
-    //             'uint dealId', 'abc',
-    //             'address[] destAddresses', 'test', 'test2'
-    //         ];
-    //         msg = parts.join ('');
-    //         const bytecode = web3.eth.getCode (SECRET_CONTRACT);
-    //         console.log ('the message string', msg);
-    //
-    //         const hash = web3Utils.soliditySha3 (msg, bytecode);
-    //         console.log ('the message hash', hash);
-    //
-    //         const signature = web3.eth.sign (accounts[0], hash);
-    //         // const hash = hashMessage ('Test');
-    //         const results = [
-    //             'uint dealId', 'abc',
-    //             'address[] destAddresses', 'test', 'test2',
-    //         ];
-    //         return enigma.solveTask (SECRET_CONTRACT, 0, results, signature, { from: accounts[0] });
-    //     }).then (function (result) {
-    //         let event1 = result.logs[0];
-    //         let event2 = result.logs[1];
-    //         console.log ('solved task event', event1);
-    //         event1.args.parts.forEach ((part) => {
-    //             console.log ('the part', web3.toAscii (part));
-    //         });
-    //
-    //         assert.equal (event1.args._success, true, "Unable to verify hash.");
-    //         assert.equal (event2.args._success, true, "Unable to solve task.");
-    //     });
-    // });
+    const localResults = [
+        'abc', [
+            '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
+            '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
+        ]
+    ];
+    const contractResults = [
+        'abc', [
+            '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
+            '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
+        ]
+    ];
+    it ("...solving task", function () {
+        return Enigma.deployed ().then (function (instance) {
+            enigma = instance;
+
+            const encodedArgs = "0x" + RLP.encode (args).toString ("hex");
+            let encodedResults = "0x" + RLP.encode (localResults).toString ("hex");
+            const bytecode = web3.eth.getCode (SECRET_CONTRACT);
+            console.log ('the encoded parts string', encodedArgs, encodedResults);
+
+            const hash = web3Utils.soliditySha3 (encodedArgs, encodedResults, bytecode);
+            console.log ('the message hash', hash);
+
+            const signature = web3.eth.sign (accounts[0], hash);
+
+            encodedResults = "0x" + RLP.encode (contractResults).toString ("hex");
+            return enigma.commitResults (SECRET_CONTRACT, 0, encodedResults, signature, { from: accounts[0] });
+        }).then (function (result) {
+            let event1 = result.logs[0];
+            let event2 = result.logs[1];
+            console.log ('solved task event', event1);
+
+            assert.equal (event1.args._success, true, "Unable to verify hash.");
+            assert.equal (event2.args._success, true, "Unable to solve task.");
+        });
+    });
 });

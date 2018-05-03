@@ -154,7 +154,7 @@ contract Enigma {
         bytes memory code = GetCode2.at(secretContract);
 
         // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(task.callable, task.callableArgs, results, code);
+        bytes32 hash = keccak256(task.callableArgs, results, code);
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = sha3(prefix, hash);
 
@@ -194,6 +194,10 @@ contract Enigma {
         // He can withdraw later
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
+
+        // Invoking the callback method of the original contract
+        // TODO: not fully implemented
+        invokeCallback(secretContract, tasks[secretContract][taskId].callable, results);
 
         emit SolveTask(secretContract, msg.sender, sig, reward, true);
 
