@@ -170,6 +170,9 @@ contract Enigma {
         uint reward = tasks[secretContract][taskId].reward;
         require(reward > 0, "Reward cannot be zero.");
 
+        // Invoking the callback method of the original contract
+        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
+
         // Keep a trace of the task worker and proof
         tasks[secretContract][taskId].worker = msg.sender;
         tasks[secretContract][taskId].sig = sig;
@@ -179,9 +182,6 @@ contract Enigma {
         // He can withdraw later
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
-
-        // Invoking the callback method of the original contract
-        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         emit CommitResults(secretContract, msg.sender, sig, reward, true);
 

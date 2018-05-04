@@ -1,6 +1,5 @@
 const web3Utils = require ('web3-utils');
 const RLP = require ('rlp');
-const lightwallet = require ('eth-signer');
 var abi = require ('ethereumjs-abi');
 
 const URL = 'localhost:3001';
@@ -145,7 +144,7 @@ contract ('Enigma', function (accounts) {
             .then (function (instance) {
                 coinMixer = instance;
 
-                const encodedArgs = "0x" + RLP.encode (args).toString ("hex");
+                const encodedArgs = '0x' + RLP.encode (args).toString ('hex');
 
                 const fName = callback.substr (0, callback.indexOf ('('));
                 console.log ('the function name', fName);
@@ -153,7 +152,7 @@ contract ('Enigma', function (accounts) {
                 const resultArgs = rx.exec (callback)[1].split (',');
                 console.log ('the args', resultArgs);
                 const functionId = web3Utils.soliditySha3 (callback).slice (0, 10);
-                const localData = functionId + abi.rawEncode (resultArgs, localResults).toString ("hex");
+                const localData = functionId + abi.rawEncode (resultArgs, localResults).toString ('hex');
                 console.log ('the encoded data', localData);
 
                 const bytecode = web3.eth.getCode (coinMixer.address);
@@ -164,15 +163,15 @@ contract ('Enigma', function (accounts) {
                 console.log ('the message hash', hash);
                 const signature = web3.eth.sign (accounts[0], hash);
 
-                const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ("hex");
+                const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ('hex');
                 return enigma.commitResults (coinMixer.address, 0, contractData, signature, { from: accounts[0] });
             }).then (function (result) {
                 let event1 = result.logs[0];
                 let event2 = result.logs[1];
                 console.log ('commit results event', event2);
 
-                assert.equal (event1.args._success, true, "Unable to verify hash.");
-                assert.equal (event2.args._success, true, "Unable to commit results.");
+                assert.equal (event1.args._success, true, 'Unable to verify hash.');
+                assert.equal (event2.args._success, true, 'Unable to commit results.');
             });
     });
 });
