@@ -8,6 +8,7 @@ const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAA
 
 console.log ('web3 version', web3);
 let Enigma = artifacts.require ("./contracts/Enigma.sol");
+let EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
 let CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
 contract ('Enigma', function (accounts) {
 
@@ -37,7 +38,7 @@ contract ('Enigma', function (accounts) {
     const callable = 'mixAddresses(uint,address[],uint)';
     const callback = 'distribute(uint32,address[])';
     const args = [
-        'abc', [
+        0, [
             '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
             '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
         ]
@@ -46,22 +47,25 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ()
             .then (function (instance) {
                 enigma = instance;
+                return EnigmaToken.deployed ();
+            })
+            .then (function (instance) {
+                engToken = instance;
                 return CoinMixer.deployed ();
             })
             .then (function (instance) {
                 coinMixer = instance;
+                return engToken.approve (accounts[0], 1, { from: accounts[0] })
+            })
+            .then (function (approved) {
+                console.log ('approved token transfer', approved);
 
-                const encoded = RLP.encode (args).toString ('hex');
-
-                // const buffer = RLP.decode (encoded);
-                // var array = new Function(`return [${Array.prototype.slice.call(buffer, 0)}]`)
-                // console.log ('comparing encoded lists', JSON.stringify(array), JSON.stringify(args));
-                // assert.equal (array, args, 'Encoded arguments failed to decode.');
-
+                // RLP encoding arguments
+                const encoded = '0x' + RLP.encode (args).toString ('hex');
                 let preprocessor = ['rand()'];
                 return enigma.compute (
-                    coinMixer.address, callable, encoded, callback, preprocessor,
-                    { from: accounts[0], value: 1 }
+                    coinMixer.address, callable, encoded, callback, 1, preprocessor,
+                    { from: accounts[0] }
                 );
             }).then (function (result) {
                 let event = result.logs[0];
@@ -83,6 +87,7 @@ contract ('Enigma', function (accounts) {
             }).then (function (result) {
                 console.log ('tasks details', result);
                 assert (result.length > 0, "No task found.");
+                assert.equal (result[5], 1, "Fee does not match.");
             });
     });
 
@@ -151,16 +156,17 @@ contract ('Enigma', function (accounts) {
                 const encodedArgs = '0x' + RLP.encode (args).toString ('hex');
 
                 const fName = callback.substr (0, callback.indexOf ('('));
-                console.log ('the function name', fName);
+                assert.equal (fName, 'distribute', 'Function name parsed incorrectly');
+
                 const rx = /distribute\((.*)\)/g;
                 const resultArgs = rx.exec (callback)[1].split (',');
-                console.log ('the args', resultArgs);
+                assert.equal (JSON.stringify (resultArgs), JSON.stringify (['uint32', 'address[]']));
+
                 const functionId = web3Utils.soliditySha3 (callback).slice (0, 10);
                 const localData = functionId + abi.rawEncode (resultArgs, localResults).toString ('hex');
                 console.log ('the encoded data', localData);
 
                 const bytecode = web3.eth.getCode (coinMixer.address);
-                console.log ('the bytecode', bytecode);
 
                 // The holy grail, behaves exactly as keccak256() in Solidity
                 const hash = web3Utils.soliditySha3 (encodedArgs, localData, bytecode);
@@ -168,6 +174,7 @@ contract ('Enigma', function (accounts) {
                 const signature = web3.eth.sign (accounts[0], hash);
 
                 const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ('hex');
+
                 return enigma.commitResults (coinMixer.address, 0, contractData, signature, { from: accounts[0] });
             }).then (function (result) {
                 let event1 = result.logs[0];

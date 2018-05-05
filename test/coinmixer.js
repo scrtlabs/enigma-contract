@@ -1,5 +1,4 @@
 var CoinMixer = artifacts.require ("./CoinMixer.sol");
-const RLP = require ('rlp');
 
 contract ('CoinMixer', function (accounts) {
 

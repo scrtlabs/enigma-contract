@@ -1,3 +1,5 @@
+import RLP from 'rlp';
+
 class Enigma {
     // TODO: add constructions which find the contract
     constructor (deployedContract) {
@@ -13,10 +15,12 @@ class Enigma {
     }
 
     compute (callObject, options) {
+        // RLP encode the arguments
+        callObject.args = '0x' + RLP.encode (callObject.args).toString ('hex');
         // Calls the compute function of the Engima contract
         // See diagram for details: doc/poc-compute-sequence.png
         return this.contract.compute (callObject.secretContract,
-            callObject.callable, callObject.args, callObject.callback, options)
+            callObject.callable, callObject.args, callObject.callback, callObject.preprocessor, options)
             .then ((result) => {
                 let event = null;
                 for (let i = 0; i < result.logs.length; i++) {

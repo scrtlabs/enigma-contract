@@ -36,7 +36,7 @@ contract Enigma {
         string callback;
         address worker;
         bytes sig;
-        uint reward;
+        uint256 reward;
         TaskStatus status;
     }
     enum TaskStatus {InProgress, Executed}
@@ -59,7 +59,7 @@ contract Enigma {
     event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address callingContract, uint taskId, string callable, bytes callableArgs, string callback, uint fee, bytes32[] preprocessors, bool _success);
+    event ComputeTask(address callingContract, uint taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -106,22 +106,23 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function compute(address secretContract, string callable, bytes callableArgs, string callback, bytes32[] preprocessors)
+    function compute(address secretContract, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors)
     public
-    payable
     returns (ReturnValue) {
         // Create a computation task and save the fee in escrow
         uint taskId = tasks[secretContract].length;
         tasks[secretContract].length++;
 
-        tasks[secretContract][taskId].reward = msg.value;
+        tasks[secretContract][taskId].reward = fee;
         tasks[secretContract][taskId].callable = callable;
         tasks[secretContract][taskId].callableArgs = callableArgs;
         tasks[secretContract][taskId].callback = callback;
         tasks[secretContract][taskId].status = TaskStatus.InProgress;
 
+        // engToken.transferFrom(msg.sender, this, fee);
+
         // Emit the ComputeTask event which each node is watching for
-        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
+        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, fee, preprocessors, true);
 
         return ReturnValue.Ok;
     }
@@ -170,7 +171,7 @@ contract Enigma {
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
-        uint reward = tasks[secretContract][taskId].reward;
+        uint256 reward = tasks[secretContract][taskId].reward;
         require(reward > 0, "Reward cannot be zero.");
 
         // Invoking the callback method of the original contract

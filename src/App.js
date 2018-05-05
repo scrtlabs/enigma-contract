@@ -25,6 +25,7 @@ import blue from 'material-ui/colors/blue';
 import Enigma from './enigma-utils/enigma';
 
 
+
 const theme = createMuiTheme ({
     palette: {
         primary: blue,
@@ -275,44 +276,43 @@ class App extends Component {
     };
 
     finalizeDeal = (deal) => {
-        this.closeFinalizeDialog ();
-
         // TODO: revisit this vs calling from the contract
         // This approach calls the Enigma contract directly.
         // We can either do this or use the coin mixer contract as a proxy
         // This method saves transfer and serialization opcodes and it can be better integrated
         // in the UI. I see a place for both approaches.
-        this.fetchEncryptedAddresses (deal.id)
+
+        this.closeFinalizeDialog ();
+
+        // TODO: how do we determine the fee?
+        const engFee = 1;
+        this.state.token.approve (this.state.accounts[0], engFee, { from: this.state.accounts[0] })
+            .then (() => {
+                return this.fetchEncryptedAddresses (deal.id);
+            })
             .then ((addrs) => {
                 // The deal id is the first parameter
                 // This is important for traceability
                 // The business logic can reason about this by looking
                 // at the callable function definition:
-                // `mixAddresses(uint dealId, address[] destAddresses)`
-                debugger;
-                addrs.unshift (deal.id);
-
+                const args = [deal.id, addrs];
                 let params = {
                     secretContract: this.state.contract.address,
                     callable: 'mixAddresses',
-                    args: addrs,
-                    callback: 'distribute'
+                    args: encoded,
+                    callback: 'distribute',
+                    preprocessor: ['rand()']
                 };
-
-                // Users are free to set their computation fee.
-                // The `estimateEngFee` is simply a guide.
-                let engFee = this.state.enigma.estimateEngFee (params);
-                return this.state.token.approve (this.state.accounts[0], engFee, { from: this.state.accounts[0] });
+                debugger;
 
                 // TODO: wrap into utility library
                 // I'm leaving the code here for now short term readability
-                // return this.state.enigma.compute (params, {
-                //     from: this.state.accounts[0],
-                //     value: engFee
-                // });
+                return this.state.enigma.compute (params, {
+                    from: this.state.accounts[0],
+                    value: engFee
+                });
             })
             .then ((result) => {
-                console.log ('computation task created', result);
                 this.setState ({ lastEvent: result }, () => this.openTxModal ());
             });
     };
