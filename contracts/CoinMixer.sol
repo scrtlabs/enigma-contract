@@ -2,8 +2,11 @@ pragma solidity ^0.4.22;
 
 import "./Enigma.sol";
 import "./EnigmaP.sol";
+import "./utils/RLPEncode.sol";
 
 contract CoinMixer is EnigmaP {
+    using RLPEncode for bytes[];
+
     Enigma public enigma;
 
     struct Deal {
@@ -17,16 +20,16 @@ contract CoinMixer is EnigmaP {
         uint depositInWei;
         uint numParticipants;
 
-        bytes32[] encryptedDestAddresses;
+        bytes[] encryptedDestAddresses;
         address[] destAddresses;
 
         uint status; // 0: active; 1: funded; 2: executed; 3: cancelled
     }
 
-    Deal[] deals;
+    Deal[] public deals;
 
     event NewDeal(address indexed user, uint32 indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
-    event Deposit(address indexed _depositor, uint32 indexed _dealId, bytes32 _encryptedDestAddress, uint _value, bool _success, string _err);
+    event Deposit(address indexed _depositor, uint32 indexed _dealId, bytes _encryptedDestAddress, uint _value, bool _success, string _err);
     event Distribute(uint32 indexed _dealId, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
@@ -55,7 +58,7 @@ contract CoinMixer is EnigmaP {
         deals[dealId].startTime = now;
         deals[dealId].depositInWei = _depositInWei;
         deals[dealId].numParticipants = _numParticipants;
-        deals[dealId].encryptedDestAddresses = new bytes32[](_numParticipants);
+        deals[dealId].encryptedDestAddresses = new bytes[](_numParticipants);
         deals[dealId].destAddresses = new address[](_numParticipants);
         deals[dealId].status = 0;
         emit NewDeal(msg.sender, dealId, now, _title, _depositInWei, _numParticipants, true, "all good");
@@ -63,7 +66,7 @@ contract CoinMixer is EnigmaP {
         return ReturnValue.Ok;
     }
 
-    function makeDeposit(uint32 dealId, bytes32 encryptedDestAddress)
+    function makeDeposit(uint32 dealId, bytes encryptedDestAddress)
     public
     payable
     returns (ReturnValue){
@@ -198,9 +201,19 @@ contract CoinMixer is EnigmaP {
         return (title, numParticipants, deposit, numDeposits, depositSum, numDestAddresses);
     }
 
-    function getEncryptedAddresses(uint32 _dealId) public view returns (bytes32[]) {
+    function countEncryptedAddresses(uint32 _dealId)
+    public view
+    returns (uint) {
+        // Count the addresses
+        return deals[_dealId].encryptedDestAddresses.length;
+    }
+
+    function getEncryptedAddress(uint32 _dealId, uint index)
+    public
+    view
+    returns (bytes) {
         // Returns an array of encrypted addresses
-        return deals[_dealId].encryptedDestAddresses;
+        return deals[_dealId].encryptedDestAddresses[index];
     }
 }
 

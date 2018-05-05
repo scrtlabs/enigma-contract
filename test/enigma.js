@@ -51,8 +51,12 @@ contract ('Enigma', function (accounts) {
             .then (function (instance) {
                 coinMixer = instance;
 
-                const encoded = "0x" + RLP.encode (args).toString ("hex");
-                console.log ('the rlp encoded string', encoded);
+                const encoded = RLP.encode (args).toString ('hex');
+
+                // const buffer = RLP.decode (encoded);
+                // var array = new Function(`return [${Array.prototype.slice.call(buffer, 0)}]`)
+                // console.log ('comparing encoded lists', JSON.stringify(array), JSON.stringify(args));
+                // assert.equal (array, args, 'Encoded arguments failed to decode.');
 
                 let preprocessor = ['rand()'];
                 return enigma.compute (

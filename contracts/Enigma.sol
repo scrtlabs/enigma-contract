@@ -37,7 +37,9 @@ contract Enigma {
         address worker;
         bytes sig;
         uint reward;
+        TaskStatus status;
     }
+    enum TaskStatus {InProgress, Executed}
 
     struct Worker {
         bytes32 url;
@@ -116,6 +118,7 @@ contract Enigma {
         tasks[secretContract][taskId].callable = callable;
         tasks[secretContract][taskId].callableArgs = callableArgs;
         tasks[secretContract][taskId].callback = callback;
+        tasks[secretContract][taskId].status = TaskStatus.InProgress;
 
         // Emit the ComputeTask event which each node is watching for
         emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, msg.value, preprocessors, true);
@@ -159,7 +162,7 @@ contract Enigma {
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
-        require(tasks[secretContract][taskId].worker == address(0), "Task already solved.");
+        require(tasks[secretContract][taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
 
         address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
@@ -176,6 +179,7 @@ contract Enigma {
         // Keep a trace of the task worker and proof
         tasks[secretContract][taskId].worker = msg.sender;
         tasks[secretContract][taskId].sig = sig;
+        tasks[secretContract][taskId].status = TaskStatus.Executed;
 
         // TODO: send directly to the worker's custodian instead
         // Put the reward in the worker's bank

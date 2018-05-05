@@ -256,6 +256,24 @@ class App extends Component {
 
     };
 
+    fetchEncryptedAddresses = (dealId) => {
+        return this.state.contract.countEncryptedAddresses.call (dealId, { from: this.state.accounts[0] })
+            .then ((count) => {
+                let promises = [];
+                for (let i = 0; i < count; i++) {
+                    promises.push (this.state.contract.getEncryptedAddress.call (dealId, i, { from: this.state.accounts[0] }));
+                }
+                return Promise.all (promises);
+
+            }).then ((encAddresses) => {
+                let addresses = [];
+                for (let i = 0; i < encAddresses.length; i++) {
+                    addresses.push (this.state.web3.toAscii (encAddresses[i]));
+                }
+                return addresses;
+            });
+    };
+
     finalizeDeal = (deal) => {
         this.closeFinalizeDialog ();
 
@@ -264,13 +282,14 @@ class App extends Component {
         // We can either do this or use the coin mixer contract as a proxy
         // This method saves transfer and serialization opcodes and it can be better integrated
         // in the UI. I see a place for both approaches.
-        this.state.contract.getEncryptedAddresses.call (deal.id, { from: this.state.accounts[0] })
+        this.fetchEncryptedAddresses (deal.id)
             .then ((addrs) => {
                 // The deal id is the first parameter
                 // This is important for traceability
                 // The business logic can reason about this by looking
                 // at the callable function definition:
                 // `mixAddresses(uint dealId, address[] destAddresses)`
+                debugger;
                 addrs.unshift (deal.id);
 
                 let params = {

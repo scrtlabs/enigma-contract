@@ -1,4 +1,5 @@
 var CoinMixer = artifacts.require ("./CoinMixer.sol");
+const RLP = require ('rlp');
 
 contract ('CoinMixer', function (accounts) {
 
@@ -6,7 +7,7 @@ contract ('CoinMixer', function (accounts) {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.newDeal ('test', 1, 1, { from: accounts[0] });
+            return coinMixerInstance.newDeal ('test', 1, 2, { from: accounts[0] });
         }).then (function (result) {
             let event = result.logs[0];
             console.log (event);
@@ -21,31 +22,49 @@ contract ('CoinMixer', function (accounts) {
             return coinMixerInstance.dealStatus.call (0, { from: accounts[0] });
         }).then (function (deal) {
             console.log ('deal status', deal);
-            assert.equal (deal[1], 1, "Deal not found.");
+            // Validating the number of participants
+            assert.equal (deal[1], 2, "Deal not found.");
         });
     });
 
-    it ("...making a deposit.", function () {
-        return CoinMixer.deployed ().then (function (instance) {
-            coinMixerInstance = instance;
+    // const encryptedAddresses = [
+    //     'abc',
+    //     'def'
+    // ];
+    const encryptedAddresses = [
+        '76625d74e69da291878a6b26594c1bd1b4de574d847c4581417359792618a1b327737d45daf0ca3b900497f65d4339eb644a593289ba8cf68c74',
+        '86625d74e69da291878a6b26594c1bd1b4de574d847c4581417359792618a1b327737d45daf0ca3b900497f65d4339eb644a593289ba8cf68c74'
+    ];
+    it ("...making two deposits.", function () {
+        return CoinMixer.deployed ()
+            .then (function (instance) {
+                coinMixerInstance = instance;
 
-            return coinMixerInstance.dealStatus.call (0, { from: accounts[0] });
-        }).then (function (deal) {
-            let numParticipants = deal[1];
-            console.log ('the deal: ' + deal);
-            for (let i = 0; i < numParticipants; i++) {
+                return coinMixerInstance.dealStatus.call (0, { from: accounts[0] });
+            })
+            .then (function (deal) {
+                assert.equal (deal[1], 2, "Deal must accept exactly 2 participants.");
 
-                console.log (i);
-            }
-            return coinMixerInstance.makeDeposit (0, 'test', {
-                from: accounts[0],
-                value: 1
-            });
-        }).then (function (result) {
-            let event = result.logs[0];
-            console.log ('secret call event', result.logs[2]);
-            assert.equal (event.args._success, true, "Deposit failed.");
-        });
+                return coinMixerInstance.makeDeposit (0, encryptedAddresses[0], {
+                    from: accounts[0],
+                    value: 1
+                });
+            })
+            .then (function (result) {
+                let event = result.logs[0];
+                assert.equal (event.args._success, true, "First deposit failed.");
+            })
+            .then (function () {
+                console.log ('the second account', accounts[0], accounts[1]);
+                return coinMixerInstance.makeDeposit (0, encryptedAddresses[1], {
+                    from: accounts[1],
+                    value: 1
+                });
+            })
+            .then (function (result) {
+                let event = result.logs[0];
+                assert.equal (event.args._success, true, "Second deposit failed.");
+            })
     });
 
     it ("...querying active deals.", function () {
@@ -85,14 +104,43 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
+    function bufToArray (buffer) {
+        let array = new Array ();
+        for (data of buffer.values ()) array.push (data);
+        return array;
+    }
+
     it ("...retrieving encrypted addresses.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
-            return coinMixerInstance.getEncryptedAddresses.call (0, { from: accounts[0] });
-        }).then (function (encryptedAddresses) {
-            console.log ('encrypted addresses', encryptedAddresses);
-            assert (encryptedAddresses.length > 0, "Encrypted addresses not found.");
+            // TODO: not the most efficient way to do this. Try to RLP serialize from Solidity instead.
+            return coinMixerInstance.countEncryptedAddresses.call (0, { from: accounts[0] })
+        }).then ((count) => {
+            let promises = [];
+            for (let i = 0; i < count; i++) {
+                promises.push (coinMixerInstance.getEncryptedAddress.call (0, i, { from: accounts[0] }));
+            }
+            return Promise.all (promises);
+
+        }).then (function (encAddresses) {
+            let addresses = [];
+            for (let i = 0; i < encAddresses.length; i++) {
+                addresses.push(web3.toAscii(encAddresses[i]));
+            }
+            console.log ('the dest addresses', addresses);
+            assert (encAddresses.length > 0, "Encrypted addresses not found.");
+        });
+    });
+
+    it ("...retrieving deal.", function () {
+        return CoinMixer.deployed ().then (function (instance) {
+            coinMixerInstance = instance;
+
+            return coinMixerInstance.deals.call (0, { from: accounts[0] });
+        }).then (function (deal) {
+            console.log ('the deal', deal);
+            // assert (encryptedAddresses.length > 0, "Encrypted addresses not found.");
         });
     });
 
