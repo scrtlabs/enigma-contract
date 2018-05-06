@@ -119,7 +119,8 @@ contract Enigma {
         tasks[secretContract][taskId].callback = callback;
         tasks[secretContract][taskId].status = TaskStatus.InProgress;
 
-        // engToken.transferFrom(msg.sender, this, fee);
+        // TODO: check the allowance first
+        engToken.transferFrom(msg.sender, this, fee);
 
         // Emit the ComputeTask event which each node is watching for
         emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, fee, preprocessors, true);

@@ -1,10 +1,11 @@
 const web3Utils = require ('web3-utils');
 const RLP = require ('rlp');
-var abi = require ('ethereumjs-abi');
+const abi = require ('ethereumjs-abi');
 
 const URL = 'localhost:3001';
 const PKEY = 'AAAAB3NzaC1yc2EAAAADAQABAAABAQC4ReB9wai5xcNnlYpFWfMv+Dwz1wC6vac0HRQ099/mthViVImDzIWUEVqQitWbWpGR7y8bNw+j/OZDbOWQy0Rl8kfYbjgpVOEREal87hxCFKF4D47NODH145Q9M9Jd2UqiK6GVeQHh4a4mEXWb6padpi1FwFPkHVNwDNDn/o1rbhJeARfHuFUHLUiR+jnJEWnHlsVyXWe5Wih8UiY6pmyKgLCc1wfMnRpGlSWKSQrYcdVSHSM6+lGirUUOOAlq0g8PcboKEoPWlpPycf7TEB3jYF0W6rmwxlf4gOr3da+b4lRoZZlXpiBxAeWqkez2+gZQlHaa+O2Dqk093AZGSMQz';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
+const ENG_SUPPLY = 15000000000000000;
 
 console.log ('web3 version', web3);
 let Enigma = artifacts.require ("./contracts/Enigma.sol");
@@ -45,20 +46,35 @@ contract ('Enigma', function (accounts) {
     ];
     it ("...executing computation", function () {
         return Enigma.deployed ()
-            .then (function (instance) {
+            .then (instance => {
                 enigma = instance;
                 return EnigmaToken.deployed ();
             })
-            .then (function (instance) {
+            .then (instance => {
                 engToken = instance;
                 return CoinMixer.deployed ();
             })
-            .then (function (instance) {
+            .then (instance => {
                 coinMixer = instance;
-                return engToken.approve (accounts[0], 1, { from: accounts[0] })
+                return engToken.totalSupply.call ();
             })
-            .then (function (approved) {
-                console.log ('approved token transfer', approved);
+            .then (supply => {
+                assert.equal (supply, ENG_SUPPLY, 'Invalid ENG total supply.');
+
+                return engToken.balanceOf.call (accounts[0]);
+            })
+            .then (balance => {
+                assert.equal (balance, ENG_SUPPLY, 'Invalid account ENG balance.');
+                return engToken.approve (enigma.address, 1, { from: accounts[0] })
+            })
+            .then (result => {
+                let event = result.logs[0];
+                assert.equal (event.event, 'Approval', 'Approval failed.');
+
+                return engToken.allowance.call (accounts[0], enigma.address);
+            })
+            .then (allowance => {
+                assert.equal (allowance, 1, "Incorrect allowance.");
 
                 // RLP encoding arguments
                 const encoded = '0x' + RLP.encode (args).toString ('hex');
@@ -67,7 +83,7 @@ contract ('Enigma', function (accounts) {
                     coinMixer.address, callable, encoded, callback, 1, preprocessor,
                     { from: accounts[0] }
                 );
-            }).then (function (result) {
+            }).then (result => {
                 let event = result.logs[0];
                 console.log ('secret call event', event);
 
