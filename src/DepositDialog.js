@@ -57,6 +57,7 @@ class DepositDialog extends React.Component {
             const msg = deposit.destinationAddress;
             const result = encryptMessage (derivedKey, msg);
 
+            // TODO: concat: IV (32 bytes) + enc message
             console.log ('My public key is: ' + getPublicKey (myPrivateKey));
             console.log ('Encrypted message: ' + result[0]);
             console.log ('IV: ' + result[1]);

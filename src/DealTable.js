@@ -49,8 +49,9 @@ class DealTable extends React.Component {
     };
 
     handleSelectFilter = (event, index) => {
+        console.log ('selecting deals filter', index);
         this.setState ({ selectedIndex: index, anchorEl: null });
-        this.props.selectFilter(index);
+        this.props.selectFilter (index);
     };
 
     handleCloseFilter = event => {

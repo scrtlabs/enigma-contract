@@ -25,7 +25,6 @@ import blue from 'material-ui/colors/blue';
 import Enigma from './enigma-utils/enigma';
 
 
-
 const theme = createMuiTheme ({
     palette: {
         primary: blue,
@@ -253,8 +252,8 @@ class App extends Component {
     };
 
     setFilter = (filterIndex) => {
+        this.setState ({ selectedFilterIndex: filterIndex });
         this.fetchDeals (filterIndex);
-
     };
 
     fetchEncryptedAddresses = (dealId) => {
@@ -299,7 +298,7 @@ class App extends Component {
                 let params = {
                     secretContract: this.state.contract.address,
                     callable: 'mixAddresses',
-                    args: encoded,
+                    args: args,
                     callback: 'distribute',
                     preprocessor: ['rand()']
                 };

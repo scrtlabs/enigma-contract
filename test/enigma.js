@@ -3,7 +3,8 @@ const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
 
 const URL = 'localhost:3001';
-const PKEY = 'AAAAB3NzaC1yc2EAAAADAQABAAABAQC4ReB9wai5xcNnlYpFWfMv+Dwz1wC6vac0HRQ099/mthViVImDzIWUEVqQitWbWpGR7y8bNw+j/OZDbOWQy0Rl8kfYbjgpVOEREal87hxCFKF4D47NODH145Q9M9Jd2UqiK6GVeQHh4a4mEXWb6padpi1FwFPkHVNwDNDn/o1rbhJeARfHuFUHLUiR+jnJEWnHlsVyXWe5Wih8UiY6pmyKgLCc1wfMnRpGlSWKSQrYcdVSHSM6+lGirUUOOAlq0g8PcboKEoPWlpPycf7TEB3jYF0W6rmwxlf4gOr3da+b4lRoZZlXpiBxAeWqkez2+gZQlHaa+O2Dqk093AZGSMQz';
+const PRIV_KEY = 'MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgdkR/ZfyHybE0hal2D7VU\\nKL2cfNE9ltJgptO1B4kVXkqhRANCAAQUszAVq1zVUi8i+uv1JPiDaVtN3qWwDUSd\\nEOvXYm1sWvGNO16bX9vVStbaCFBUWdjDs0PIjYZuQeqzA21RSNZ4';
+const PUB_KEY = 'MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEFLMwFatc1VIvIvrr9ST4g2lbTd6lsA1E\\nnRDr12JtbFrxjTtem1/b1UrW2ghQVFnYw7NDyI2GbkHqswNtUUjWeA==';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
 const ENG_SUPPLY = 15000000000000000;
 
@@ -11,12 +12,18 @@ console.log ('web3 version', web3);
 let Enigma = artifacts.require ("./contracts/Enigma.sol");
 let EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
 let CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
-contract ('Enigma', function (accounts) {
 
+// Initialize contract variables
+let enigma;
+let engToken;
+let coinMixer;
+contract ('Enigma', function (accounts) {
     it ("...registering new worker", function () {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
+            const pkeyHash = web3Utils.soliditySha3 (PUB_KEY);
+            const enclave = pkeyHash.substr (0, 40);
             return enigma.register (URL, PKEY, QUOTE, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
