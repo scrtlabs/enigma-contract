@@ -43,7 +43,7 @@ contract Enigma {
 
     struct Worker {
         bytes32 url;
-        string pkey;
+        address signer;
         string quote;
         uint256 balance;
         uint status; // Uninitialized: 0; Active: 1; Inactive: 2
@@ -53,7 +53,7 @@ contract Enigma {
     mapping(address => Worker) public workers;
     mapping(address => Task[]) public tasks;
 
-    event Register(bytes32 url, address user, string pkey, bool _success);
+    event Register(bytes32 url, address user, address signer, bool _success);
     event Logout(address user, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
     event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
@@ -73,7 +73,7 @@ contract Enigma {
         _;
     }
 
-    function register(bytes32 url, string pkey, string quote)
+    function register(bytes32 url, address signer, string quote)
     public
     payable
     returns (ReturnValue) {
@@ -83,12 +83,12 @@ contract Enigma {
         workerIndex.push(msg.sender);
 
         workers[msg.sender].url = url;
-        workers[msg.sender].pkey = pkey;
+        workers[msg.sender].signer = signer;
         workers[msg.sender].balance = msg.value;
         workers[msg.sender].quote = quote;
         workers[msg.sender].status = 1;
 
-        emit Register(url, msg.sender, pkey, true);
+        emit Register(url, msg.sender, signer, true);
 
         return ReturnValue.Ok;
     }
@@ -168,7 +168,7 @@ contract Enigma {
 
         address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
-        require(sigAddr == msg.sender, "Invalid signature.");
+        require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
