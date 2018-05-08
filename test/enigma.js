@@ -134,10 +134,10 @@ contract ('Enigma', function (accounts) {
         const functionDef = 'f(uint256,uint32[],bytes10,bytes)';
         const rx = /f\((.*)\)/g;
         const resultArgs = rx.exec (functionDef)[1].split (',');
+
         console.log ('the args', resultArgs);
         const functionId = web3Utils.soliditySha3 (functionDef).slice (0, 10);
         const encoded = abi.rawEncode ([resultArgs[0], resultArgs[1], resultArgs[2], resultArgs[3]], [0x123, [0x456, 0x789], "1234567890", "Hello, world!"]).toString ("hex");
-
         const hash = functionId + encoded;
 
         console.log ('dynamic encoding parts', functionId, encoded);

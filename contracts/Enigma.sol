@@ -119,11 +119,12 @@ contract Enigma {
         tasks[secretContract][taskId].callback = callback;
         tasks[secretContract][taskId].status = TaskStatus.InProgress;
 
-        // TODO: check the allowance first
-        engToken.transferFrom(msg.sender, this, fee);
-
         // Emit the ComputeTask event which each node is watching for
         emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, fee, preprocessors, true);
+
+        // Transferring before emitting does not work
+        // TODO: check the allowance first
+        engToken.transferFrom(msg.sender, this, fee);
 
         return ReturnValue.Ok;
     }
@@ -176,7 +177,7 @@ contract Enigma {
         require(reward > 0, "Reward cannot be zero.");
 
         // Invoking the callback method of the original contract
-        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
+//        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
         tasks[secretContract][taskId].worker = msg.sender;
