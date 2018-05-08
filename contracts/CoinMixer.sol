@@ -147,8 +147,14 @@ contract CoinMixer is EnigmaP {
         return (dealId, destAddresses);
     }
 
+    modifier onlyEnigma() {
+        require(msg.sender == address(enigma));
+        _;
+    }
+
     function distribute(uint32 dealId, address[] destAddresses)
     public
+    onlyEnigma()
     returns (ReturnValue){
         //        Deal storage deal = deals[dealId];
         //        require(deal.status == 2, "Deal is not executed.");
