@@ -177,6 +177,7 @@ contract Enigma {
         require(reward > 0, "Reward cannot be zero.");
 
         // Invoking the callback method of the original contract
+        // TODO: disable for now because the Python tests don't create deals, works with the JS tests
 //        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
