@@ -134,7 +134,7 @@ contract CoinMixer is EnigmaP {
         // we'll add 1 to our seed and hash it.
         uint i = destAddresses.length;
         while (i > 0) {
-            uint j = uint(sha256(rand + 1)) % i;
+            uint j = uint(sha3(rand + 1)) % i;
 
             // Array swap
             if (destAddresses[j] != destAddresses[i - 1]) {
