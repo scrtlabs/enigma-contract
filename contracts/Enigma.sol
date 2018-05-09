@@ -59,7 +59,7 @@ contract Enigma {
     event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address callingContract, uint taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
+    event ComputeTask(address indexed callingContract, uint indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
 
     enum ReturnValue {Ok, Error}
 
