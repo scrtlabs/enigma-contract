@@ -124,7 +124,7 @@ contract CoinMixer is EnigmaP {
         emit DealExecuted(dealId, true);
     }
 
-    function mixAddresses(uint32 dealId, address[] destAddresses, uint rand)
+    function mixAddresses(uint32 dealId, address[] destAddresses, uint256 rand)
     public
     pure
     returns (uint, address[]) {
