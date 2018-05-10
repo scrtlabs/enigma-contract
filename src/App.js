@@ -287,6 +287,7 @@ class App extends Component {
         const engFee = 1;
         this.state.token.approve (this.state.accounts[0], engFee, { from: this.state.accounts[0] })
             .then (() => {
+                // TODO: wait for the tx to be mined
                 return this.fetchEncryptedAddresses (deal.id);
             })
             .then ((addrs) => {

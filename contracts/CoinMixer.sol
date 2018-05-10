@@ -30,7 +30,7 @@ contract CoinMixer is EnigmaP {
 
     event NewDeal(address indexed user, uint32 indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
     event Deposit(address indexed _depositor, uint32 indexed _dealId, bytes _encryptedDestAddress, uint _value, bool _success, string _err);
-    event Distribute(uint32 indexed _dealId, bool _success, string _err);
+    event Distribute(uint32 indexed _dealId, uint individualAmountInWei, uint32 nbTransfers, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
     event FailedTransfer(address indexed to, uint256 value);
@@ -154,21 +154,17 @@ contract CoinMixer is EnigmaP {
 
     function distribute(uint32 dealId, address[] destAddresses)
     public
-    onlyEnigma()
+        //    onlyEnigma() //TODO: enable after testing
     returns (ReturnValue){
-        //        Deal storage deal = deals[dealId];
-        //        require(deal.status == 2, "Deal is not executed.");
-        //
-        //        deal.destAddresses = destAddresses;
-        //
-        //        bool enoughAddresses = deal.destAddresses.length == deal.numParticipants;
-        //        require(enoughAddresses, "missing some destination addresses");
-        //
-        //        for (uint i = 0; i < deal.destAddresses.length; i++) {
-        //            deal.destAddresses[i].transfer(deal.depositSum);
-        //        }
-        //
-        emit Distribute(dealId, true, "all good");
+        // Distribute the deposits to destination addresses
+        require(deals[dealId].status == 1, "Deal is not executed.");
+        deals[dealId].destAddresses = destAddresses;
+
+        for (uint i = 0; i < deals[dealId].destAddresses.length; i++) {
+            deals[dealId].destAddresses[i].transfer(deals[dealId].depositInWei);
+        }
+
+        emit Distribute(dealId, deals[dealId].depositInWei, uint32(deals[dealId].destAddresses.length), true, "all good");
         return ReturnValue.Ok;
     }
 

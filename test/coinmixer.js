@@ -20,16 +20,12 @@ contract ('CoinMixer', function (accounts) {
 
             return coinMixerInstance.dealStatus.call (0, { from: accounts[0] });
         }).then (function (deal) {
-            console.log ('deal status', deal);
+            console.log ('deal status', deal, deal[4].toNumber());
             // Validating the number of participants
             assert.equal (deal[1], 2, "Deal not found.");
         });
     });
 
-    // const encryptedAddresses = [
-    //     'abc',
-    //     'def'
-    // ];
     const encryptedAddresses = [
         '76625d74e69da291878a6b26594c1bd1b4de574d847c4581417359792618a1b327737d45daf0ca3b900497f65d4339eb644a593289ba8cf68c74',
         '86625d74e69da291878a6b26594c1bd1b4de574d847c4581417359792618a1b327737d45daf0ca3b900497f65d4339eb644a593289ba8cf68c74'
@@ -174,15 +170,18 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
-    // it ("...distributing.", function () {
-    //     return CoinMixer.deployed ().then (function (instance) {
-    //         coinMixerInstance = instance;
-    //
-    //         return coinMixerInstance.distribute (0, ['0xf08df3efdd854fede77ed3b2e515090eee765154'], { from: accounts[0] });
-    //     }).then (function (result) {
-    //         let event = result.logs[0];
-    //         console.log ('the result:', JSON.stringify (event));
-    //         assert.equal (event.args._success, true, "Distributed successfully.");
-    //     });
-    // });
+    it ("...distributing.", function () {
+        return CoinMixer.deployed ().then (function (instance) {
+            coinMixerInstance = instance;
+
+            return coinMixerInstance.distribute (0, [
+                '0x6330a553fc93768f612722bb8c2ec78ac90b3bbc',
+                '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
+            ], { from: accounts[0] });
+        }).then (function (result) {
+            let event = result.logs[0];
+            console.log ('the result:', JSON.stringify (event));
+            assert.equal (event.args._success, true, "Distributed successfully.");
+        });
+    });
 });

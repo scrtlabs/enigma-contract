@@ -3,8 +3,6 @@ const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
 
 const URL = 'localhost:3001';
-const PRIV_KEY = 'MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgdkR/ZfyHybE0hal2D7VU\\nKL2cfNE9ltJgptO1B4kVXkqhRANCAAQUszAVq1zVUi8i+uv1JPiDaVtN3qWwDUSd\\nEOvXYm1sWvGNO16bX9vVStbaCFBUWdjDs0PIjYZuQeqzA21RSNZ4';
-const PUB_KEY = 'MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEFLMwFatc1VIvIvrr9ST4g2lbTd6lsA1E\\nnRDr12JtbFrxjTtem1/b1UrW2ghQVFnYw7NDyI2GbkHqswNtUUjWeA==';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
 const ENG_SUPPLY = 15000000000000000;
 
@@ -22,8 +20,7 @@ contract ('Enigma', function (accounts) {
         return Enigma.deployed ().then (function (instance) {
             enigma = instance;
 
-            const pkeyHash = web3Utils.soliditySha3 (PUB_KEY);
-            const enclave = pkeyHash.substr (0, 40);
+            // Using the account as the signer for testing purposes
             return enigma.register (URL, accounts[0], QUOTE, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
@@ -156,14 +153,14 @@ contract ('Enigma', function (accounts) {
     // Changing a character in one of the two results should break the validation
     const localResults = [
         0, [
-            '0x2467636bea0f3c2441227eedbffac59f11d54a80',
-            '0x8e4c131b37383e431b9cd0635d3cf9f3f628edae'
+            '0x6330a553fc93768f612722bb8c2ec78ac90b3bbc',
+            '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
         ]
     ];
     const contractResults = [
         0, [
-            '0x2467636bea0f3c2441227eedbffac59f11d54a80',
-            '0x8e4c131b37383e431b9cd0635d3cf9f3f628edae'
+            '0x6330a553fc93768f612722bb8c2ec78ac90b3bbc',
+            '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
         ]
     ];
     it ("...committing results", function () {
