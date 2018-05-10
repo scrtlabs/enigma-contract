@@ -1,7 +1,6 @@
 import React from 'react';
 import Button from 'material-ui/Button';
-import TextField from 'material-ui/TextField';
-import {CircularProgress} from 'material-ui/Progress';
+import {LinearProgress} from 'material-ui/Progress';
 import Dialog, {
     DialogActions,
     DialogContent,
@@ -19,12 +18,14 @@ class FinalizeDialog extends React.Component {
         open: false,
         deal: {},
         finalized: false,
-        loading: false
+        loading: false,
+        status: 0
     };
 
     componentWillReceiveProps (nextProps) {
         this.setState ({ open: nextProps.open });
         this.setState ({ deal: nextProps.deal });
+        this.setState ({ status: nextProps.status });
         this.setState ({ deposit: { amount: nextProps.deal.deposit } })
     };
 
@@ -40,6 +41,50 @@ class FinalizeDialog extends React.Component {
         this.props.onClose ();
     };
 
+    userPrompt = () => {
+        if (this.state.status === 0) {
+            return <DialogContentText>This deal has received all of
+                its {this.state.deal.numDeposits} deposits.
+                As the owner, do you want to execute it?
+            </DialogContentText>
+        } else if (this.state.status === 1) {
+            return <DialogContentText>Please use Metamask to approve the
+                ENG amount for computation.
+            </DialogContentText>
+        } else if (this.state.status === 2) {
+            return <div>
+                <DialogContentText>Waiting for the approval to be mined.
+                </DialogContentText>
+                <div style={{ paddingTop: '20px' }}>
+                    <LinearProgress/>
+                </div>
+            </div>
+        } else if (this.state.status === 3) {
+            return <DialogContentText>Please use Metamask to send the
+                computation to the Enigma Network.
+            </DialogContentText>
+        } else if (this.state.status === 3) {
+            return <DialogContentText>Unable to finalize deal because of
+                error.
+            </DialogContentText>
+        }
+    };
+
+    actionButtons = () => {
+        if (this.state.status > 0) {
+            return <span></span>
+        }
+
+        return <DialogActions>
+            <Button onClick={this.handleClose} color="primary">
+                Cancel
+            </Button>
+            <Button onClick={this.handleFinalize} color="primary">
+                Execute
+            </Button>
+        </DialogActions>
+    };
+
     render () {
         return (
             <Dialog
@@ -50,19 +95,10 @@ class FinalizeDialog extends React.Component {
                     Finalize Deal
                 </DialogTitle>
                 <DialogContent>
-                    <DialogContentText>This deal has received all of
-                        its {this.state.deal.numDeposits} deposits.
-                        As the owner, do you want to execute it?
-                    </DialogContentText>
+                    {this.userPrompt ()}
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={this.handleClose} color="primary">
-                        Cancel
-                    </Button>
-                    <Button onClick={this.handleFinalize} color="primary">
-                        Execute
-                    </Button>
-                </DialogActions>
+
+                {this.actionButtons ()}
             </Dialog>
         )
     };

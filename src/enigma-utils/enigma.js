@@ -20,7 +20,8 @@ class Enigma {
         // Calls the compute function of the Engima contract
         // See diagram for details: doc/poc-compute-sequence.png
         return this.contract.compute (callObject.secretContract,
-            callObject.callable, callObject.args, callObject.callback, callObject.preprocessor, options)
+            callObject.callable, callObject.args, callObject.callback, callObject.fee,
+            callObject.preprocessor, options)
             .then ((result) => {
                 let event = null;
                 for (let i = 0; i < result.logs.length; i++) {

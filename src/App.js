@@ -51,6 +51,7 @@ class App extends Component {
             newDealDialogOpen: false,
             depositDialogOpen: false,
             finalizeDialogOpen: false,
+            finalizeDialogStatus: 0,
             selectedFilterIndex: 0,
             txModalOpen: false,
             lastEvent: {}
@@ -275,22 +276,37 @@ class App extends Component {
     };
 
     finalizeDeal = (deal) => {
+        this.setState ({ finalizeDialogStatus: 1 });
         // TODO: revisit this vs calling from the contract
         // This approach calls the Enigma contract directly.
         // We can either do this or use the coin mixer contract as a proxy
         // This method saves transfer and serialization opcodes and it can be better integrated
         // in the UI. I see a place for both approaches.
 
-        this.closeFinalizeDialog ();
-
         // TODO: how do we determine the fee?
         const engFee = 1;
-        this.state.token.approve (this.state.accounts[0], engFee, { from: this.state.accounts[0] })
+        // TODO: wrap approval in the util library
+        const enigmaContract = this.state.enigma.contract;
+        this.state.token.approve (enigmaContract.address, engFee, { from: this.state.accounts[0] })
             .then (() => {
-                // TODO: wait for the tx to be mined
+                this.setState ({ finalizeDialogStatus: 2 });
+
+                return new Promise ((resolve) => {
+                    // TODO: wait for the tx to be mined
+                    setTimeout (() => {
+                        resolve (this.state.token.allowance.call (this.state.accounts[0], enigmaContract.address));
+                    }, 3000);
+                });
+            })
+            .then (allowance => {
+                if (allowance < engFee) {
+                    throw 'Allowance too low: ' + allowance + ' ENG';
+                }
                 return this.fetchEncryptedAddresses (deal.id);
             })
             .then ((addrs) => {
+                this.setState ({ finalizeDialogStatus: 3 });
+
                 // The deal id is the first parameter
                 // This is important for traceability
                 // The business logic can reason about this by looking
@@ -298,22 +314,28 @@ class App extends Component {
                 const args = [deal.id, addrs];
                 let params = {
                     secretContract: this.state.contract.address,
-                    callable: 'mixAddresses',
+                    callable: 'mixAddresses(uint,address[],uint)',
                     args: args,
-                    callback: 'distribute',
-                    preprocessor: ['rand()']
+                    callback: 'distribute(uint32,address[])',
+                    preprocessor: ['rand()'],
+                    fee: engFee
                 };
-                debugger;
 
                 // TODO: wrap into utility library
                 // I'm leaving the code here for now short term readability
                 return this.state.enigma.compute (params, {
                     from: this.state.accounts[0],
-                    value: engFee
+                    gas: 4712388,
+                    gasPrice: 1000000000
                 });
             })
             .then ((result) => {
+                this.closeFinalizeDialog ();
                 this.setState ({ lastEvent: result }, () => this.openTxModal ());
+            })
+            .catch ((err) => {
+                console.error (err);
+                this.setState ({ finalizeDialogStatus: 4 });
             });
     };
 
@@ -366,6 +388,7 @@ class App extends Component {
                         deal={this.state.selectedDeal}
                         finalize={this.finalizeDeal}
                         onClose={this.closeFinalizeDialog}
+                        status={this.state.finalizeDialogStatus}
                     ></FinalizeDialog>
                     <TxModal
                         open={this.state.txModalOpen}
