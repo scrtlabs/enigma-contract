@@ -24,7 +24,7 @@ contract ('Enigma', function (accounts) {
 
             const pkeyHash = web3Utils.soliditySha3 (PUB_KEY);
             const enclave = pkeyHash.substr (0, 40);
-            return enigma.register (URL, PKEY, QUOTE, { from: accounts[0] });
+            return enigma.register (URL, accounts[0], QUOTE, { from: accounts[0] });
         }).then (function (result) {
             event = result.logs[0];
             console.log (event);
@@ -194,6 +194,10 @@ contract ('Enigma', function (accounts) {
                 // The holy grail, behaves exactly as keccak256() in Solidity
                 const hash = web3Utils.soliditySha3 (encodedArgs, localData, bytecode);
                 console.log ('the message hash', hash);
+
+                // Using an actual Ethereum address instead of a virtual address
+                // This is testing the same thing
+                // The python unit tests handle virtual addresses from private keys.
                 const signature = web3.eth.sign (accounts[0], hash);
 
                 const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ('hex');
