@@ -51,10 +51,11 @@ class App extends Component {
             newDealDialogOpen: false,
             depositDialogOpen: false,
             finalizeDialogOpen: false,
-            finalizeDialogStatus: 0,
+            finalizeDialogStatus: [0],
             selectedFilterIndex: 0,
             txModalOpen: false,
-            lastEvent: {}
+            lastEvent: {},
+            filters: []
         }
     }
 
@@ -276,20 +277,25 @@ class App extends Component {
     };
 
     finalizeDeal = (deal) => {
-        this.setState ({ finalizeDialogStatus: 1 });
+        // TODO: how do we determine the fee?
+        const engFee = 1;
+
+        this.setState ({ finalizeDialogStatus: [1, engFee] });
         // TODO: revisit this vs calling from the contract
         // This approach calls the Enigma contract directly.
         // We can either do this or use the coin mixer contract as a proxy
         // This method saves transfer and serialization opcodes and it can be better integrated
         // in the UI. I see a place for both approaches.
 
-        // TODO: how do we determine the fee?
-        const engFee = 1;
         // TODO: wrap approval in the util library
         const enigmaContract = this.state.enigma.contract;
-        this.state.token.approve (enigmaContract.address, engFee, { from: this.state.accounts[0] })
-            .then (() => {
-                this.setState ({ finalizeDialogStatus: 2 });
+        this.state.token.approve (enigmaContract.address, engFee, {
+            from: this.state.accounts[0],
+            gas: 4712388,
+            gasPrice: 1000000000
+        })
+            .then ((result) => {
+                this.setState ({ finalizeDialogStatus: [2, engFee, result.tx] });
 
                 return new Promise ((resolve) => {
                     // TODO: wait for the tx to be mined
@@ -305,7 +311,7 @@ class App extends Component {
                 return this.fetchEncryptedAddresses (deal.id);
             })
             .then ((addrs) => {
-                this.setState ({ finalizeDialogStatus: 3 });
+                this.setState ({ finalizeDialogStatus: [3] });
 
                 // The deal id is the first parameter
                 // This is important for traceability
@@ -330,13 +336,40 @@ class App extends Component {
                 });
             })
             .then ((result) => {
-                this.closeFinalizeDialog ();
-                this.setState ({ lastEvent: result }, () => this.openTxModal ());
+                this.setState ({ finalizeDialogStatus: [4, result.transactionHash] });
+
+                this.subscribeDistribute ();
             })
             .catch ((err) => {
                 console.error (err);
-                this.setState ({ finalizeDialogStatus: 4 });
+                this.setState ({ finalizeDialogStatus: [10, err] });
             });
+    };
+
+    subscribeDistribute = () => {
+        this.state.filters.forEach ((events) => {
+            events.stopWatching ((result) => {
+                console.log ('stopped watching', result);
+            });
+        });
+
+        let filters = [];
+
+        // watch for an event with {some: 'args'}
+        let event = this.state.web3.sha3 ('distribute(uint32,address[])');
+        let events = this.state.contract.allEvents ({
+            fromBlock: 0,
+            toBlock: 'latest',
+            topics: [event] //TODO: find out why it's not filtering other events out
+        });
+
+        events.watch ((error, result) => {
+            if (result.event === 'Distribute') {
+                console.log ('got distribute event', result);
+            }
+        });
+
+        this.setState ({ filters: filters });
     };
 
     render () {
