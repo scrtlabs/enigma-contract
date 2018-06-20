@@ -49,6 +49,7 @@ contract Enigma {
     }
 
     uint workerParamsLimit;
+
     struct WorkersParams {
         uint256 firstBlockNumber;
         address[] workerAddresses;
@@ -56,14 +57,14 @@ contract Enigma {
     }
 
     address[] public workerAddresses;
-    WorkersParams[5] public workersParams;
+    WorkersParams[5] workersParams;
     mapping(address => Worker) public workers;
     mapping(address => Task[]) public tasks;
 
     event Register(address user, address signer, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
     event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
-    event WorkersParameterized(uint256 seed, address[] workers, uint256 blockNumber, bool _success);
+    event WorkersParameterized(uint256 seed, address[] workers, bool _success);
 
     // Enigma computation task
     event ComputeTask(address indexed callingContract, uint indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
@@ -172,7 +173,7 @@ contract Enigma {
 
         // Invoking the callback method of the original contract
         // TODO: disable for now because the Python tests don't create deals, works with the JS tests
-//        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
+        //        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
         tasks[dappContract][taskId].worker = msg.sender;
@@ -194,6 +195,9 @@ contract Enigma {
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
+        // Create a new workers parameters item for the specified seed.
+        // The workers parameters list is a sort of cache, it never grows beyond its limit.
+        // If the list is full, the new item will replace the item assigned to the lowest block number.
         uint ti = 0;
         for (uint pi = 0; pi < workersParams.length; pi++) {
             // Find an empty slot in the array, if full use the lowest block number
@@ -209,12 +213,43 @@ contract Enigma {
 
         // Copy the current worker list
         for (uint wi = 0; wi < workerAddresses.length; wi++) {
-            workersParams[ti].workerAddresses.length++;
-            workersParams[ti].workerAddresses[wi] = workerAddresses[wi];
+            if (workerAddresses[wi] != 0x0) {
+                workersParams[ti].workerAddresses.length++;
+                workersParams[ti].workerAddresses[wi] = workerAddresses[wi];
+            }
         }
-
-        emit WorkersParameterized(seed, workerAddresses, block.number, true);
-
+        emit WorkersParameterized(seed, workerAddresses, true);
         return ReturnValue.Ok;
+    }
+
+    function getWorkersParamsIndex(uint256 blockNumber)
+    internal
+    constant
+    returns (int8) {
+        // Gets the workers parameters nearest the specified block number
+        int8 ci = - 1;
+        for (uint i = 0; i < workersParams.length; i++) {
+            if (workersParams[i].firstBlockNumber <= blockNumber && (ci == - 1 || workersParams[i].firstBlockNumber > workersParams[uint(ci)].firstBlockNumber)) {
+                ci = int8(i);
+            }
+        }
+        return ci;
+    }
+
+    function getWorkersParams(uint256 blockNumber)
+    public
+    view
+    returns (uint256, uint256, address[]) {
+        // get the workers parameters for a given block number
+        int8 idx = getWorkersParamsIndex(blockNumber);
+        require(idx != -1, "No workers parameters entry for specified block number");
+
+        uint index = uint(idx);
+        WorkersParams memory _workerParams = workersParams[index];
+        address[] memory workersAddresses = new address[](_workerParams.workerAddresses.length);
+        for (uint i = 0; i < _workerParams.workerAddresses.length; i++) {
+            workersAddresses[i] = _workerParams.workerAddresses[i];
+        }
+        return (_workerParams.firstBlockNumber, _workerParams.seed, workersAddresses);
     }
 }

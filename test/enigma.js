@@ -21,7 +21,7 @@ contract('Enigma', accounts => {
 
         let promises = [];
         for (let i = 0; i < accounts.length; i++) {
-            promises.push(enigma.register(accounts[0], QUOTE, {from: accounts[0]}))
+            promises.push(enigma.register(accounts[i], QUOTE, {from: accounts[i]}))
         }
         // Using the account as the signer for testing purposes
         return Promise.all(promises);
@@ -205,6 +205,7 @@ contract('Enigma', accounts => {
             assert.equal(event1.args._success, true, 'Unable to verify hash.');
             assert.equal(event2.args._success, true, 'Unable to commit results.');
         }));
+
     let lastFiveWorkers = [];
     it("it setting workers params", () => {
         return Enigma.deployed().then(instance => {
@@ -230,14 +231,15 @@ contract('Enigma', accounts => {
             console.log('last five workers', JSON.stringify(lastFiveWorkers));
         });
     });
+
     it("it getting workers params", () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 
             let promises = [];
-            for (let i = 0; i < 5; i++) {
-                promises.push(enigma.workersParams.call(i, {from: accounts[0]}));
-            }
+            lastFiveWorkers.forEach((worker) => {
+                promises.push(enigma.getWorkersParams.call(worker.blockNumber, {from: accounts[0]}));
+            });
             return Promise.all(promises);
         }).then(results => {
             let workerParams = [];
@@ -246,6 +248,28 @@ contract('Enigma', accounts => {
             });
             console.log('workers parameters', workerParams);
             assert.equal(JSON.stringify(lastFiveWorkers), JSON.stringify(workerParams), "worker params don't match calculated list");
+        });
+    });
+
+    const workerIndex = Math.floor(Math.random() * 4);
+    it("it select worker for worker " + workerIndex, () => {
+        return Enigma.deployed().then(instance => {
+            enigma = instance;
+
+            const selectedBlock = lastFiveWorkers[workerIndex].blockNumber;
+            return enigma.getWorkersParams.call(selectedBlock, {from: accounts[0]});
+        }).then(result => {
+            const workerParams = {
+                seed: result[1].toNumber(),
+                blockNumber: result[0].toNumber(),
+                workers: result[2].filter(addr => addr > 0)
+            };
+            console.log('worker params:', JSON.stringify(workerParams));
+            const taskId = web3Utils.soliditySha3('test');
+            const index = web3Utils.soliditySha3(workerParams.seed, taskId) % workerParams.workers.length;
+            const selectedWorker = workerParams.workers[index];
+
+            console.log('the selected worker:', index, selectedWorker, taskId);
         });
     })
 });
