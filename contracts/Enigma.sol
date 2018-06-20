@@ -242,14 +242,45 @@ contract Enigma {
     returns (uint256, uint256, address[]) {
         // get the workers parameters for a given block number
         int8 idx = getWorkersParamsIndex(blockNumber);
-        require(idx != -1, "No workers parameters entry for specified block number");
+        require(idx != - 1, "No workers parameters entry for specified block number");
 
         uint index = uint(idx);
         WorkersParams memory _workerParams = workersParams[index];
-        address[] memory workersAddresses = new address[](_workerParams.workerAddresses.length);
-        for (uint i = 0; i < _workerParams.workerAddresses.length; i++) {
-            workersAddresses[i] = _workerParams.workerAddresses[i];
+
+        return (_workerParams.firstBlockNumber, _workerParams.seed, _workerParams.workerAddresses);
+    }
+
+    function cleanupWorkers(address[] workers)
+    internal
+    constant
+    returns (address[])
+    {
+        uint cpt = 0;
+        for (uint i = 0; i < workers.length; i++) {
+            if (workers[i] != 0x0) {
+                cpt++;
+            }
         }
-        return (_workerParams.firstBlockNumber, _workerParams.seed, workersAddresses);
+        address[] memory _workers = new address[](cpt);
+        uint cur = 0;
+        for (uint iw = 0; iw < workers.length; iw++) {
+            if (workers[iw] != 0x0) {
+                _workers[cur] = workers[iw];
+                cur++;
+            }
+        }
+        return _workers;
+    }
+
+    function selectWorker(uint256 blockNumber, uint256 taskId)
+    public
+    view
+    returns (address, uint256, uint256, uint256) {
+        (uint256 b, uint256 s, address[] memory workers) = getWorkersParams(blockNumber);
+        address[] memory _workers = cleanupWorkers(workers);
+
+        uint256 hash = uint256(keccak256("test2"));
+        uint256 index = hash % _workers.length;
+        return (_workers[index], s, _workers.length, hash);
     }
 }

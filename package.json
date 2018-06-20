@@ -13,6 +13,7 @@
     "eth-crypto": "^1.1.0",
     "eth-signer": "^0.3.4",
     "ethereumjs-abi": "^0.6.5",
+    "left-pad": "^1.3.0",
     "sjcl": "1.0.7",
     "solc": "^0.4.22",
     "solidity-sha3": "^0.4.1",

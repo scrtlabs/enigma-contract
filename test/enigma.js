@@ -1,6 +1,7 @@
 const web3Utils = require('web3-utils');
 const RLP = require('rlp');
 const abi = require('ethereumjs-abi');
+const leftPad =require('left-pad') ;
 
 const URL = 'localhost:3001';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
@@ -250,13 +251,13 @@ contract('Enigma', accounts => {
             assert.equal(JSON.stringify(lastFiveWorkers), JSON.stringify(workerParams), "worker params don't match calculated list");
         });
     });
-
+    let selectedBlock;
     const workerIndex = Math.floor(Math.random() * 4);
     it("it select worker for worker " + workerIndex, () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 
-            const selectedBlock = lastFiveWorkers[workerIndex].blockNumber;
+            selectedBlock = lastFiveWorkers[workerIndex].blockNumber;
             return enigma.getWorkersParams.call(selectedBlock, {from: accounts[0]});
         }).then(result => {
             const workerParams = {
@@ -265,11 +266,16 @@ contract('Enigma', accounts => {
                 workers: result[2].filter(addr => addr > 0)
             };
             console.log('worker params:', JSON.stringify(workerParams));
-            const taskId = web3Utils.soliditySha3('test');
-            const index = web3Utils.soliditySha3(workerParams.seed, taskId) % workerParams.workers.length;
+            const taskId = web3Utils.soliditySha3('hello');
+            const hash = web3Utils.soliditySha3('test2').toString();
+            const index = parseFloat(hash) % workerParams.workers.length;
             const selectedWorker = workerParams.workers[index];
 
-            console.log('the selected worker:', index, selectedWorker, taskId);
+            console.log('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length, hash);
+            return enigma.selectWorker.call(selectedBlock, taskId, {from: accounts[0]});
+        }).then(selectedWorker => {
+
+            console.log('the contract selected worker:', selectedWorker[0], selectedWorker[1].toNumber(), selectedWorker[2].toNumber(), selectedWorker[3].toNumber());
         });
     })
 });
