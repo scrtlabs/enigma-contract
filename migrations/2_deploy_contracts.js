@@ -9,7 +9,7 @@ module.exports = function (deployer) {
             return deployer.deploy (EnigmaToken);
         })
         .then (() => {
-            return deployer.deploy (Enigma, EnigmaToken.address);
+            return deployer.deploy (Enigma, EnigmaToken.address, 10);
         })
         .then (() => {
             deployer.deploy (EnigmaP);

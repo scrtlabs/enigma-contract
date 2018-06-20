@@ -42,29 +42,37 @@ contract Enigma {
     enum TaskStatus {InProgress, Executed}
 
     struct Worker {
-        bytes32 url;
         address signer;
         string quote;
         uint256 balance;
         uint status; // Uninitialized: 0; Active: 1; Inactive: 2
     }
 
-    address[] public workerIndex;
+    uint workerParamsLimit;
+    struct WorkersParams {
+        uint256 firstBlockNumber;
+        address[] workerAddresses;
+        uint256 seed;
+    }
+
+    address[] public workerAddresses;
+    WorkersParams[5] public workersParams;
     mapping(address => Worker) public workers;
     mapping(address => Task[]) public tasks;
 
-    event Register(bytes32 url, address user, address signer, bool _success);
-    event Logout(address user, bool _success);
+    event Register(address user, address signer, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
     event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
+    event WorkersParameterized(uint256 seed, address[] workers, uint256 blockNumber, bool _success);
 
     // Enigma computation task
     event ComputeTask(address indexed callingContract, uint indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
 
     enum ReturnValue {Ok, Error}
 
-    function Enigma(address _tokenAddress) public {
+    function Enigma(address _tokenAddress, uint _workerParamsLimit) public {
         engToken = IERC20(_tokenAddress);
+        workerParamsLimit = _workerParamsLimit;
     }
 
     modifier workerRegistered(address user) {
@@ -73,35 +81,21 @@ contract Enigma {
         _;
     }
 
-    function register(bytes32 url, address signer, string quote)
+    function register(address signer, string quote)
     public
     payable
     returns (ReturnValue) {
         // Register a new worker and deposit stake
         // require(workers[msg.sender].status == 0, "Worker already register.");
 
-        workerIndex.push(msg.sender);
+        workerAddresses.push(msg.sender);
 
-        workers[msg.sender].url = url;
         workers[msg.sender].signer = signer;
         workers[msg.sender].balance = msg.value;
         workers[msg.sender].quote = quote;
         workers[msg.sender].status = 1;
 
-        emit Register(url, msg.sender, signer, true);
-
-        return ReturnValue.Ok;
-    }
-
-    //TODO: we don't want this
-    function logout()
-    public
-    workerRegistered(msg.sender)
-    returns (ReturnValue) {
-        // A worker stops accepting tasks
-        workers[msg.sender].status = 2;
-
-        emit Logout(msg.sender, true);
+        emit Register(msg.sender, signer, true);
 
         return ReturnValue.Ok;
     }
@@ -160,20 +154,20 @@ contract Enigma {
         }
     }
 
-    function commitResults(address secretContract, uint taskId, bytes data, bytes sig)
+    function commitResults(address dappContract, uint taskId, bytes data, bytes sig)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
-        require(tasks[secretContract][taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
+        require(tasks[dappContract][taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
 
-        address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], data, sig);
+        address sigAddr = verifySignature(dappContract, tasks[dappContract][taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
         require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
-        uint256 reward = tasks[secretContract][taskId].reward;
+        uint256 reward = tasks[dappContract][taskId].reward;
         require(reward > 0, "Reward cannot be zero.");
 
         // Invoking the callback method of the original contract
@@ -181,9 +175,9 @@ contract Enigma {
 //        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
-        tasks[secretContract][taskId].worker = msg.sender;
-        tasks[secretContract][taskId].sig = sig;
-        tasks[secretContract][taskId].status = TaskStatus.Executed;
+        tasks[dappContract][taskId].worker = msg.sender;
+        tasks[dappContract][taskId].sig = sig;
+        tasks[dappContract][taskId].status = TaskStatus.Executed;
 
         // TODO: send directly to the worker's custodian instead
         // Put the reward in the worker's bank
@@ -191,7 +185,35 @@ contract Enigma {
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit CommitResults(secretContract, msg.sender, sig, reward, true);
+        emit CommitResults(dappContract, msg.sender, sig, reward, true);
+
+        return ReturnValue.Ok;
+    }
+
+    function setWorkersParams(uint256 seed)
+    public
+    workerRegistered(msg.sender)
+    returns (ReturnValue) {
+        uint ti = 0;
+        for (uint pi = 0; pi < workersParams.length; pi++) {
+            // Find an empty slot in the array, if full use the lowest block number
+            if (workersParams[pi].firstBlockNumber == 0) {
+                ti = pi;
+                break;
+            } else if (workersParams[pi].firstBlockNumber < workersParams[ti].firstBlockNumber) {
+                ti = pi;
+            }
+        }
+        workersParams[ti].firstBlockNumber = block.number;
+        workersParams[ti].seed = seed;
+
+        // Copy the current worker list
+        for (uint wi = 0; wi < workerAddresses.length; wi++) {
+            workersParams[ti].workerAddresses.length++;
+            workersParams[ti].workerAddresses[wi] = workerAddresses[wi];
+        }
+
+        emit WorkersParameterized(seed, workerAddresses, block.number, true);
 
         return ReturnValue.Ok;
     }
