@@ -1,7 +1,8 @@
 const web3Utils = require('web3-utils');
 const RLP = require('rlp');
 const abi = require('ethereumjs-abi');
-const leftPad =require('left-pad') ;
+const leftPad = require('left-pad');
+// const enigmajs = require('enigmajs/dist/enigma-node');
 
 const URL = 'localhost:3001';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
@@ -51,6 +52,31 @@ contract('Enigma', accounts => {
             '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
         ]
     ];
+    const callableArgs = '0x' + RLP.encode(args).toString('hex');
+    const nonce = Math.floor(Math.random() * 100000);
+    let taskId;
+    it("generate task id", () => Enigma.deployed()
+        .then(instance => {
+            enigma = instance;
+            return CoinMixer.deployed();
+        })
+        .then(instance => {
+            coinMixer = instance;
+            return enigma.generateTaskId.call(coinMixer.address, callable, callableArgs, nonce, {from: accounts[0]});
+        })
+        .then(contractTaskId => {
+            // TODO: add to enigma-js
+            taskId = web3Utils.soliditySha3(
+                {t: 'address', v: coinMixer.address},
+                {t: 'string', v: callable},
+                {t: 'bytes', v: callableArgs},
+                {t: 'uint256', v: nonce}
+            );
+            console.log('the task id: ', contractTaskId, taskId);
+            assert.equal(contractTaskId, taskId, 'Local hash does not match contract.')
+        })
+    );
+
     it("...executing computation", () => Enigma.deployed()
         .then(instance => {
             enigma = instance;
@@ -83,10 +109,9 @@ contract('Enigma', accounts => {
             assert.equal(allowance, 1, "Incorrect allowance.");
 
             // RLP encoding arguments
-            const encoded = '0x' + RLP.encode(args).toString('hex');
-            let preprocessor = ['rand()'];
+            const preprocessor = ['rand()'];
             return enigma.compute(
-                coinMixer.address, callable, encoded, callback, 1, preprocessor,
+                coinMixer.address, callable, callableArgs, callback, 1, preprocessor, nonce,
                 {from: accounts[0]}
             );
         }).then(result => {
@@ -99,18 +124,15 @@ contract('Enigma', accounts => {
     it("...querying task", () => Enigma.deployed()
         .then(instance => {
             enigma = instance;
-            return CoinMixer.deployed();
-        })
-        .then(instance => {
-            coinMixer = instance;
-            return enigma.tasks.call(coinMixer.address, 0, {from: accounts[0]});
-        }).then(result => {
-            console.log('tasks details', result);
-            assert(result.length > 0, "No task found.");
-            assert.equal(result[5], 1, "Fee does not match.");
+            console.log('looking up task id:', taskId);
+            return enigma.tasks.call(taskId, {from: accounts[0]});
+        }).then(task => {
+            console.log('tasks details', JSON.stringify(task));
+            assert(task.length > 0, "No task found.");
+            assert.equal(task[6], 1, "Fee does not match.");
         }));
 
-    it("...testing simple abi encoding", () => {
+    it.skip("...testing simple abi encoding", () => {
         // Following the first example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
         const functionDef = 'baz(uint32,bool)';
         const rx = /baz\((.*)\)/g;
@@ -125,7 +147,7 @@ contract('Enigma', accounts => {
         assert.equal(hash, '0xcdcd77c000000000000000000000000000000000000000000000000000000000000000450000000000000000000000000000000000000000000000000000000000000001');
     });
 
-    it("...testing dynamic encoding", () => {
+    it.skip("...testing dynamic encoding", () => {
         // Following the last example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
         const functionDef = 'f(uint256,uint32[],bytes10,bytes)';
         const rx = /f\((.*)\)/g;
@@ -197,7 +219,7 @@ contract('Enigma', accounts => {
 
             const contractData = functionId + abi.rawEncode(resultArgs, contractResults).toString('hex');
 
-            return enigma.commitResults(coinMixer.address, 0, contractData, signature, {from: accounts[0]});
+            return enigma.commitResults(taskId, contractData, signature, {from: accounts[0]});
         }).then(result => {
             let event1 = result.logs[0];
             let event2 = result.logs[1];
@@ -208,7 +230,7 @@ contract('Enigma', accounts => {
         }));
 
     let lastFiveWorkers = [];
-    it("it setting workers params", () => {
+    it.skip("it setting workers params", () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 
@@ -233,7 +255,7 @@ contract('Enigma', accounts => {
         });
     });
 
-    it("it getting workers params", () => {
+    it.skip("it getting workers params", () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 
@@ -251,9 +273,10 @@ contract('Enigma', accounts => {
             assert.equal(JSON.stringify(lastFiveWorkers), JSON.stringify(workerParams), "worker params don't match calculated list");
         });
     });
+
     let selectedBlock;
     const workerIndex = Math.floor(Math.random() * 4);
-    it("it select worker for worker " + workerIndex, () => {
+    it.skip("it select worker for worker " + workerIndex, () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 

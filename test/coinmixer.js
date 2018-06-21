@@ -2,7 +2,7 @@ var CoinMixer = artifacts.require ("./CoinMixer.sol");
 
 contract ('CoinMixer', function (accounts) {
 
-    it ("...creating new deal.", function () {
+    it.skip ("...creating new deal.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -14,7 +14,7 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
-    it ("...deal status.", function () {
+    it.skip ("...deal status.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -30,7 +30,7 @@ contract ('CoinMixer', function (accounts) {
         '76625d74e69da291878a6b26594c1bd1b4de574d847c4581417359792618a1b327737d45daf0ca3b900497f65d4339eb644a593289ba8cf68c74',
         '86625d74e69da291878a6b26594c1bd1b4de574d847c4581417359792618a1b327737d45daf0ca3b900497f65d4339eb644a593289ba8cf68c74'
     ];
-    it ("...making two deposits.", function () {
+    it.skip ("...making two deposits.", function () {
         return CoinMixer.deployed ()
             .then (function (instance) {
                 coinMixerInstance = instance;
@@ -62,7 +62,7 @@ contract ('CoinMixer', function (accounts) {
             })
     });
 
-    it ("...querying active deals.", function () {
+    it.skip ("...querying active deals.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -80,7 +80,7 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
-    it ("...is participating to deal.", function () {
+    it.skip ("...is participating to deal.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -105,7 +105,7 @@ contract ('CoinMixer', function (accounts) {
         return array;
     }
 
-    it ("...retrieving encrypted addresses.", function () {
+    it.skip ("...retrieving encrypted addresses.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -128,7 +128,7 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
-    it ("...retrieving deal.", function () {
+    it.skip ("...retrieving deal.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -140,7 +140,7 @@ contract ('CoinMixer', function (accounts) {
     });
 
 
-    it ("...executing the deal.", function () {
+    it.skip ("...executing the deal.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -156,7 +156,7 @@ contract ('CoinMixer', function (accounts) {
     });
 
     const addresses = ["0x8f0483125fcb9aaaefa9209d8e9d7b9c8b9fb90f", "0x1622c3352f54f66e2b86583958d30db50695ec4c", "0x98d9f9e8debd4a632682ba207670d2a5acd3c489"];
-    it ("...mixing addresses.", function () {
+    it.skip ("...mixing addresses.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 
@@ -170,7 +170,7 @@ contract ('CoinMixer', function (accounts) {
         });
     });
 
-    it ("...distributing.", function () {
+    it.skip ("...distributing.", function () {
         return CoinMixer.deployed ().then (function (instance) {
             coinMixerInstance = instance;
 

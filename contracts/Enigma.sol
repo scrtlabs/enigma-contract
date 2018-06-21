@@ -31,6 +31,7 @@ contract Enigma {
     IERC20 public engToken;
 
     struct Task {
+        address dappContract;
         string callable;
         bytes callableArgs;
         string callback;
@@ -59,15 +60,15 @@ contract Enigma {
     address[] public workerAddresses;
     WorkersParams[5] workersParams;
     mapping(address => Worker) public workers;
-    mapping(address => Task[]) public tasks;
+    mapping(bytes32 => Task) public tasks;
 
     event Register(address user, address signer, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
-    event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
+    event CommitResults(address dappContract, address worker, bytes sig, uint reward, bool _success);
     event WorkersParameterized(uint256 seed, address[] workers, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address indexed callingContract, uint indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
+    event ComputeTask(address indexed callingContract, bytes32 indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -101,21 +102,32 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function compute(address secretContract, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors)
+    function generateTaskId(address dappContract, string callable, bytes callableArgs, uint256 nonce)
+    public
+    view
+    returns (bytes32)
+    {
+        // Generates a unique task id
+        bytes32 hash = keccak256(dappContract, callable, callableArgs, nonce);
+        return hash;
+    }
+
+    function compute(address dappContract, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 nonce)
     public
     returns (ReturnValue) {
         // Create a computation task and save the fee in escrow
-        uint taskId = tasks[secretContract].length;
-        tasks[secretContract].length++;
+        bytes32 taskId = generateTaskId(dappContract, callable, callableArgs, nonce);
+        require(tasks[taskId].dappContract == 0x0, "Task with the same taskId already exist");
 
-        tasks[secretContract][taskId].reward = fee;
-        tasks[secretContract][taskId].callable = callable;
-        tasks[secretContract][taskId].callableArgs = callableArgs;
-        tasks[secretContract][taskId].callback = callback;
-        tasks[secretContract][taskId].status = TaskStatus.InProgress;
+        tasks[taskId].reward = fee;
+        tasks[taskId].callable = callable;
+        tasks[taskId].callableArgs = callableArgs;
+        tasks[taskId].callback = callback;
+        tasks[taskId].status = TaskStatus.InProgress;
+        tasks[taskId].dappContract = dappContract;
 
         // Emit the ComputeTask event which each node is watching for
-        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, fee, preprocessors, true);
+        emit ComputeTask(dappContract, taskId, callable, callableArgs, callback, fee, preprocessors, true);
 
         // Transferring before emitting does not work
         // TODO: check the allowance first
@@ -124,12 +136,12 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function verifySignature(address secretContract, Task task, bytes data, bytes sig)
+    function verifySignature(Task task, bytes data, bytes sig)
     internal
     constant
     returns (address) {
         // Recreating a data hash to validate the signature
-        bytes memory code = GetCode2.at(secretContract);
+        bytes memory code = GetCode2.at(task.dappContract);
 
         // Build a hash to validate that the I/Os are matching
         bytes32 hash = keccak256(task.callableArgs, data, code);
@@ -155,20 +167,20 @@ contract Enigma {
         }
     }
 
-    function commitResults(address dappContract, uint taskId, bytes data, bytes sig)
+    function commitResults(bytes32 taskId, bytes data, bytes sig)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
-        require(tasks[dappContract][taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
+        require(tasks[taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
 
-        address sigAddr = verifySignature(dappContract, tasks[dappContract][taskId], data, sig);
+        address sigAddr = verifySignature(tasks[taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
         require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
-        uint256 reward = tasks[dappContract][taskId].reward;
+        uint256 reward = tasks[taskId].reward;
         require(reward > 0, "Reward cannot be zero.");
 
         // Invoking the callback method of the original contract
@@ -176,9 +188,9 @@ contract Enigma {
         //        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
-        tasks[dappContract][taskId].worker = msg.sender;
-        tasks[dappContract][taskId].sig = sig;
-        tasks[dappContract][taskId].status = TaskStatus.Executed;
+        tasks[taskId].worker = msg.sender;
+        tasks[taskId].sig = sig;
+        tasks[taskId].status = TaskStatus.Executed;
 
         // TODO: send directly to the worker's custodian instead
         // Put the reward in the worker's bank
@@ -186,7 +198,7 @@ contract Enigma {
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit CommitResults(dappContract, msg.sender, sig, reward, true);
+        emit CommitResults(tasks[taskId].dappContract, msg.sender, sig, reward, true);
 
         return ReturnValue.Ok;
     }
@@ -272,7 +284,7 @@ contract Enigma {
         return _workers;
     }
 
-    function selectWorker(uint256 blockNumber, uint256 taskId)
+    function selectWorker(uint256 blockNumber, bytes32 taskId)
     public
     view
     returns (address, uint256, uint256, uint256) {
