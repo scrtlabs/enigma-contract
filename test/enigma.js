@@ -230,7 +230,7 @@ contract('Enigma', accounts => {
         }));
 
     let lastFiveWorkers = [];
-    it.skip("it setting workers params", () => {
+    it("it setting workers params", () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 
@@ -255,7 +255,7 @@ contract('Enigma', accounts => {
         });
     });
 
-    it.skip("it getting workers params", () => {
+    it("it getting workers params", () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 
@@ -276,7 +276,8 @@ contract('Enigma', accounts => {
 
     let selectedBlock;
     const workerIndex = Math.floor(Math.random() * 4);
-    it.skip("it select worker for worker " + workerIndex, () => {
+    let selectedWorker;
+    it("it selecting worker " + workerIndex, () => {
         return Enigma.deployed().then(instance => {
             enigma = instance;
 
@@ -289,16 +290,18 @@ contract('Enigma', accounts => {
                 workers: result[2].filter(addr => addr > 0)
             };
             console.log('worker params:', JSON.stringify(workerParams));
-            const taskId = web3Utils.soliditySha3('hello');
-            const hash = web3Utils.soliditySha3('test2').toString();
-            const index = parseFloat(hash) % workerParams.workers.length;
-            const selectedWorker = workerParams.workers[index];
+            const hash = web3Utils.soliditySha3('test2');
+            const randomizer = web3Utils.toBN(hash);
+            const index = randomizer.mod(web3Utils.toBN(workerParams.workers.length));
+            selectedWorker = workerParams.workers[index];
 
-            console.log('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length, hash);
+            console.log('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length, hash, randomizer);
             return enigma.selectWorker.call(selectedBlock, taskId, {from: accounts[0]});
-        }).then(selectedWorker => {
+        }).then(contractSelectedWorker => {
 
-            console.log('the contract selected worker:', selectedWorker[0], selectedWorker[1].toNumber(), selectedWorker[2].toNumber(), selectedWorker[3].toNumber());
+            console.log('the contract selected worker:', contractSelectedWorker);
+            // assert.equal(randomizer.toString(), web3Utils.toBN(contractSelectedWorker[4]).toString(), "randomizers don't match")
+            assert.equal(contractSelectedWorker, selectedWorker, "Selected worker does not match");
         });
     })
 });

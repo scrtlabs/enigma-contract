@@ -287,12 +287,12 @@ contract Enigma {
     function selectWorker(uint256 blockNumber, bytes32 taskId)
     public
     view
-    returns (address, uint256, uint256, uint256) {
+    returns (address) {
         (uint256 b, uint256 s, address[] memory workers) = getWorkersParams(blockNumber);
         address[] memory _workers = cleanupWorkers(workers);
 
-        uint256 hash = uint256(keccak256("test2"));
-        uint256 index = hash % _workers.length;
-        return (_workers[index], s, _workers.length, hash);
+        bytes32 hash = keccak256("test2");
+        uint256 index = uint256(hash) % _workers.length;
+        return (_workers[index]);
     }
 }
