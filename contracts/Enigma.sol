@@ -288,10 +288,10 @@ contract Enigma {
     public
     view
     returns (address) {
-        (uint256 b, uint256 s, address[] memory workers) = getWorkersParams(blockNumber);
+        (uint256 b, uint256 seed, address[] memory workers) = getWorkersParams(blockNumber);
         address[] memory _workers = cleanupWorkers(workers);
 
-        bytes32 hash = keccak256("test2");
+        bytes32 hash = keccak256(seed, taskId);
         uint256 index = uint256(hash) % _workers.length;
         return (_workers[index]);
     }

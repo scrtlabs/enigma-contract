@@ -1,47 +1,47 @@
-const web3Utils = require('web3-utils');
-const RLP = require('rlp');
-const abi = require('ethereumjs-abi');
-const leftPad = require('left-pad');
+const web3Utils = require ('web3-utils');
+const RLP = require ('rlp');
+const abi = require ('ethereumjs-abi');
+const leftPad = require ('left-pad');
 // const enigmajs = require('enigmajs/dist/enigma-node');
 
 const URL = 'localhost:3001';
 const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
 const ENG_SUPPLY = 15000000000000000;
 
-console.log('web3 version', web3);
-let Enigma = artifacts.require("./contracts/Enigma.sol");
-let EnigmaToken = artifacts.require("./contracts/EnigmaToken.sol");
-let CoinMixer = artifacts.require("./contracts/CoinMixer.sol");
+console.log ('web3 version', web3);
+let Enigma = artifacts.require ("./contracts/Enigma.sol");
+let EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
+let CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
 
 // Initialize contract variables
 let enigma;
 let engToken;
 let coinMixer;
-contract('Enigma', accounts => {
-    it("...registering new worker", () => Enigma.deployed().then(instance => {
+contract ('Enigma', accounts => {
+    it ("...registering new worker", () => Enigma.deployed ().then (instance => {
         enigma = instance;
 
         let promises = [];
         for (let i = 0; i < accounts.length; i++) {
-            promises.push(enigma.register(accounts[i], QUOTE, {from: accounts[i]}))
+            promises.push (enigma.register (accounts[i], QUOTE, { from: accounts[i] }))
         }
         // Using the account as the signer for testing purposes
-        return Promise.all(promises);
-    }).then(results => {
-        results.forEach((result) => {
+        return Promise.all (promises);
+    }).then (results => {
+        results.forEach ((result) => {
             event = result.logs[0];
-            console.log(event);
-            assert.equal(event.args._success, true, "Worker registration failed.");
+            console.log (event);
+            assert.equal (event.args._success, true, "Worker registration failed.");
         });
     }));
 
-    it("...my worker details", () => Enigma.deployed().then(instance => {
+    it ("...my worker details", () => Enigma.deployed ().then (instance => {
         enigma = instance;
 
-        return enigma.workers.call(accounts[0], {from: accounts[0]});
-    }).then(result => {
-        console.log('my worker details', result);
-        assert(result.length > 0, "No worker details.");
+        return enigma.workers.call (accounts[0], { from: accounts[0] });
+    }).then (result => {
+        console.log ('my worker details', result);
+        assert (result.length > 0, "No worker details.");
     }));
 
     const callable = 'mixAddresses(uint,address[],uint)';
@@ -52,115 +52,115 @@ contract('Enigma', accounts => {
             '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
         ]
     ];
-    const callableArgs = '0x' + RLP.encode(args).toString('hex');
-    const nonce = Math.floor(Math.random() * 100000);
+    const callableArgs = '0x' + RLP.encode (args).toString ('hex');
+    const nonce = Math.floor (Math.random () * 100000);
     let taskId;
-    it("generate task id", () => Enigma.deployed()
-        .then(instance => {
+    it ("generate task id", () => Enigma.deployed ()
+        .then (instance => {
             enigma = instance;
-            return CoinMixer.deployed();
+            return CoinMixer.deployed ();
         })
-        .then(instance => {
+        .then (instance => {
             coinMixer = instance;
-            return enigma.generateTaskId.call(coinMixer.address, callable, callableArgs, nonce, {from: accounts[0]});
+            return enigma.generateTaskId.call (coinMixer.address, callable, callableArgs, nonce, { from: accounts[0] });
         })
-        .then(contractTaskId => {
+        .then (contractTaskId => {
             // TODO: add to enigma-js
-            taskId = web3Utils.soliditySha3(
-                {t: 'address', v: coinMixer.address},
-                {t: 'string', v: callable},
-                {t: 'bytes', v: callableArgs},
-                {t: 'uint256', v: nonce}
+            taskId = web3Utils.soliditySha3 (
+                { t: 'address', v: coinMixer.address },
+                { t: 'string', v: callable },
+                { t: 'bytes', v: callableArgs },
+                { t: 'uint256', v: nonce }
             );
-            console.log('the task id: ', contractTaskId, taskId);
-            assert.equal(contractTaskId, taskId, 'Local hash does not match contract.')
+            console.log ('the task id: ', contractTaskId, taskId);
+            assert.equal (contractTaskId, taskId, 'Local hash does not match contract.')
         })
     );
 
-    it("...executing computation", () => Enigma.deployed()
-        .then(instance => {
+    it ("...executing computation", () => Enigma.deployed ()
+        .then (instance => {
             enigma = instance;
-            return EnigmaToken.deployed();
+            return EnigmaToken.deployed ();
         })
-        .then(instance => {
+        .then (instance => {
             engToken = instance;
-            return CoinMixer.deployed();
+            return CoinMixer.deployed ();
         })
-        .then(instance => {
+        .then (instance => {
             coinMixer = instance;
-            return engToken.totalSupply.call();
+            return engToken.totalSupply.call ();
         })
-        .then(supply => {
-            assert.equal(supply, ENG_SUPPLY, 'Invalid ENG total supply.');
+        .then (supply => {
+            assert.equal (supply, ENG_SUPPLY, 'Invalid ENG total supply.');
 
-            return engToken.balanceOf.call(accounts[0]);
+            return engToken.balanceOf.call (accounts[0]);
         })
-        .then(balance => {
-            assert.equal(balance, ENG_SUPPLY, 'Invalid account ENG balance.');
-            return engToken.approve(enigma.address, 1, {from: accounts[0]})
+        .then (balance => {
+            assert.equal (balance, ENG_SUPPLY, 'Invalid account ENG balance.');
+            return engToken.approve (enigma.address, 1, { from: accounts[0] })
         })
-        .then(result => {
+        .then (result => {
             let event = result.logs[0];
-            assert.equal(event.event, 'Approval', 'Approval failed.');
+            assert.equal (event.event, 'Approval', 'Approval failed.');
 
-            return engToken.allowance.call(accounts[0], enigma.address);
+            return engToken.allowance.call (accounts[0], enigma.address);
         })
-        .then(allowance => {
-            assert.equal(allowance, 1, "Incorrect allowance.");
+        .then (allowance => {
+            assert.equal (allowance, 1, "Incorrect allowance.");
 
             // RLP encoding arguments
             const preprocessor = ['rand()'];
-            return enigma.compute(
+            return enigma.compute (
                 coinMixer.address, callable, callableArgs, callback, 1, preprocessor, nonce,
-                {from: accounts[0]}
+                { from: accounts[0] }
             );
-        }).then(result => {
+        }).then (result => {
             let event = result.logs[0];
-            console.log('secret call event', event);
+            console.log ('secret call event', event);
 
-            assert.equal(event.args._success, true, "Unable to compute.");
+            assert.equal (event.args._success, true, "Unable to compute.");
         }));
 
-    it("...querying task", () => Enigma.deployed()
-        .then(instance => {
+    it ("...querying task", () => Enigma.deployed ()
+        .then (instance => {
             enigma = instance;
-            console.log('looking up task id:', taskId);
-            return enigma.tasks.call(taskId, {from: accounts[0]});
-        }).then(task => {
-            console.log('tasks details', JSON.stringify(task));
-            assert(task.length > 0, "No task found.");
-            assert.equal(task[6], 1, "Fee does not match.");
+            console.log ('looking up task id:', taskId);
+            return enigma.tasks.call (taskId, { from: accounts[0] });
+        }).then (task => {
+            console.log ('tasks details', JSON.stringify (task));
+            assert (task.length > 0, "No task found.");
+            assert.equal (task[6], 1, "Fee does not match.");
         }));
 
-    it.skip("...testing simple abi encoding", () => {
+    it.skip ("...testing simple abi encoding", () => {
         // Following the first example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
         const functionDef = 'baz(uint32,bool)';
         const rx = /baz\((.*)\)/g;
-        const args = rx.exec(functionDef)[1].split(',');
-        const functionId = web3Utils.soliditySha3(functionDef).slice(0, 10);
-        const arg1 = abi.rawEncode([args[0]], [69]).toString("hex");
-        const arg2 = abi.rawEncode([args[1]], [true]).toString("hex");
+        const args = rx.exec (functionDef)[1].split (',');
+        const functionId = web3Utils.soliditySha3 (functionDef).slice (0, 10);
+        const arg1 = abi.rawEncode ([args[0]], [69]).toString ("hex");
+        const arg2 = abi.rawEncode ([args[1]], [true]).toString ("hex");
         const hash = functionId + arg1 + arg2;
 
-        console.log('the function id', functionId, arg1, arg2);
+        console.log ('the function id', functionId, arg1, arg2);
 
-        assert.equal(hash, '0xcdcd77c000000000000000000000000000000000000000000000000000000000000000450000000000000000000000000000000000000000000000000000000000000001');
+        assert.equal (hash, '0xcdcd77c000000000000000000000000000000000000000000000000000000000000000450000000000000000000000000000000000000000000000000000000000000001');
     });
 
-    it.skip("...testing dynamic encoding", () => {
+    it.skip ("...testing dynamic encoding", () => {
         // Following the last example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
         const functionDef = 'f(uint256,uint32[],bytes10,bytes)';
         const rx = /f\((.*)\)/g;
-        const resultArgs = rx.exec(functionDef)[1].split(',');
+        const resultArgs = rx.exec (functionDef)[1].split (',');
 
-        console.log('the args', resultArgs);
-        const functionId = web3Utils.soliditySha3(functionDef).slice(0, 10);
-        const encoded = abi.rawEncode([resultArgs[0], resultArgs[1], resultArgs[2], resultArgs[3]], [0x123, [0x456, 0x789], "1234567890", "Hello, world!"]).toString("hex");
+        console.log ('the args', resultArgs);
+        const functionId = web3Utils.soliditySha3 (functionDef).slice (0, 10);
+        const encoded = abi.rawEncode ([resultArgs[0], resultArgs[1], resultArgs[2], resultArgs[3]], [0x123, [0x456, 0x789], "1234567890", "Hello, world!"]).toString ("hex");
         const hash = functionId + encoded;
 
-        console.log('dynamic encoding parts', functionId, encoded);
+        console.log ('dynamic encoding parts', functionId, encoded);
 
-        assert.equal(hash, '0x8be65246' +
+        assert.equal (hash, '0x8be65246' +
             '0000000000000000000000000000000000000000000000000000000000000123' +
             '0000000000000000000000000000000000000000000000000000000000000080' +
             '3132333435363738393000000000000000000000000000000000000000000000' +
@@ -184,124 +184,129 @@ contract('Enigma', accounts => {
             '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
         ]
     ];
-    it("...committing results", () => Enigma.deployed()
-        .then(instance => {
+    it ("...committing results", () => Enigma.deployed ()
+        .then (instance => {
             enigma = instance;
 
-            return CoinMixer.deployed();
+            return CoinMixer.deployed ();
         })
-        .then(instance => {
+        .then (instance => {
             coinMixer = instance;
 
-            const encodedArgs = '0x' + RLP.encode(args).toString('hex');
+            const encodedArgs = '0x' + RLP.encode (args).toString ('hex');
 
-            const fName = callback.substr(0, callback.indexOf('('));
-            assert.equal(fName, 'distribute', 'Function name parsed incorrectly');
+            const fName = callback.substr (0, callback.indexOf ('('));
+            assert.equal (fName, 'distribute', 'Function name parsed incorrectly');
 
             const rx = /distribute\((.*)\)/g;
-            const resultArgs = rx.exec(callback)[1].split(',');
-            assert.equal(JSON.stringify(resultArgs), JSON.stringify(['uint32', 'address[]']));
+            const resultArgs = rx.exec (callback)[1].split (',');
+            assert.equal (JSON.stringify (resultArgs), JSON.stringify (['uint32', 'address[]']));
 
-            const functionId = web3Utils.soliditySha3(callback).slice(0, 10);
-            const localData = functionId + abi.rawEncode(resultArgs, localResults).toString('hex');
-            console.log('the encoded data', localData);
+            const functionId = web3Utils.soliditySha3 (callback).slice (0, 10);
+            const localData = functionId + abi.rawEncode (resultArgs, localResults).toString ('hex');
+            console.log ('the encoded data', localData);
 
-            const bytecode = web3.eth.getCode(coinMixer.address);
+            const bytecode = web3.eth.getCode (coinMixer.address);
 
             // The holy grail, behaves exactly as keccak256() in Solidity
-            const hash = web3Utils.soliditySha3(encodedArgs, localData, bytecode);
-            console.log('the message hash', hash);
+            const hash = web3Utils.soliditySha3 (encodedArgs, localData, bytecode);
+            console.log ('the message hash', hash);
 
             // Using an actual Ethereum address instead of a virtual address
             // This is testing the same thing
             // The python unit tests handle virtual addresses from private keys.
-            const signature = web3.eth.sign(accounts[0], hash);
+            const signature = web3.eth.sign (accounts[0], hash);
 
-            const contractData = functionId + abi.rawEncode(resultArgs, contractResults).toString('hex');
+            const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ('hex');
 
-            return enigma.commitResults(taskId, contractData, signature, {from: accounts[0]});
-        }).then(result => {
+            return enigma.commitResults (taskId, contractData, signature, { from: accounts[0] });
+        }).then (result => {
             let event1 = result.logs[0];
             let event2 = result.logs[1];
-            console.log('commit results event', event2);
+            console.log ('commit results event', event2);
 
-            assert.equal(event1.args._success, true, 'Unable to verify hash.');
-            assert.equal(event2.args._success, true, 'Unable to commit results.');
+            assert.equal (event1.args._success, true, 'Unable to verify hash.');
+            assert.equal (event2.args._success, true, 'Unable to commit results.');
         }));
 
     let lastFiveWorkers = [];
-    it("it setting workers params", () => {
-        return Enigma.deployed().then(instance => {
+    it ("it setting workers params", () => {
+        return Enigma.deployed ().then (instance => {
             enigma = instance;
 
             let promises = [];
             for (let i = 0; i < 10; i++) {
-                const seed = Math.floor(Math.random() * 100000);
-                promises.push(enigma.setWorkersParams(seed, {from: accounts[0]}));
+                const seed = Math.floor (Math.random () * 100000);
+                promises.push (enigma.setWorkersParams (seed, { from: accounts[0] }));
             }
-            return Promise.all(promises);
-        }).then(results => {
-            results.forEach((result, i) => {
+            return Promise.all (promises);
+        }).then (results => {
+            results.forEach ((result, i) => {
                 let event = result.logs[0];
-                assert.equal(event.args._success, true, 'Unable to parameterize workers.');
+                assert.equal (event.args._success, true, 'Unable to parameterize workers.');
                 if (i > 4) {
-                    lastFiveWorkers.push({
-                        seed: parseInt(event.args.seed),
+                    lastFiveWorkers.push ({
+                        seed: parseInt (event.args.seed),
                         blockNumber: event.blockNumber
                     });
                 }
             });
-            console.log('last five workers', JSON.stringify(lastFiveWorkers));
+            console.log ('last five workers', JSON.stringify (lastFiveWorkers));
         });
     });
 
-    it("it getting workers params", () => {
-        return Enigma.deployed().then(instance => {
+    it ("it getting workers params", () => {
+        return Enigma.deployed ().then (instance => {
             enigma = instance;
 
             let promises = [];
-            lastFiveWorkers.forEach((worker) => {
-                promises.push(enigma.getWorkersParams.call(worker.blockNumber, {from: accounts[0]}));
+            lastFiveWorkers.forEach ((worker) => {
+                promises.push (enigma.getWorkersParams.call (worker.blockNumber, { from: accounts[0] }));
             });
-            return Promise.all(promises);
-        }).then(results => {
+            return Promise.all (promises);
+        }).then (results => {
             let workerParams = [];
-            results.forEach((result) => {
-                workerParams.push({seed: result[1].toNumber(), blockNumber: result[0].toNumber()});
+            results.forEach ((result) => {
+                workerParams.push ({
+                    seed: result[1].toNumber (),
+                    blockNumber: result[0].toNumber ()
+                });
             });
-            console.log('workers parameters', workerParams);
-            assert.equal(JSON.stringify(lastFiveWorkers), JSON.stringify(workerParams), "worker params don't match calculated list");
+            console.log ('workers parameters', workerParams);
+            assert.equal (JSON.stringify (lastFiveWorkers), JSON.stringify (workerParams), "worker params don't match calculated list");
         });
     });
 
     let selectedBlock;
-    const workerIndex = Math.floor(Math.random() * 4);
     let selectedWorker;
-    it("it selecting worker " + workerIndex, () => {
-        return Enigma.deployed().then(instance => {
+    const workerIndex = Math.floor (Math.random () * 4);
+    it ("it selecting worker " + workerIndex, () => {
+        return Enigma.deployed ().then (instance => {
             enigma = instance;
 
             selectedBlock = lastFiveWorkers[workerIndex].blockNumber;
-            return enigma.getWorkersParams.call(selectedBlock, {from: accounts[0]});
-        }).then(result => {
+            return enigma.getWorkersParams.call (selectedBlock, { from: accounts[0] });
+        }).then (result => {
             const workerParams = {
-                seed: result[1].toNumber(),
-                blockNumber: result[0].toNumber(),
-                workers: result[2].filter(addr => addr > 0)
+                seed: result[1],
+                blockNumber: result[0],
+                workers: result[2].filter (addr => addr > 0)
             };
-            console.log('worker params:', JSON.stringify(workerParams));
-            const hash = web3Utils.soliditySha3('test2');
-            const randomizer = web3Utils.toBN(hash);
-            const index = randomizer.mod(web3Utils.toBN(workerParams.workers.length));
+            console.log ('worker params:', JSON.stringify (workerParams));
+            const hash = web3Utils.soliditySha3 (
+                { t: 'uint256', v: workerParams.seed },
+                { t: 'bytes32', v: taskId }
+            );
+            // The JS % operator does not produce the correct output
+            const index = web3Utils.toBN(hash).mod (web3Utils.toBN (workerParams.workers.length));
             selectedWorker = workerParams.workers[index];
 
-            console.log('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length, hash, randomizer);
-            return enigma.selectWorker.call(selectedBlock, taskId, {from: accounts[0]});
-        }).then(contractSelectedWorker => {
+            console.log ('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length, hash);
+            return enigma.selectWorker.call (selectedBlock, taskId, { from: accounts[0] });
+        }).then (contractSelectedWorker => {
 
-            console.log('the contract selected worker:', contractSelectedWorker);
-            // assert.equal(randomizer.toString(), web3Utils.toBN(contractSelectedWorker[4]).toString(), "randomizers don't match")
-            assert.equal(contractSelectedWorker, selectedWorker, "Selected worker does not match");
+            console.log ('the contract selected worker:', contractSelectedWorker);
+            assert.equal (contractSelectedWorker, selectedWorker, "Selected worker does not match");
         });
     })
 });
