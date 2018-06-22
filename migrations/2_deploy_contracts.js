@@ -10,8 +10,13 @@ module.exports = function (deployer) {
             return deployer.deploy (EnigmaToken);
         })
         .then (() => {
+            return web3.eth.getAccounts ()
+        })
+        .then ((accounts) => {
             // Setting the principal node to the first signer address in the data file
-            return deployer.deploy (Enigma, EnigmaToken.address, data.worker[0]);
+            const principal = accounts[0];
+            console.log ('using account', principal, 'as principal custodian');
+            return deployer.deploy (Enigma, EnigmaToken.address, principal);
         })
         .then (() => {
             deployer.deploy (EnigmaP);
