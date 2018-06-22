@@ -1,6 +1,6 @@
 const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
-const eng = require ('../lib/enigma');
+const eng = require ('../lib/enigma-utils');
 const data = require ('./data');
 
 // This could use the injected web3Utils
@@ -10,7 +10,7 @@ const web3Utils = require ('web3-utils');
 
 const ENG_SUPPLY = 15000000000000000;
 
-console.log ('testing the enigma lib:', eng.test ());
+// console.log ('testing the enigma lib:', eng.test ());
 
 const Enigma = artifacts.require ("./contracts/Enigma.sol");
 const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
@@ -38,7 +38,7 @@ contract ('Enigma', accounts => {
     }).then (results => {
         results.forEach ((result) => {
             event = result.logs[0];
-            console.log (event);
+            // console.log (event);
             assert.equal (event.args._success, true, "Worker registration failed.");
         });
     }));
@@ -48,7 +48,7 @@ contract ('Enigma', accounts => {
 
         return enigma.workers (accounts[0], { from: accounts[0] });
     }).then (result => {
-        console.log ('my worker details', result);
+        // console.log ('my worker details', result);
         assert.equal (result[0], accounts[0], "No worker details.");
     }));
 
@@ -63,7 +63,7 @@ contract ('Enigma', accounts => {
     const callableArgs = '0x' + RLP.encode (args).toString ('hex');
     const nonce = Math.floor (Math.random () * 100000);
     let taskId;
-    it ("generate task id", () => Enigma.deployed ()
+    it ("...generate task id", () => Enigma.deployed ()
         .then (instance => {
             enigma = instance;
             return CoinMixer.deployed ();
@@ -75,7 +75,7 @@ contract ('Enigma', accounts => {
         .then (contractTaskId => {
             // TODO: add to enigma-js
             taskId = eng.generateTaskId (coinMixer.address, callable, callableArgs, nonce);
-            console.log ('the task id: ', contractTaskId, taskId);
+            // console.log ('the task id: ', contractTaskId, taskId);
             assert.equal (contractTaskId, taskId, 'Local hash does not match contract.')
         })
     );
@@ -91,12 +91,12 @@ contract ('Enigma', accounts => {
         })
         .then (instance => {
             coinMixer = instance;
-            return engToken.totalSupply.call ();
+            return engToken.totalSupply ();
         })
         .then (supply => {
             assert.equal (supply, ENG_SUPPLY, 'Invalid ENG total supply.');
 
-            return engToken.balanceOf.call (accounts[0]);
+            return engToken.balanceOf (accounts[0]);
         })
         .then (balance => {
             assert.equal (balance, ENG_SUPPLY, 'Invalid account ENG balance.');
@@ -106,7 +106,7 @@ contract ('Enigma', accounts => {
             let event = result.logs[0];
             assert.equal (event.event, 'Approval', 'Approval failed.');
 
-            return engToken.allowance.call (accounts[0], enigma.address);
+            return engToken.allowance (accounts[0], enigma.address);
         })
         .then (allowance => {
             assert.equal (allowance, 1, "Incorrect allowance.");
@@ -119,7 +119,7 @@ contract ('Enigma', accounts => {
             );
         }).then (result => {
             let event = result.logs[0];
-            console.log ('secret call event', event);
+            // console.log ('secret call event', event);
 
             assert.equal (event.args._success, true, "Unable to compute.");
         }));
@@ -131,7 +131,7 @@ contract ('Enigma', accounts => {
         })
         .then (instance => {
             coinMixer = instance;
-            return enigma.tasks.call (taskId, { from: accounts[0] });
+            return enigma.tasks (taskId, { from: accounts[0] });
         }).then (task => {
             assert.equal (task[0], coinMixer.address, "Task not found.");
         }));
@@ -188,17 +188,17 @@ contract ('Enigma', accounts => {
 
         })
         .then (result => {
-            console.log ('the commit results', result);
+            // console.log ('the commit results', result);
             let event1 = result.logs[0];
             let event2 = result.logs[1];
-            console.log ('commit results event', event2);
+            // console.log ('commit results event', event2);
 
             assert.equal (event1.args._success, true, 'Unable to verify hash.');
             assert.equal (event2.args._success, true, 'Unable to commit results.');
         }));
 
     let lastFiveWorkers = [];
-    it ("it setting workers params", () => {
+    it ("...it setting workers params", () => {
         return Enigma.deployed ().then (instance => {
             enigma = instance;
 
@@ -225,29 +225,29 @@ contract ('Enigma', accounts => {
                     });
                 }
             });
-            console.log ('last five workers', JSON.stringify (lastFiveWorkers));
+            // console.log ('last five workers', JSON.stringify (lastFiveWorkers));
         });
     });
 
-    it ("it getting workers params", () => {
+    it ("...it getting workers params", () => {
         return Enigma.deployed ().then (instance => {
             enigma = instance;
 
             let promises = [];
             lastFiveWorkers.forEach ((worker) => {
-                promises.push (enigma.getWorkersParams.call (worker.blockNumber, { from: accounts[0] }));
+                promises.push (enigma.getWorkersParams (worker.blockNumber, { from: accounts[0] }));
             });
             return Promise.all (promises);
         }).then (results => {
             let workerParams = [];
             results.forEach ((result) => {
-                console.log('the worker params', JSON.stringify(result))
+                // console.log('the worker params', JSON.stringify(result))
                 workerParams.push ({
                     seed: parseInt(result[1]),
                     blockNumber: parseInt(result[0])
                 });
             });
-            console.log ('workers parameters', workerParams);
+            // console.log ('workers parameters', workerParams);
             assert.equal (JSON.stringify (lastFiveWorkers), JSON.stringify (workerParams), "worker params don't match calculated list");
         });
     });
@@ -255,12 +255,12 @@ contract ('Enigma', accounts => {
     let selectedBlock;
     let selectedWorker;
     const workerIndex = Math.floor (Math.random () * 4);
-    it ("it selecting worker " + workerIndex, () => {
+    it ("...it selecting worker " + workerIndex, () => {
         return Enigma.deployed ().then (instance => {
             enigma = instance;
 
             selectedBlock = lastFiveWorkers[workerIndex].blockNumber;
-            return enigma.getWorkersParams.call (selectedBlock, { from: accounts[0] });
+            return enigma.getWorkersParams (selectedBlock, { from: accounts[0] });
         }).then (result => {
             const workerParams = {
                 seed: result[1],
@@ -268,14 +268,14 @@ contract ('Enigma', accounts => {
                 workers: result[2].filter (addr => addr > 0)
             };
 
-            console.log ('worker params:', JSON.stringify (workerParams));
+            // console.log ('worker params:', JSON.stringify (workerParams));
             selectedWorker = eng.selectWorker (workerParams.seed, taskId, workerParams.workers);
-            console.log ('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length);
-            return enigma.selectWorker.call (selectedBlock, taskId, { from: accounts[0] });
+            // console.log ('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length);
+            return enigma.selectWorker (selectedBlock, taskId, { from: accounts[0] });
         }).then (contractSelectedWorker => {
 
-            console.log ('the contract selected worker:', contractSelectedWorker);
+            // console.log ('the contract selected worker:', contractSelectedWorker);
             assert.equal (contractSelectedWorker, selectedWorker, "Selected worker does not match");
         });
-    })
+    });
 });
