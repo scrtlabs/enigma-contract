@@ -1,14 +1,17 @@
-const web3Utils = require ('web3-utils');
 const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
 const eng = require ('../lib/enigma');
 const data = require ('./data');
 
+// This could use the injected web3Utils
+// But I don't like injected things and this ensures compatibility
+// with Truffle upgrades
+const web3Utils = require ('web3-utils');
+
 const ENG_SUPPLY = 15000000000000000;
 
 console.log ('testing the enigma lib:', eng.test ());
 
-console.log ('web3 version', web3);
 const Enigma = artifacts.require ("./contracts/Enigma.sol");
 const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
 const CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
@@ -43,10 +46,10 @@ contract ('Enigma', accounts => {
     it ("...my worker details", () => Enigma.deployed ().then (instance => {
         enigma = instance;
 
-        return enigma.workers.call (accounts[0], { from: accounts[0] });
+        return enigma.workers (accounts[0], { from: accounts[0] });
     }).then (result => {
         console.log ('my worker details', result);
-        assert (result.length > 0, "No worker details.");
+        assert.equal (result[0], accounts[0], "No worker details.");
     }));
 
     const callable = 'mixAddresses(uint,address[],uint)';
@@ -109,7 +112,7 @@ contract ('Enigma', accounts => {
             assert.equal (allowance, 1, "Incorrect allowance.");
 
             // RLP encoding arguments
-            const preprocessor = ['rand()'];
+            const preprocessor = [web3Utils.utf8ToHex ('rand()')];
             return enigma.compute (
                 coinMixer.address, callable, callableArgs, callback, 1, preprocessor, nonce,
                 { from: accounts[0] }
@@ -124,25 +127,26 @@ contract ('Enigma', accounts => {
     it ("...querying task", () => Enigma.deployed ()
         .then (instance => {
             enigma = instance;
-            console.log ('looking up task id:', taskId);
+            return CoinMixer.deployed ();
+        })
+        .then (instance => {
+            coinMixer = instance;
             return enigma.tasks.call (taskId, { from: accounts[0] });
         }).then (task => {
-            console.log ('tasks details', JSON.stringify (task));
-            assert (task.length > 0, "No task found.");
-            assert.equal (task[6], 1, "Fee does not match.");
+            assert.equal (task[0], coinMixer.address, "Task not found.");
         }));
 
     // Changing a character in one of the two results should break the validation
     const localResults = [
         0, [
-            '0x6330a553fc93768f612722bb8c2ec78ac90b3bbc',
-            '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
+            web3Utils.toChecksumAddress ('0x6330a553fc93768f612722bb8c2ec78ac90b3bbc'),
+            web3Utils.toChecksumAddress ('0x5aeda56215b167893e80b4fe645ba6d5bab767de')
         ]
     ];
     const contractResults = [
         0, [
-            '0x6330a553fc93768f612722bb8c2ec78ac90b3bbc',
-            '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
+            web3Utils.toChecksumAddress ('0x6330a553fc93768f612722bb8c2ec78ac90b3bbc'),
+            web3Utils.toChecksumAddress ('0x5aeda56215b167893e80b4fe645ba6d5bab767de')
         ]
     ];
     it ("...committing results", () => Enigma.deployed ()
@@ -162,26 +166,29 @@ contract ('Enigma', accounts => {
             const rx = /distribute\((.*)\)/g;
             const resultArgs = rx.exec (callback)[1].split (',');
             assert.equal (JSON.stringify (resultArgs), JSON.stringify (['uint32', 'address[]']));
-
-            const functionId = web3Utils.soliditySha3 (callback).slice (0, 10);
+            //
+            const functionId = web3Utils.soliditySha3 ({
+                t: 'string',
+                v: callback
+            }).slice (0, 10);
             const localData = functionId + abi.rawEncode (resultArgs, localResults).toString ('hex');
-            console.log ('the encoded data', localData);
 
-            const bytecode = web3.eth.getCode (coinMixer.address);
+            return web3.eth.getCode (coinMixer.address).then ((bytecode) => {
+                // The holy grail, behaves exactly as keccak256() in Solidity
+                const hash = web3Utils.soliditySha3 (encodedArgs, localData, bytecode);
+                const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ('hex');
 
-            // The holy grail, behaves exactly as keccak256() in Solidity
-            const hash = web3Utils.soliditySha3 (encodedArgs, localData, bytecode);
-            console.log ('the message hash', hash);
+                // Using an actual Ethereum address instead of a virtual address
+                // This is testing the same thing
+                // The python unit tests handle virtual addresses from private keys.
+                return web3.eth.sign (hash, accounts[0]).then ((sig) => {
+                    return enigma.commitResults (taskId, contractData, sig, { from: accounts[0] });
+                });
+            });
 
-            // Using an actual Ethereum address instead of a virtual address
-            // This is testing the same thing
-            // The python unit tests handle virtual addresses from private keys.
-            const signature = web3.eth.sign (accounts[0], hash);
-
-            const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ('hex');
-
-            return enigma.commitResults (taskId, contractData, signature, { from: accounts[0] });
-        }).then (result => {
+        })
+        .then (result => {
+            console.log ('the commit results', result);
             let event1 = result.logs[0];
             let event2 = result.logs[1];
             console.log ('commit results event', event2);
@@ -201,9 +208,10 @@ contract ('Enigma', accounts => {
                 const hash = web3Utils.soliditySha3 (
                     { t: 'uint256', v: seed }
                 );
-                const sig = web3.eth.sign (accounts[0], hash);
-
-                promises.push (enigma.setWorkersParams (seed, sig, { from: accounts[0] }));
+                let promise = web3.eth.sign (hash, accounts[0]).then ((sig) => {
+                    return enigma.setWorkersParams (seed, sig, { from: accounts[0] });
+                });
+                promises.push (promise);
             }
             return Promise.all (promises);
         }).then (results => {
@@ -233,9 +241,10 @@ contract ('Enigma', accounts => {
         }).then (results => {
             let workerParams = [];
             results.forEach ((result) => {
+                console.log('the worker params', JSON.stringify(result))
                 workerParams.push ({
-                    seed: result[1].toNumber (),
-                    blockNumber: result[0].toNumber ()
+                    seed: parseInt(result[1]),
+                    blockNumber: parseInt(result[0])
                 });
             });
             console.log ('workers parameters', workerParams);
