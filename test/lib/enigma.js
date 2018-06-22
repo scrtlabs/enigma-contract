@@ -1,4 +1,0 @@
-exports.test = () => {
-    return 'hello';
-}
-

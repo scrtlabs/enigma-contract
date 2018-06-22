@@ -1,7 +1,7 @@
 const web3Utils = require ('web3-utils');
 const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
-const eng = require ('./lib/enigma');
+const eng = require ('../lib/enigma');
 const data = require ('./data');
 
 const ENG_SUPPLY = 15000000000000000;
@@ -71,12 +71,7 @@ contract ('Enigma', accounts => {
         })
         .then (contractTaskId => {
             // TODO: add to enigma-js
-            taskId = web3Utils.soliditySha3 (
-                { t: 'address', v: coinMixer.address },
-                { t: 'string', v: callable },
-                { t: 'bytes', v: callableArgs },
-                { t: 'uint256', v: nonce }
-            );
+            taskId = eng.generateTaskId (coinMixer.address, callable, callableArgs, nonce);
             console.log ('the task id: ', contractTaskId, taskId);
             assert.equal (contractTaskId, taskId, 'Local hash does not match contract.')
         })
@@ -263,16 +258,10 @@ contract ('Enigma', accounts => {
                 blockNumber: result[0],
                 workers: result[2].filter (addr => addr > 0)
             };
-            console.log ('worker params:', JSON.stringify (workerParams));
-            const hash = web3Utils.soliditySha3 (
-                { t: 'uint256', v: workerParams.seed },
-                { t: 'bytes32', v: taskId }
-            );
-            // The JS % operator does not produce the correct output
-            const index = web3Utils.toBN (hash).mod (web3Utils.toBN (workerParams.workers.length));
-            selectedWorker = workerParams.workers[index];
 
-            console.log ('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length, hash);
+            console.log ('worker params:', JSON.stringify (workerParams));
+            selectedWorker = eng.selectWorker (workerParams.seed, taskId, workerParams.workers);
+            console.log ('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length);
             return enigma.selectWorker.call (selectedBlock, taskId, { from: accounts[0] });
         }).then (contractSelectedWorker => {
 
