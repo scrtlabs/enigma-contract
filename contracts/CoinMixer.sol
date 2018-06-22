@@ -1,10 +1,9 @@
 pragma solidity ^0.4.22;
 
 import "./Enigma.sol";
-import "./EnigmaP.sol";
 import "./utils/RLP.sol";
 
-contract CoinMixer is EnigmaP {
+contract CoinMixer {
     using RLP for bytes[];
 
     Enigma public enigma;

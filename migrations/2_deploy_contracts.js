@@ -1,8 +1,6 @@
 const EnigmaToken = artifacts.require ("EnigmaToken.sol");
 const Enigma = artifacts.require ("Enigma.sol");
 const CoinMixer = artifacts.require ("CoinMixer.sol");
-const EnigmaP = artifacts.require ("EnigmaP.sol");
-const data = require ('../test/data');
 
 module.exports = function (deployer) {
     return deployer
@@ -19,8 +17,6 @@ module.exports = function (deployer) {
             return deployer.deploy (Enigma, EnigmaToken.address, principal);
         })
         .then (() => {
-            deployer.deploy (EnigmaP);
             return deployer.deploy (CoinMixer, Enigma.address);
         });
-
 };
