@@ -11,7 +11,12 @@ module.exports = {
       host: 'localhost',
       port: 9545,
       network_id: '*' // Match any network id
-    }
+    },
+    // This network section is needed for travis-ci, do not remove
+    ganache: {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "*" 
   },
   solc: {
     // Turns on the Solidity optimizer. For development the optimizer's
