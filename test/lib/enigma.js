@@ -1,0 +1,4 @@
+exports.test = () => {
+    return 'hello';
+}
+

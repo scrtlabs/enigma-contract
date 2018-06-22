@@ -1,17 +1,17 @@
 const web3Utils = require ('web3-utils');
 const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
-const leftPad = require ('left-pad');
-// const enigmajs = require('enigmajs/dist/enigma-node');
+const eng = require ('./lib/enigma');
+const data = require ('./data');
 
-const URL = 'localhost:3001';
-const QUOTE = 'AgAAAMoKAAAGAAUAAAAAABYB+Vw5ueowf+qruQGtw+6ELd5kX5SiKFr7LkiVsXcAAgL/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAFC0Z2msSprkA6a+b16ijMOxEQd1Q3fiq2SpixYLTEv9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAA==';
 const ENG_SUPPLY = 15000000000000000;
 
+console.log ('testing the enigma lib:', eng.test ());
+
 console.log ('web3 version', web3);
-let Enigma = artifacts.require ("./contracts/Enigma.sol");
-let EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
-let CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
+const Enigma = artifacts.require ("./contracts/Enigma.sol");
+const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
+const CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
 
 // Initialize contract variables
 let enigma;
@@ -23,7 +23,12 @@ contract ('Enigma', accounts => {
 
         let promises = [];
         for (let i = 0; i < accounts.length; i++) {
-            promises.push (enigma.register (accounts[i], QUOTE, { from: accounts[i] }))
+            // Using the same artificial data for all workers
+            let promise = enigma.register (accounts[0], data.worker[1],
+                data.worker[2], data.worker[3], data.worker[4], data.worker[5],
+                { from: accounts[i] });
+
+            promises.push (promise);
         }
         // Using the account as the signer for testing purposes
         return Promise.all (promises);
@@ -132,45 +137,6 @@ contract ('Enigma', accounts => {
             assert.equal (task[6], 1, "Fee does not match.");
         }));
 
-    it.skip ("...testing simple abi encoding", () => {
-        // Following the first example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
-        const functionDef = 'baz(uint32,bool)';
-        const rx = /baz\((.*)\)/g;
-        const args = rx.exec (functionDef)[1].split (',');
-        const functionId = web3Utils.soliditySha3 (functionDef).slice (0, 10);
-        const arg1 = abi.rawEncode ([args[0]], [69]).toString ("hex");
-        const arg2 = abi.rawEncode ([args[1]], [true]).toString ("hex");
-        const hash = functionId + arg1 + arg2;
-
-        console.log ('the function id', functionId, arg1, arg2);
-
-        assert.equal (hash, '0xcdcd77c000000000000000000000000000000000000000000000000000000000000000450000000000000000000000000000000000000000000000000000000000000001');
-    });
-
-    it.skip ("...testing dynamic encoding", () => {
-        // Following the last example documented here: https://solidity.readthedocs.io/en/develop/abi-spec.html
-        const functionDef = 'f(uint256,uint32[],bytes10,bytes)';
-        const rx = /f\((.*)\)/g;
-        const resultArgs = rx.exec (functionDef)[1].split (',');
-
-        console.log ('the args', resultArgs);
-        const functionId = web3Utils.soliditySha3 (functionDef).slice (0, 10);
-        const encoded = abi.rawEncode ([resultArgs[0], resultArgs[1], resultArgs[2], resultArgs[3]], [0x123, [0x456, 0x789], "1234567890", "Hello, world!"]).toString ("hex");
-        const hash = functionId + encoded;
-
-        console.log ('dynamic encoding parts', functionId, encoded);
-
-        assert.equal (hash, '0x8be65246' +
-            '0000000000000000000000000000000000000000000000000000000000000123' +
-            '0000000000000000000000000000000000000000000000000000000000000080' +
-            '3132333435363738393000000000000000000000000000000000000000000000' +
-            '00000000000000000000000000000000000000000000000000000000000000e0' +
-            '0000000000000000000000000000000000000000000000000000000000000002' +
-            '0000000000000000000000000000000000000000000000000000000000000456' +
-            '0000000000000000000000000000000000000000000000000000000000000789' +
-            '000000000000000000000000000000000000000000000000000000000000000d' +
-            '48656c6c6f2c20776f726c642100000000000000000000000000000000000000');
-    });
     // Changing a character in one of the two results should break the validation
     const localResults = [
         0, [
@@ -237,7 +203,12 @@ contract ('Enigma', accounts => {
             let promises = [];
             for (let i = 0; i < 10; i++) {
                 const seed = Math.floor (Math.random () * 100000);
-                promises.push (enigma.setWorkersParams (seed, { from: accounts[0] }));
+                const hash = web3Utils.soliditySha3 (
+                    { t: 'uint256', v: seed }
+                );
+                const sig = web3.eth.sign (accounts[0], hash);
+
+                promises.push (enigma.setWorkersParams (seed, sig, { from: accounts[0] }));
             }
             return Promise.all (promises);
         }).then (results => {
@@ -298,7 +269,7 @@ contract ('Enigma', accounts => {
                 { t: 'bytes32', v: taskId }
             );
             // The JS % operator does not produce the correct output
-            const index = web3Utils.toBN(hash).mod (web3Utils.toBN (workerParams.workers.length));
+            const index = web3Utils.toBN (hash).mod (web3Utils.toBN (workerParams.workers.length));
             selectedWorker = workerParams.workers[index];
 
             console.log ('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length, hash);

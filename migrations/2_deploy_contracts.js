@@ -1,7 +1,8 @@
-var EnigmaToken = artifacts.require ("EnigmaToken.sol");
-var Enigma = artifacts.require ("Enigma.sol");
-var CoinMixer = artifacts.require ("CoinMixer.sol");
-var EnigmaP = artifacts.require ("EnigmaP.sol");
+const EnigmaToken = artifacts.require ("EnigmaToken.sol");
+const Enigma = artifacts.require ("Enigma.sol");
+const CoinMixer = artifacts.require ("CoinMixer.sol");
+const EnigmaP = artifacts.require ("EnigmaP.sol");
+const data = require ('../test/data');
 
 module.exports = function (deployer) {
     return deployer
@@ -9,7 +10,8 @@ module.exports = function (deployer) {
             return deployer.deploy (EnigmaToken);
         })
         .then (() => {
-            return deployer.deploy (Enigma, EnigmaToken.address, 10);
+            // Setting the principal node to the first signer address in the data file
+            return deployer.deploy (Enigma, EnigmaToken.address, data.worker[0]);
         })
         .then (() => {
             deployer.deploy (EnigmaP);

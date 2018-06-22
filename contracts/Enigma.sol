@@ -42,14 +42,17 @@ contract Enigma {
     }
     enum TaskStatus {InProgress, Executed}
 
+    address principal;
     struct Worker {
         address signer;
         string quote;
+        string report;
+        string reportCa;
+        string reportCert;
+        bytes reportSig;
         uint256 balance;
         uint status; // Uninitialized: 0; Active: 1; Inactive: 2
     }
-
-    uint workerParamsLimit;
 
     struct WorkersParams {
         uint256 firstBlockNumber;
@@ -72,9 +75,9 @@ contract Enigma {
 
     enum ReturnValue {Ok, Error}
 
-    function Enigma(address _tokenAddress, uint _workerParamsLimit) public {
+    function Enigma(address _tokenAddress, address _principal) public {
         engToken = IERC20(_tokenAddress);
-        workerParamsLimit = _workerParamsLimit;
+        principal = _principal;
     }
 
     modifier workerRegistered(address user) {
@@ -83,7 +86,7 @@ contract Enigma {
         _;
     }
 
-    function register(address signer, string quote)
+    function register(address signer, string quote, string report, string reportCa,  string reportCert, bytes reportSig)
     public
     payable
     returns (ReturnValue) {
@@ -95,6 +98,10 @@ contract Enigma {
         workers[msg.sender].signer = signer;
         workers[msg.sender].balance = msg.value;
         workers[msg.sender].quote = quote;
+        workers[msg.sender].report = report;
+        workers[msg.sender].reportCert = reportCert;
+        workers[msg.sender].reportCa = reportCa;
+        workers[msg.sender].reportSig = reportSig;
         workers[msg.sender].status = 1;
 
         emit Register(msg.sender, signer, true);
@@ -136,7 +143,7 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function verifySignature(Task task, bytes data, bytes sig)
+    function verifyCommitSig(Task task, bytes data, bytes sig)
     internal
     constant
     returns (address) {
@@ -148,11 +155,8 @@ contract Enigma {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = sha3(prefix, hash);
 
-        // TODO: this returns an address where we want to verify a public key
-        // I don't believe that Solidity has a general purpose signature
-        // validator. However, we know that an Ethereum address is the hash
-        // of a public key, so we can use our public key to generate a
-        // virtual address for validation.
+        // The worker address is not a real Ethereum wallet address but
+        // one generated from its signing key
         address workerAddr = prefixedHash.recover(sig);
 
         emit ValidateSig(sig, prefixedHash, workerAddr, code, true);
@@ -174,7 +178,7 @@ contract Enigma {
         // Task must be solved only once
         require(tasks[taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
 
-        address sigAddr = verifySignature(tasks[taskId], data, sig);
+        address sigAddr = verifyCommitSig(tasks[taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
         require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
 
@@ -203,10 +207,33 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function setWorkersParams(uint256 seed)
+    function verifyParamsSig(uint256 seed, bytes sig)
+    internal
+    constant
+    returns (address) {
+        // Verify the signature submitted while reparameterizing workers
+        bytes32 hash = keccak256(seed);
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHash = sha3(prefix, hash);
+
+        address signer = prefixedHash.recover(sig);
+        return signer;
+    }
+
+    function setWorkersParams(uint256 seed, bytes sig)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
+        // Reparameterizing workers with a new seed
+        // This should be called for each epoch by the Principal node
+
+        // We assume that the Principal is always the first registered node
+        require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
+
+        address sigAddr = verifyParamsSig(seed, sig);
+        require(sigAddr != address(0), "Cannot verify this signature");
+        require(sigAddr == msg.sender, "Invalid signature");
+
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.
         // If the list is full, the new item will replace the item assigned to the lowest block number.
