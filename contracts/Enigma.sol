@@ -38,18 +38,17 @@ contract Enigma {
         address worker;
         bytes sig;
         uint256 reward;
+        uint256 blockNumber;
         TaskStatus status;
     }
     enum TaskStatus {InProgress, Executed}
 
     address principal;
+
     struct Worker {
         address signer;
-        string quote;
-        string report;
-        string reportCa;
-        string reportCert;
-        bytes reportSig;
+        bytes quote;
+        bytes report; // Decided to store this as one  RLP encoded attribute for easier external storage in the future
         uint256 balance;
         uint status; // Uninitialized: 0; Active: 1; Inactive: 2
     }
@@ -71,7 +70,7 @@ contract Enigma {
     event WorkersParameterized(uint256 seed, address[] workers, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address indexed callingContract, bytes32 indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
+    event ComputeTask(address indexed callingContract, bytes32 indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 blockNumber, bool _success);
 
     enum ReturnValue {Ok, Error}
 
@@ -86,7 +85,7 @@ contract Enigma {
         _;
     }
 
-    function register(address signer, string quote, string report, string reportCa,  string reportCert, bytes reportSig)
+    function register(address signer, bytes quote, bytes report)
     public
     payable
     returns (ReturnValue) {
@@ -99,9 +98,6 @@ contract Enigma {
         workers[msg.sender].balance = msg.value;
         workers[msg.sender].quote = quote;
         workers[msg.sender].report = report;
-        workers[msg.sender].reportCert = reportCert;
-        workers[msg.sender].reportCa = reportCa;
-        workers[msg.sender].reportSig = reportSig;
         workers[msg.sender].status = 1;
 
         emit Register(msg.sender, signer, true);
@@ -109,21 +105,21 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function generateTaskId(address dappContract, string callable, bytes callableArgs, uint256 nonce)
+    function generateTaskId(address dappContract, string callable, bytes callableArgs, uint256 blockNumber)
     public
     view
     returns (bytes32)
     {
         // Generates a unique task id
-        bytes32 hash = keccak256(dappContract, callable, callableArgs, nonce);
+        bytes32 hash = keccak256(dappContract, callable, callableArgs, blockNumber);
         return hash;
     }
 
-    function compute(address dappContract, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 nonce)
+    function compute(address dappContract, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 blockNumber)
     public
     returns (ReturnValue) {
         // Create a computation task and save the fee in escrow
-        bytes32 taskId = generateTaskId(dappContract, callable, callableArgs, nonce);
+        bytes32 taskId = generateTaskId(dappContract, callable, callableArgs, blockNumber);
         require(tasks[taskId].dappContract == 0x0, "Task with the same taskId already exist");
 
         tasks[taskId].reward = fee;
@@ -132,9 +128,10 @@ contract Enigma {
         tasks[taskId].callback = callback;
         tasks[taskId].status = TaskStatus.InProgress;
         tasks[taskId].dappContract = dappContract;
+        tasks[taskId].blockNumber = blockNumber;
 
         // Emit the ComputeTask event which each node is watching for
-        emit ComputeTask(dappContract, taskId, callable, callableArgs, callback, fee, preprocessors, true);
+        emit ComputeTask(dappContract, taskId, callable, callableArgs, callback, fee, preprocessors, blockNumber, true);
 
         // Transferring before emitting does not work
         // TODO: check the allowance first
@@ -321,5 +318,15 @@ contract Enigma {
         bytes32 hash = keccak256(seed, taskId);
         uint256 index = uint256(hash) % _workers.length;
         return (_workers[index]);
+    }
+
+    function getReport(address custodian)
+    public
+    view
+    workerRegistered(custodian)
+    returns (address, bytes) {
+        // Returns the specified worker's signer address and report for verification
+        require(workers[custodian].signer != 0x0, "Worker not registered");
+        return (workers[custodian].signer, workers[custodian].report);
     }
 }

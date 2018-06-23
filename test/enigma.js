@@ -1,6 +1,6 @@
 const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
-const eng = require ('../lib/enigma-utils');
+const engUtils = require ('../lib/enigma-utils');
 const data = require ('./data');
 
 // This could use the injected web3Utils
@@ -10,7 +10,7 @@ const web3Utils = require ('web3-utils');
 
 const ENG_SUPPLY = 15000000000000000;
 
-// console.log ('testing the enigma lib:', eng.test ());
+console.log ('testing the enigma lib:', engUtils.test ());
 
 const Enigma = artifacts.require ("./contracts/Enigma.sol");
 const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
@@ -26,10 +26,16 @@ contract ('Enigma', accounts => {
 
         let promises = [];
         for (let i = 0; i < accounts.length; i++) {
+            const reportArgs = [
+                data.worker[2],
+                data.worker[3],
+                data.worker[4],
+                data.worker[5]
+            ];
+            const report = engUtils.rlpEncode (reportArgs);
+            const quote = engUtils.rlpEncode (data.worker[1]);
             // Using the same artificial data for all workers
-            let promise = enigma.register (accounts[0], data.worker[1],
-                data.worker[2], data.worker[3], data.worker[4], data.worker[5],
-                { from: accounts[i] });
+            let promise = enigma.register (accounts[0], quote, report, { from: accounts[i] });
 
             promises.push (promise);
         }
@@ -61,20 +67,24 @@ contract ('Enigma', accounts => {
         ]
     ];
     const callableArgs = '0x' + RLP.encode (args).toString ('hex');
-    const nonce = Math.floor (Math.random () * 100000);
     let taskId;
+    let blockNumber;
     it ("...generate task id", () => Enigma.deployed ()
         .then (instance => {
             enigma = instance;
             return CoinMixer.deployed ();
-        })
-        .then (instance => {
+        }).then (instance => {
             coinMixer = instance;
-            return enigma.generateTaskId.call (coinMixer.address, callable, callableArgs, nonce, { from: accounts[0] });
+            return web3.eth.getBlockNumber ();
+        })
+        .then (_blockNumber => {
+            blockNumber = _blockNumber;
+
+            return enigma.generateTaskId.call (coinMixer.address, callable, callableArgs, blockNumber, { from: accounts[0] })
         })
         .then (contractTaskId => {
             // TODO: add to enigma-js
-            taskId = eng.generateTaskId (coinMixer.address, callable, callableArgs, nonce);
+            taskId = engUtils.generateTaskId (coinMixer.address, callable, callableArgs, blockNumber);
             // console.log ('the task id: ', contractTaskId, taskId);
             assert.equal (contractTaskId, taskId, 'Local hash does not match contract.')
         })
@@ -114,7 +124,7 @@ contract ('Enigma', accounts => {
             // RLP encoding arguments
             const preprocessor = [web3Utils.utf8ToHex ('rand()')];
             return enigma.compute (
-                coinMixer.address, callable, callableArgs, callback, 1, preprocessor, nonce,
+                coinMixer.address, callable, callableArgs, callback, 1, preprocessor, blockNumber,
                 { from: accounts[0] }
             );
         }).then (result => {
@@ -243,8 +253,8 @@ contract ('Enigma', accounts => {
             results.forEach ((result) => {
                 // console.log('the worker params', JSON.stringify(result))
                 workerParams.push ({
-                    seed: parseInt(result[1]),
-                    blockNumber: parseInt(result[0])
+                    seed: parseInt (result[1]),
+                    blockNumber: parseInt (result[0])
                 });
             });
             // console.log ('workers parameters', workerParams);
@@ -269,7 +279,7 @@ contract ('Enigma', accounts => {
             };
 
             // console.log ('worker params:', JSON.stringify (workerParams));
-            selectedWorker = eng.selectWorker (workerParams.seed, taskId, workerParams.workers);
+            selectedWorker = engUtils.selectWorker (workerParams.seed, taskId, workerParams.workers);
             // console.log ('the selected worker:', selectedWorker, workerParams.seed, workerParams.workers.length);
             return enigma.selectWorker (selectedBlock, taskId, { from: accounts[0] });
         }).then (contractSelectedWorker => {
@@ -278,4 +288,17 @@ contract ('Enigma', accounts => {
             assert.equal (contractSelectedWorker, selectedWorker, "Selected worker does not match");
         });
     });
+
+    it ("...verifying the worker's signature and certificate", () => {
+        return Enigma.deployed ().then (instance => {
+            enigma = instance;
+
+            return enigma.getReport (accounts[0], { from: accounts[0] });
+        }).then (result => {
+
+            const response = engUtils.verifyWorker (result[0], result[1]);
+            assert (response.verified, "Verification failed");
+        });
+
+    })
 });
