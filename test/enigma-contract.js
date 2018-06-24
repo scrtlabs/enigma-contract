@@ -11,7 +11,7 @@ const web3Utils = require ('web3-utils');
 
 const ENG_SUPPLY = 15000000000000000;
 
-console.log ('testing the enigma lib:', engUtils.test ());
+// console.log ('testing the enigma lib:', engUtils.test ());
 
 const EnigmaContract = artifacts.require ("./contracts/Enigma.sol");
 const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
@@ -22,7 +22,7 @@ let enigmaContract;
 let tokenContract;
 let coinMixerContract;
 contract ('Enigma standalone', accounts => {
-    it ("... should register a new worker", () => EnigmaContract.deployed ()
+    it ("...should register a new worker", () => EnigmaContract.deployed ()
         .then (instance => {
             enigmaContract = instance;
 
@@ -323,10 +323,10 @@ contract ('Enigma standalone', accounts => {
     it ("...should create a computation task from the enigma object", () => web3.eth.getBlockNumber ()
         .then (_blockNumber => {
             blockNumber = _blockNumber;
+            // console.log ('the block number:', blockNumber);
             return CoinMixer.deployed ();
         })
         .then (coinMixer => {
-            console.log('the block number: ', blockNumber, web3Utils.toBN(blockNumber));
             return enigma.createTask (blockNumber,
                 coinMixer.address,
                 data.callable,
@@ -337,8 +337,58 @@ contract ('Enigma standalone', accounts => {
             );
         })
         .then (task => {
-            console.log('the computation task', task.toJSON());
-            assert (task.checkWorkerVerified(), "Task not created");
+            assert (task.checkWorkerVerified (), "Task not created");
+        })
+    );
+
+    const eng_fee = 1;
+    let task;
+    /**
+     * This is the full logic which a Dapp should implement to send a computation
+     * task. I broke it down in 3 asynchronous steps:
+     *
+     * 1- Create the task, this automatically select the worker and verify its
+     *    certificate. Users can check the verification results before
+     *    paying or sending any data to the network.
+     * 2- Approve the computation fee. The promise returns a Result object
+     *    containing a transaction id. Users must wait for the tx to complete.
+     *    To approve the fee for multiple tasks, use `Task::approveFeeBatch`.
+     * 3- Give the computation task. This calls the `compute` function
+     *    of the Enigma contract. When the task is done, the Enigma contract
+     *    will emit an event. //TODO: consider wrapping some kind of listener
+     *
+     */
+    it ("...should commit the computation task and pay a fee", () => web3.eth.getBlockNumber ()
+        .then (_blockNumber => {
+            // Can't send two tasks with the same id to the same block
+            blockNumber = _blockNumber + 1;
+            console.log ('the block number:', blockNumber);
+            return CoinMixer.deployed ();
+        })
+        .then (coinMixer => {
+            return enigma.createTask (blockNumber,
+                coinMixer.address,
+                data.callable,
+                data.args,
+                data.callback,
+                accounts[0],
+                [eng.Preprocessor.RAND]
+            );
+        })
+        .then (_task => {
+            task = _task;
+            return task.approveFee (eng_fee);
+        })
+        .then (result => {
+            let event = result.logs[0];
+            // console.log ('the result:', JSON.stringify (result));
+            assert.equal (event.args.value, eng_fee, 'Unable to approve fee.');
+
+            return task.compute ();
+        })
+        .then (result => {
+            let event = result.logs[0];
+            assert.equal (event.args._success, true, 'Unable to compute the task.');
         })
     );
 });
