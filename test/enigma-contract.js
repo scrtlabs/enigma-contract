@@ -9,6 +9,7 @@ const data = require ('./data');
 // with Truffle upgrades
 const web3Utils = require ('web3-utils');
 
+const GAS_PRICE_GWEI = '2'; // To estimate current gas price: https://ethgasstation.info/
 const ENG_SUPPLY = 15000000000000000;
 
 // console.log ('testing the enigma lib:', engUtils.test ());
@@ -16,6 +17,19 @@ const ENG_SUPPLY = 15000000000000000;
 const EnigmaContract = artifacts.require ("./contracts/Enigma.sol");
 const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
 const CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
+
+let _gasUsed = [];
+
+function logGasUsed (result, fn) {
+    const gasUsed = web3Utils.toBN (result.receipt.gasUsed);
+
+    _gasUsed.push (web3.eth.getTransaction (result.tx).then (tx => {
+        const gasPrice = web3Utils.toBN (tx.gasPrice);
+        const gasWei = gasUsed.mul (gasPrice);
+        // console.log (fn + ' gas used:', web3Utils.fromWei (gasWei));
+        return [fn, gasWei];
+    }));
+}
 
 // Initialize contract variables
 let enigmaContract;
@@ -37,7 +51,13 @@ contract ('Enigma standalone', accounts => {
                 const report = engUtils.rlpEncode (reportArgs);
                 const quote = engUtils.rlpEncode (data.worker[1]);
                 // Using the same artificial data for all workers
-                let promise = enigmaContract.register (accounts[0], quote, report, { from: accounts[i] });
+                let promise = enigmaContract.register (
+                    accounts[0], quote, report,
+                    {
+                        from: accounts[i],
+                        gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                    }
+                );
 
                 promises.push (promise);
             }
@@ -49,6 +69,7 @@ contract ('Enigma standalone', accounts => {
                 // console.log (event);
                 assert.equal (event.args._success, true, "Worker registration failed.");
             });
+            logGasUsed (results[0], 'register');
         }));
 
     it ("...should fetch worker details", () => EnigmaContract.deployed ()
@@ -123,13 +144,17 @@ contract ('Enigma standalone', accounts => {
             const preprocessor = [web3Utils.utf8ToHex ('rand()')];
             return enigmaContract.compute (
                 coinMixerContract.address, callable, callableArgs, callback, 1, preprocessor, blockNumber,
-                { from: accounts[0] }
+                {
+                    from: accounts[0],
+                    gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                }
             );
         }).then (result => {
             let event = result.logs[0];
             // console.log ('secret call event', event);
 
             assert.equal (event.args._success, true, "Unable to compute.");
+            logGasUsed (result, 'compute');
         }));
 
     it ("...should query computation tasks", () => EnigmaContract.deployed ()
@@ -189,7 +214,12 @@ contract ('Enigma standalone', accounts => {
                 // This is testing the same thing
                 // The python unit tests handle virtual addresses from private keys.
                 return web3.eth.sign (hash, accounts[0]).then ((sig) => {
-                    return enigmaContract.commitResults (taskId, contractData, sig, { from: accounts[0] });
+                    return enigmaContract.commitResults (taskId, contractData, sig,
+                        {
+                            from: accounts[0],
+                            gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                        }
+                    );
                 });
             });
 
@@ -202,6 +232,7 @@ contract ('Enigma standalone', accounts => {
 
             assert.equal (event1.args._success, true, 'Unable to verify hash.');
             assert.equal (event2.args._success, true, 'Unable to commit results.');
+            logGasUsed (result, 'commitResults');
         }));
 
     let lastFiveWorkers = [];
@@ -217,7 +248,12 @@ contract ('Enigma standalone', accounts => {
                         { t: 'uint256', v: seed }
                     );
                     let promise = web3.eth.sign (hash, accounts[0]).then ((sig) => {
-                        return enigmaContract.setWorkersParams (seed, sig, { from: accounts[0] });
+                        return enigmaContract.setWorkersParams (seed, sig,
+                            {
+                                from: accounts[0],
+                                gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                            }
+                        );
                     });
                     promises.push (promise);
                 }
@@ -233,7 +269,7 @@ contract ('Enigma standalone', accounts => {
                         });
                     }
                 });
-                // console.log ('last five workers', JSON.stringify (lastFiveWorkers));
+                logGasUsed (results[0], 'setWorkersParams');
             });
     });
 
@@ -363,7 +399,6 @@ contract ('Enigma standalone', accounts => {
         .then (_blockNumber => {
             // Can't send two tasks with the same id to the same block
             blockNumber = _blockNumber + 1;
-            console.log ('the block number:', blockNumber);
             return CoinMixer.deployed ();
         })
         .then (coinMixer => {
@@ -391,6 +426,14 @@ contract ('Enigma standalone', accounts => {
         .then (result => {
             let event = result.logs[0];
             assert.equal (event.args._success, true, 'Unable to compute the task.');
+        })
+        .then (() => {
+            Promise.all (_gasUsed).then (gasUsed => {
+                console.log ('Cost of transactions based on gas price:', GAS_PRICE_GWEI, 'gwei');
+                gasUsed.forEach (fnGas => {
+                    console.log (fnGas[0], 'gas used:', web3Utils.fromWei (fnGas[1]), 'ETH');
+                });
+            });
         })
     );
 });
