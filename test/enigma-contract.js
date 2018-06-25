@@ -320,6 +320,7 @@ contract ('Enigma standalone', accounts => {
         })
     );
 
+    const eng_fee = 1;
     it ("...should create a computation task from the enigma object", () => web3.eth.getBlockNumber ()
         .then (_blockNumber => {
             blockNumber = _blockNumber;
@@ -333,6 +334,7 @@ contract ('Enigma standalone', accounts => {
                 data.args,
                 data.callback,
                 accounts[0],
+                eng_fee,
                 [eng.Preprocessor.RAND]
             );
         })
@@ -341,7 +343,6 @@ contract ('Enigma standalone', accounts => {
         })
     );
 
-    const eng_fee = 1;
     let task;
     /**
      * This is the full logic which a Dapp should implement to send a computation
@@ -372,12 +373,13 @@ contract ('Enigma standalone', accounts => {
                 data.args,
                 data.callback,
                 accounts[0],
+                eng_fee,
                 [eng.Preprocessor.RAND]
             );
         })
         .then (_task => {
             task = _task;
-            return task.approveFee (eng_fee);
+            return task.approveFee ();
         })
         .then (result => {
             let event = result.logs[0];
