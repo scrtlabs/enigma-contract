@@ -35,4 +35,68 @@ describe ('enigma-utils', () => {
         const preprocessor = 'rand()';
         assert (engUtils.checkMethodSignature (preprocessor));
     });
+
+    it.skip ('...should generate an Ethereum-like address from a public key', () => {
+        const certPem = '-----BEGIN CERTIFICATE-----\n' +
+            'MIIEoTCCAwmgAwIBAgIJANEHdl0yo7CWMA0GCSqGSIb3DQEBCwUAMH4xCzAJBgNV\n' +
+            'BAYTAlVTMQswCQYDVQQIDAJDQTEUMBIGA1UEBwwLU2FudGEgQ2xhcmExGjAYBgNV\n' +
+            'BAoMEUludGVsIENvcnBvcmF0aW9uMTAwLgYDVQQDDCdJbnRlbCBTR1ggQXR0ZXN0\n' +
+            'YXRpb24gUmVwb3J0IFNpZ25pbmcgQ0EwHhcNMTYxMTIyMDkzNjU4WhcNMjYxMTIw\n' +
+            'MDkzNjU4WjB7MQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExFDASBgNVBAcMC1Nh\n' +
+            'bnRhIENsYXJhMRowGAYDVQQKDBFJbnRlbCBDb3Jwb3JhdGlvbjEtMCsGA1UEAwwk\n' +
+            'SW50ZWwgU0dYIEF0dGVzdGF0aW9uIFJlcG9ydCBTaWduaW5nMIIBIjANBgkqhkiG\n' +
+            '9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqXot4OZuphR8nudFrAFiaGxxkgma/Es/BA+t\n' +
+            'beCTUR106AL1ENcWA4FX3K+E9BBL0/7X5rj5nIgX/R/1ubhkKWw9gfqPG3KeAtId\n' +
+            'cv/uTO1yXv50vqaPvE1CRChvzdS/ZEBqQ5oVvLTPZ3VEicQjlytKgN9cLnxbwtuv\n' +
+            'LUK7eyRPfJW/ksddOzP8VBBniolYnRCD2jrMRZ8nBM2ZWYwnXnwYeOAHV+W9tOhA\n' +
+            'ImwRwKF/95yAsVwd21ryHMJBcGH70qLagZ7Ttyt++qO/6+KAXJuKwZqjRlEtSEz8\n' +
+            'gZQeFfVYgcwSfo96oSMAzVr7V0L6HSDLRnpb6xxmbPdqNol4tQIDAQABo4GkMIGh\n' +
+            'MB8GA1UdIwQYMBaAFHhDe3amfrzQr35CN+s1fDuHAVE8MA4GA1UdDwEB/wQEAwIG\n' +
+            'wDAMBgNVHRMBAf8EAjAAMGAGA1UdHwRZMFcwVaBToFGGT2h0dHA6Ly90cnVzdGVk\n' +
+            'c2VydmljZXMuaW50ZWwuY29tL2NvbnRlbnQvQ1JML1NHWC9BdHRlc3RhdGlvblJl\n' +
+            'cG9ydFNpZ25pbmdDQS5jcmwwDQYJKoZIhvcNAQELBQADggGBAGcIthtcK9IVRz4r\n' +
+            'Rq+ZKE+7k50/OxUsmW8aavOzKb0iCx07YQ9rzi5nU73tME2yGRLzhSViFs/LpFa9\n' +
+            'lpQL6JL1aQwmDR74TxYGBAIi5f4I5TJoCCEqRHz91kpG6Uvyn2tLmnIdJbPE4vYv\n' +
+            'WLrtXXfFBSSPD4Afn7+3/XUggAlc7oCTizOfbbtOFlYA4g5KcYgS1J2ZAeMQqbUd\n' +
+            'ZseZCcaZZZn65tdqee8UXZlDvx0+NdO0LR+5pFy+juM0wWbu59MvzcmTXbjsi7HY\n' +
+            '6zd53Yq5K244fwFHRQ8eOB0IWB+4PfM7FeAApZvlfqlKOlLcZL2uyVmzRkyR5yW7\n' +
+            '2uo9mehX44CiPJ2fse9Y6eQtcfEhMPkmHXI01sN+KwPbpA39+xOsStjhP9N1Y1a2\n' +
+            'tQAVo+yVgLgV2Hws73Fc0o3wC78qPEA+v2aRs/Be3ZFDgDyghc/1fgU+7C+P6kbq\n' +
+            'd4poyb6IW8KCJbxfMJvkordNOgOUUxndPHEi/tb/U7uLjLOgPA==\n' +
+            '-----END CERTIFICATE-----';
+        // const cert = engUtils.readCert (certPem);
+        // engUtils.toAddress (cert);
+    });
+
+    it.skip ('...should sign message with private key', () => {
+        const pk = '-----BEGIN RSA PRIVATE KEY-----\n' +
+            'MIIEowIBAAKCAQEA2WavZ5Zkc96sn4OnPr82mZXz4jUlbjzezpH5ckx/xLSYDLVr\n' +
+            'b6C9PK4d9T2zHiwT+a1Hj1OwOp4lFVyRSmuEEYgwlAPzYEExiH6vVNii9QWKi1NQ\n' +
+            'HqvMWMqw+PcdWhF+uldHLespp8y/V31WzasnpTY4mFiL+P2AHoQrR+M0ShWfQPa0\n' +
+            'gudAGp21d/EHwwbnl1QmV637LnkRVMmaD3MkuvzAnJw0V7jfgibOvzEq3o2s983b\n' +
+            'h8MxVeRJU640KLrmCclCNUJW0RBO715rSWOoyyBOIqpQrWIt5kIJcVH7JrInZRQ1\n' +
+            'QHaJmiUjompntONrphbLNhtlzHux0lEQF/oOUQIDAQABAoIBAC05SCmzRkg4PQ6d\n' +
+            's2/BFRmT8PzQc23gKbUs9ogJU9bWfn6+SpAZDuSNj9vRLu6K2sjoe+db0GARP8OW\n' +
+            '0v55KSsAeqJ/w+P1C9nKCK0Mt7FiqrRa62LF+CdMWs4fkbKHyyX2O+9YaPzoAbGw\n' +
+            'eBsmjIO4qMNAQDXWfg1bDynQILN8M6qq+SyWf60FZLscxScID7le41LsD/ptDk4D\n' +
+            'oqdFjPCVUJEZxfDqLy5oNkQBXcHinY9sj/TGtWfyTcEaW277lThxAovwfU77ZUD7\n' +
+            'aWZQ3ENgEu6wy0Thxf/m2HTDFaPYEzQEwaWzzOlr5pphhxXkedKqoROlfsA1H020\n' +
+            'ssU3nWUCgYEA+bEjO/mMqYNy2Vgn7Iz8OepGIVgnBjy7N9uc/px9+9SLEKQI8BNz\n' +
+            'tZEzpWeolSh+TBuiBSFBltcbLDczCVRT62+IyEVGxmrYUO54oMF94PNY5U0KHCpb\n' +
+            'WQjs6KFIWMN35yKx3ZYuCNvQ6iAyBKGGL22UyYrnB40yaGnlJjrr59cCgYEA3uS1\n' +
+            'j33Pwf7SC3Qzr197DOQU3EW2Qqg5qF4dx2QoI1ITGZbZLR6K+n85HZU1EJu1JFGz\n' +
+            'Qc3UNE/iObii922S5ZId3maG/F0d8VcOpRLsvIPt0s2OcSIYEmf0Ui/yAQx1vRy8\n' +
+            'Lrh4kB5TUqWm3ihFtjfvnkpktsWp7WYrC6WKVhcCgYEA7fUTyB9uH0qHlHyAJ97A\n' +
+            'rY0H4tU486fDIFuqRbfsFKidE3HQlsNi/YFwv8yHDAd4PZ4EDXGBKXi8i6nbeKOm\n' +
+            'CnTT3VCwP34pww9RZJqiFVS0vmpqHSd8wOBRru2tnfJC/cLB0ZRDMOwUMFwYbvNk\n' +
+            'hySerGg0/qxggsOQv5tdoScCgYAtreODp74HPOjhDgx1mXTHXIrl5aeHm6BNYBRs\n' +
+            'Q5tyOaTObrrNY2AKHD6hUG3SnIaQDepVxxABNInhWHSVjrA3Oi3C4XIykAbN6hCH\n' +
+            'RgycSdFYjWXuy5TxWLqaiVboXhxXCGeMj6OtrXlYC7jZ+Jjo0ifaYdaoGnRLwc96\n' +
+            'kI98OwKBgAQa3yJATcZr2fPBaCXFrpbRTS6gp6GXvfJVt+/mfEPI6wngyQynzyXH\n' +
+            '8G1c6ie3tmyNItqDY/xurAPb38drQv2DPwuTaWz892zT7YMKyxWnAOI8pBiFFbaJ\n' +
+            'E+r6zHVipDmyOGf+FV2N/5AsBIh0cERSIjfXzmSipvOCJPsu1LfY\n' +
+            '-----END RSA PRIVATE KEY-----';
+        // const cert = engUtils.sign ('test', pk);
+        // engUtils.sign ('test', pk);
+    });
 });

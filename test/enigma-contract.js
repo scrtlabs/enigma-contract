@@ -3,6 +3,7 @@ const abi = require ('ethereumjs-abi');
 const engUtils = require ('../lib/enigma-utils');
 const eng = require ('../lib/Enigma');
 const data = require ('./data');
+const EthCrypto = require('eth-crypto');
 
 // This could use the injected web3Utils
 // But I don't like injected things and this ensures compatibility

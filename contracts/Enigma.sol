@@ -168,13 +168,14 @@ contract Enigma {
         }
     }
 
-    function commitResults(bytes32 taskId, bytes data, bytes sig)
+    function commitResults(bytes32 taskId, bytes data, bytes sig, uint256 blockNumber)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
         require(tasks[taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
 
+        //TODO: verify that the worker is right
         address sigAddr = verifyCommitSig(tasks[taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
         require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
@@ -262,7 +263,7 @@ contract Enigma {
     internal
     constant
     returns (int8) {
-        // Gets the workers parameters nearest the specified block number
+        // The workers parameters nearest the specified block number
         int8 ci = - 1;
         for (uint i = 0; i < workersParams.length; i++) {
             if (workersParams[i].firstBlockNumber <= blockNumber && (ci == - 1 || workersParams[i].firstBlockNumber > workersParams[uint(ci)].firstBlockNumber)) {
@@ -276,7 +277,7 @@ contract Enigma {
     public
     view
     returns (uint256, uint256, address[]) {
-        // get the workers parameters for a given block number
+        // The workers parameters for a given block number
         int8 idx = getWorkersParamsIndex(blockNumber);
         require(idx != - 1, "No workers parameters entry for specified block number");
 
@@ -312,6 +313,7 @@ contract Enigma {
     public
     view
     returns (address) {
+        // Apply pseudo-randomness to discover the selected worker for the specified task
         (uint256 b, uint256 seed, address[] memory workers) = getWorkersParams(blockNumber);
         address[] memory _workers = cleanupWorkers(workers);
 
@@ -325,7 +327,7 @@ contract Enigma {
     view
     workerRegistered(custodian)
     returns (address, bytes) {
-        // Returns the specified worker's signer address and report for verification
+        // The RLP encoded report and signer's address for the specified worker
         require(workers[custodian].signer != 0x0, "Worker not registered");
         return (workers[custodian].signer, workers[custodian].report);
     }
