@@ -221,9 +221,9 @@ contract ('Enigma', accounts => {
         .then (result => {
             // console.log ('the commit results', result);
             let event1 = result.logs[0];
-            console.log ('the sig event:', JSON.stringify (event1));
+            // console.log ('the sig event:', JSON.stringify (event1));
             let event2 = result.logs[1];
-            console.log ('commit results event', JSON.stringify (event2));
+            // console.log ('commit results event', JSON.stringify (event2));
 
             assert.equal (event1.args._success, true, 'Unable to verify hash.');
             assert.equal (event2.args._success, true, 'Unable to commit results.');
@@ -384,7 +384,7 @@ contract ('Enigma', accounts => {
      * 2- Approve the computation fee. The promise returns a Result object
      *    containing a transaction id. Users must wait for the tx to complete.
      *    To approve the fee for multiple tasks, use `Task::approveFeeBatch`.
-     * 3- Give the computation task. This calls the `compute` function
+     * 3- Give out the computation task. This calls the `compute` function
      *    of the Enigma contract. When the task is done, the Enigma contract
      *    will emit an event. //TODO: consider wrapping some kind of listener
      *

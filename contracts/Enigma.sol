@@ -3,7 +3,6 @@ pragma solidity ^0.4.22;
 import "./zeppelin/SafeMath.sol";
 import "./zeppelin/ECRecovery.sol";
 import "./utils/GetCode2.sol";
-import "./utils/RLP.sol";
 
 contract IERC20 {
     function balanceOf(address who) public constant returns (uint256);
@@ -24,9 +23,6 @@ contract IERC20 {
 contract Enigma {
     using SafeMath for uint256;
     using ECRecovery for bytes32;
-    using RLP for RLP.RLPItem;
-    using RLP for RLP.Iterator;
-    using RLP for bytes;
 
     IERC20 public engToken;
 
@@ -69,11 +65,11 @@ contract Enigma {
     event WorkersParameterized(uint256 seed, address[] workers, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address indexed callingContract, bytes32 indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 blockNumber, bool _success);
+    event ComputeTask(address indexed dappContract, bytes32 indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 blockNumber, bool _success);
 
     enum ReturnValue {Ok, Error}
 
-    function Enigma(address _tokenAddress, address _principal) public {
+    constructor(address _tokenAddress, address _principal) public {
         engToken = IERC20(_tokenAddress);
         principal = _principal;
     }
@@ -90,9 +86,11 @@ contract Enigma {
     returns (ReturnValue) {
         // Register a new worker and deposit stake
         // TODO: enable before release
-//        require(workers[msg.sender].status == 0, "Worker already register.");
+        //        require(workers[msg.sender].status == 0, "Worker already register.");
 
-        workerAddresses.push(msg.sender);
+        uint index = workerAddresses.length;
+        workerAddresses.length++;
+        workerAddresses[index] = msg.sender;
 
         workers[msg.sender].signer = signer;
         workers[msg.sender].balance = msg.value;
@@ -223,8 +221,8 @@ contract Enigma {
         require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
 
         address sigAddr = verifyParamsSig(seed, sig);
-//        require(sigAddr != 0x0, "Cannot verify this signature");
-//        require(sigAddr == principal, "Invalid signature");
+        require(sigAddr != 0x0, "Cannot verify this signature");
+        require(sigAddr == principal, "Invalid signature");
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.
@@ -284,8 +282,8 @@ contract Enigma {
     function cleanupWorkers(address[] workers)
     internal
     constant
-    returns (address[])
-    {
+    returns (address[]) {
+        // TODO: I don't know why the list contains empty addresses, investigate
         uint cpt = 0;
         for (uint i = 0; i < workers.length; i++) {
             if (workers[i] != 0x0) {
@@ -313,7 +311,7 @@ contract Enigma {
 
         bytes32 hash = keccak256(seed, taskId);
         uint256 index = uint256(hash) % _workers.length;
-        return (_workers[index]);
+        return _workers[index];
     }
 
     function getReport(address custodian)
