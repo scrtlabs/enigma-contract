@@ -47,7 +47,6 @@ contract Enigma {
 
     struct Worker {
         address signer;
-        bytes quote;
         bytes report; // Decided to store this as one  RLP encoded attribute for easier external storage in the future
         uint256 balance;
         uint status; // Uninitialized: 0; Active: 1; Inactive: 2
@@ -85,18 +84,17 @@ contract Enigma {
         _;
     }
 
-    function register(address signer, bytes quote, bytes report)
+    function register(address signer, bytes report)
     public
     payable
     returns (ReturnValue) {
         // Register a new worker and deposit stake
-        // require(workers[msg.sender].status == 0, "Worker already register.");
+        require(workers[msg.sender].status == 0, "Worker already register.");
 
         workerAddresses.push(msg.sender);
 
         workers[msg.sender].signer = signer;
         workers[msg.sender].balance = msg.value;
-        workers[msg.sender].quote = quote;
         workers[msg.sender].report = report;
         workers[msg.sender].status = 1;
 
@@ -228,9 +226,9 @@ contract Enigma {
         // We assume that the Principal is always the first registered node
         require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
 
-        address sigAddr = verifyParamsSig(seed, sig);
-        require(sigAddr != address(0), "Cannot verify this signature");
-        require(sigAddr == msg.sender, "Invalid signature");
+        //        address sigAddr = verifyParamsSig(seed, sig);
+        //        require(sigAddr != 0x0, "Cannot verify this signature");
+        //        require(sigAddr == msg.sender, "Invalid signature");
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.

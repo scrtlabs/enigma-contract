@@ -14,7 +14,6 @@
   },
   "homepage": "https://enigma.co",
   "dependencies": {
-    "eth-crypto": "^1.2.2"
   },
   "devDependencies": {
     "elliptic": "6.4.0",
@@ -23,6 +22,7 @@
     "web3-utils": "1.0.0-beta.34",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.7.0",
-    "babel-register": "^6.26.0"
+    "babel-register": "^6.26.0",
+    "eth-crypto": "^1.2.2"
   }
 }

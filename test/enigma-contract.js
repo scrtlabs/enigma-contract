@@ -3,7 +3,6 @@ const abi = require ('ethereumjs-abi');
 const engUtils = require ('../lib/enigma-utils');
 const eng = require ('../lib/Enigma');
 const data = require ('./data');
-const EthCrypto = require('eth-crypto');
 
 // This could use the injected web3Utils
 // But I don't like injected things and this ensures compatibility
@@ -36,30 +35,26 @@ function logGasUsed (result, fn) {
 let enigmaContract;
 let tokenContract;
 let coinMixerContract;
-contract ('Enigma standalone', accounts => {
+contract ('Enigma', accounts => {
     it ("...should register a new worker", () => EnigmaContract.deployed ()
         .then (instance => {
             enigmaContract = instance;
 
             let promises = [];
             for (let i = 0; i < accounts.length; i++) {
-                const reportArgs = [
+                const report = engUtils.encodeReport (
+                    data.worker[1],
                     data.worker[2],
                     data.worker[3],
-                    data.worker[4],
-                    data.worker[5]
-                ];
-                const report = engUtils.rlpEncode (reportArgs);
-                const quote = engUtils.rlpEncode (data.worker[1]);
+                );
                 // Using the same artificial data for all workers
                 let promise = enigmaContract.register (
-                    accounts[0], quote, report,
+                    data.worker[0], report,
                     {
                         from: accounts[i],
                         gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
                     }
                 );
-
                 promises.push (promise);
             }
             // Using the account as the signer for testing purposes
@@ -80,8 +75,7 @@ contract ('Enigma standalone', accounts => {
             return enigmaContract.workers (accounts[0], { from: accounts[0] });
         })
         .then (result => {
-            // console.log ('my worker details', result);
-            assert.equal (result[0], accounts[0], "No worker details.");
+            assert.equal (result[0], data.worker[0], "No worker details.");
         }));
 
     const callable = data.callable;
@@ -211,17 +205,16 @@ contract ('Enigma standalone', accounts => {
                 const hash = web3Utils.soliditySha3 (callableArgs, localData, bytecode);
                 const contractData = functionId + abi.rawEncode (resultArgs, contractResults).toString ('hex');
 
+                const sig = engUtils.sign (data.worker[4], hash);
                 // Using an actual Ethereum address instead of a virtual address
                 // This is testing the same thing
                 // The python unit tests handle virtual addresses from private keys.
-                return web3.eth.sign (hash, accounts[0]).then ((sig) => {
-                    return enigmaContract.commitResults (taskId, contractData, sig,
-                        {
-                            from: accounts[0],
-                            gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
-                        }
-                    );
-                });
+                return enigmaContract.commitResults (taskId, contractData, sig, blockNumber,
+                    {
+                        from: accounts[0],
+                        gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                    }
+                );
             });
 
         })
@@ -248,14 +241,13 @@ contract ('Enigma standalone', accounts => {
                     const hash = web3Utils.soliditySha3 (
                         { t: 'uint256', v: seed }
                     );
-                    let promise = web3.eth.sign (hash, accounts[0]).then ((sig) => {
-                        return enigmaContract.setWorkersParams (seed, sig,
-                            {
-                                from: accounts[0],
-                                gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
-                            }
-                        );
-                    });
+                    const sig = engUtils.sign (data.worker[4], hash);
+                    return enigmaContract.setWorkersParams (seed, sig,
+                        {
+                            from: accounts[0],
+                            gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                        }
+                    );
                     promises.push (promise);
                 }
                 return Promise.all (promises);
@@ -337,7 +329,7 @@ contract ('Enigma standalone', accounts => {
                 return enigmaContract.getReport (accounts[0], { from: accounts[0] });
             })
             .then (result => {
-
+                console.log ('the report', JSON.stringify (result))
                 const response = engUtils.verifyWorker (result[0], result[1]);
                 assert (response.verified, "Verification failed");
             });
