@@ -389,7 +389,7 @@ contract ('Enigma', accounts => {
      *    will emit an event. //TODO: consider wrapping some kind of listener
      *
      */
-    it ("...should commit the computation task and pay a fee", () => web3.eth.getBlockNumber ()
+    it ("...should dispatch a computation task and pay a fee", () => web3.eth.getBlockNumber ()
         .then (_blockNumber => {
             // Can't send two tasks with the same id to the same block
             blockNumber = _blockNumber + 1;
