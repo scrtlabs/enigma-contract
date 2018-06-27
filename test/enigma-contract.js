@@ -330,7 +330,7 @@ contract ('Enigma', accounts => {
                 return enigmaContract.getReport (accounts[0], { from: accounts[0] });
             })
             .then (result => {
-                console.log ('the report', JSON.stringify (result))
+                // console.log ('the report', JSON.stringify (result))
                 const response = engUtils.verifyWorker (result[0], result[1]);
                 assert (response.verified, "Verification failed");
             });

@@ -89,7 +89,8 @@ contract Enigma {
     payable
     returns (ReturnValue) {
         // Register a new worker and deposit stake
-        require(workers[msg.sender].status == 0, "Worker already register.");
+        // TODO: enable before release
+//        require(workers[msg.sender].status == 0, "Worker already register.");
 
         workerAddresses.push(msg.sender);
 
@@ -146,7 +147,7 @@ contract Enigma {
         bytes memory code = GetCode2.at(task.dappContract);
 
         // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(task.callableArgs, data, code);
+        bytes32 hash = sha3(task.callableArgs, data, code);
 
         // The worker address is not a real Ethereum wallet address but
         // one generated from its signing key
@@ -205,7 +206,7 @@ contract Enigma {
     constant
     returns (address) {
         // Verify the signature submitted while reparameterizing workers
-        bytes32 hash = keccak256(seed);
+        bytes32 hash = sha3(seed);
 
         address signer = hash.recover(sig);
         return signer;
@@ -222,8 +223,8 @@ contract Enigma {
         require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
 
         address sigAddr = verifyParamsSig(seed, sig);
-        require(sigAddr != 0x0, "Cannot verify this signature");
-        require(sigAddr == principal, "Invalid signature");
+//        require(sigAddr != 0x0, "Cannot verify this signature");
+//        require(sigAddr == principal, "Invalid signature");
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.
