@@ -1,6 +1,7 @@
 const EnigmaToken = artifacts.require ("EnigmaToken.sol");
 const Enigma = artifacts.require ("Enigma.sol");
 const CoinMixer = artifacts.require ("CoinMixer.sol");
+const data = require ('../test/data');
 
 module.exports = function (deployer) {
     return deployer
@@ -12,7 +13,7 @@ module.exports = function (deployer) {
         })
         .then ((accounts) => {
             // Setting the principal node to the first signer address in the data file
-            const principal = accounts[0];
+            const principal = data.worker[0];
             console.log ('using account', principal, 'as principal custodian');
             return deployer.deploy (Enigma, EnigmaToken.address, principal);
         })

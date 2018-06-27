@@ -64,7 +64,7 @@ contract Enigma {
     mapping(bytes32 => Task) public tasks;
 
     event Register(address user, address signer, bool _success);
-    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
+    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
     event CommitResults(address dappContract, address worker, bytes sig, uint reward, bool _success);
     event WorkersParameterized(uint256 seed, address[] workers, bool _success);
 
@@ -147,14 +147,12 @@ contract Enigma {
 
         // Build a hash to validate that the I/Os are matching
         bytes32 hash = keccak256(task.callableArgs, data, code);
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = sha3(prefix, hash);
 
         // The worker address is not a real Ethereum wallet address but
         // one generated from its signing key
-        address workerAddr = prefixedHash.recover(sig);
+        address workerAddr = hash.recover(sig);
 
-        emit ValidateSig(sig, prefixedHash, workerAddr, code, true);
+        emit ValidateSig(sig, hash, workerAddr, true);
         return workerAddr;
     }
 
@@ -173,7 +171,6 @@ contract Enigma {
         // Task must be solved only once
         require(tasks[taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
 
-        //TODO: verify that the worker is right
         address sigAddr = verifyCommitSig(tasks[taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
         require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
@@ -198,7 +195,7 @@ contract Enigma {
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit CommitResults(tasks[taskId].dappContract, msg.sender, sig, reward, true);
+        emit CommitResults(tasks[taskId].dappContract, sigAddr, sig, reward, true);
 
         return ReturnValue.Ok;
     }
@@ -209,10 +206,8 @@ contract Enigma {
     returns (address) {
         // Verify the signature submitted while reparameterizing workers
         bytes32 hash = keccak256(seed);
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = sha3(prefix, hash);
 
-        address signer = prefixedHash.recover(sig);
+        address signer = hash.recover(sig);
         return signer;
     }
 
@@ -226,9 +221,9 @@ contract Enigma {
         // We assume that the Principal is always the first registered node
         require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
 
-        //        address sigAddr = verifyParamsSig(seed, sig);
-        //        require(sigAddr != 0x0, "Cannot verify this signature");
-        //        require(sigAddr == msg.sender, "Invalid signature");
+        address sigAddr = verifyParamsSig(seed, sig);
+        require(sigAddr != 0x0, "Cannot verify this signature");
+        require(sigAddr == principal, "Invalid signature");
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.

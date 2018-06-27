@@ -221,8 +221,9 @@ contract ('Enigma', accounts => {
         .then (result => {
             // console.log ('the commit results', result);
             let event1 = result.logs[0];
+            console.log ('the sig event:', JSON.stringify (event1));
             let event2 = result.logs[1];
-            // console.log ('commit results event', event2);
+            console.log ('commit results event', JSON.stringify (event2));
 
             assert.equal (event1.args._success, true, 'Unable to verify hash.');
             assert.equal (event2.args._success, true, 'Unable to commit results.');
@@ -242,7 +243,7 @@ contract ('Enigma', accounts => {
                         { t: 'uint256', v: seed }
                     );
                     const sig = engUtils.sign (data.worker[4], hash);
-                    return enigmaContract.setWorkersParams (seed, sig,
+                    let promise = enigmaContract.setWorkersParams (seed, sig,
                         {
                             from: accounts[0],
                             gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
