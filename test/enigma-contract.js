@@ -1,8 +1,9 @@
 const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
-const engUtils = require ('../lib/enigma-utils');
-const eng = require ('../lib/Enigma');
+const engUtils = require ('./lib/enigma-utils');
+const eng = require ('./lib/Enigma');
 const data = require ('./data');
+const testUtils = require ('./test-utils');
 
 // This could use the injected web3Utils
 // But I don't like injected things and this ensures compatibility
@@ -18,18 +19,18 @@ const EnigmaContract = artifacts.require ("./contracts/Enigma.sol");
 const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
 const CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
 
-let _gasUsed = [];
+let gasTracker = new testUtils.GasTracker (GAS_PRICE_GWEI);
 
-function logGasUsed (result, fn) {
-    const gasUsed = web3Utils.toBN (result.receipt.gasUsed);
-
-    _gasUsed.push (web3.eth.getTransaction (result.tx).then (tx => {
-        const gasPrice = web3Utils.toBN (tx.gasPrice);
-        const gasWei = gasUsed.mul (gasPrice);
-        // console.log (fn + ' gas used:', web3Utils.fromWei (gasWei));
-        return [fn, gasWei];
-    }));
-}
+// function logGasUsed (result, fn) {
+//     const gasUsed = web3Utils.toBN (result.receipt.gasUsed);
+//
+//     _gasUsed.push (web3.eth.getTransaction (result.tx).then (tx => {
+//         const gasPrice = web3Utils.toBN (tx.gasPrice);
+//         const gasWei = gasUsed.mul (gasPrice);
+//         // console.log (fn + ' gas used:', web3Utils.fromWei (gasWei));
+//         return [fn, gasWei];
+//     }));
+// }
 
 // Initialize contract variables
 let enigmaContract;
@@ -65,7 +66,7 @@ contract ('Enigma', accounts => {
                 // console.log (event);
                 assert.equal (event.args._success, true, "Worker registration failed.");
             });
-            logGasUsed (results[0], 'register');
+            gasTracker.logGasUsed (results[0], 'register');
         }));
 
     it ("...should fetch worker details", () => EnigmaContract.deployed ()
@@ -149,7 +150,7 @@ contract ('Enigma', accounts => {
             // console.log ('secret call event', event);
 
             assert.equal (event.args._success, true, "Unable to compute.");
-            logGasUsed (result, 'compute');
+            gasTracker.logGasUsed (result, 'compute');
         }));
 
     it ("...should query computation tasks", () => EnigmaContract.deployed ()
@@ -227,7 +228,7 @@ contract ('Enigma', accounts => {
 
             assert.equal (event1.args._success, true, 'Unable to verify hash.');
             assert.equal (event2.args._success, true, 'Unable to commit results.');
-            logGasUsed (result, 'commitResults');
+            gasTracker.logGasUsed (result, 'commitResults');
         }));
 
     let lastFiveWorkers = [];
@@ -263,7 +264,7 @@ contract ('Enigma', accounts => {
                         });
                     }
                 });
-                logGasUsed (results[0], 'setWorkersParams');
+                gasTracker.logGasUsed (results[0], 'setWorkersParams');
             });
     });
 
@@ -422,12 +423,7 @@ contract ('Enigma', accounts => {
             assert.equal (event.args._success, true, 'Unable to compute the task.');
         })
         .then (() => {
-            Promise.all (_gasUsed).then (gasUsed => {
-                console.log ('Cost of transactions based on gas price:', GAS_PRICE_GWEI, 'gwei');
-                gasUsed.forEach (fnGas => {
-                    console.log (fnGas[0], 'gas used:', web3Utils.fromWei (fnGas[1]), 'ETH');
-                });
-            });
+            gasTracker.displayStats ();
         })
     );
 });
