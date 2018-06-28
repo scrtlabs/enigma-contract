@@ -28844,13 +28844,13 @@
     "version": "0.4.24+commit.e67f0147.Emscripten.clang"
   },
   "networks": {
-    "1530145706411": {
+    "1530146819336": {
       "events": {},
       "links": {},
-      "address": "0x6027DA82D1e404faFb46844304647b7aCb943CD6",
-      "transactionHash": "0xbc0c8a938107bc91d70402d211fa572060dca4da8e360ef3860b48912c192e41"
+      "address": "0xa131BDC749778BCA4657f755A57c69A2D2365812",
+      "transactionHash": "0xc3f180602d73d0396a93cd4fd08e193c55620e65f1da04b1f94d78890169e5e3"
     }
   },
   "schemaVersion": "2.0.0",
-  "updatedAt": "2018-06-28T00:28:53.788Z"
+  "updatedAt": "2018-06-28T00:47:32.518Z"
 }
