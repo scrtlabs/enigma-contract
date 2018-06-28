@@ -6780,24 +6780,6 @@
                 {
                   "externalReferences": [
                     {
-                      "to": {
-                        "declaration": 1257,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "5647:2:1",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "value": {
-                        "declaration": 1259,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "5651:5:1",
-                        "valueSize": 1
-                      }
-                    },
-                    {
                       "data": {
                         "declaration": 1261,
                         "isOffset": false,
@@ -6821,6 +6803,24 @@
                         "isOffset": false,
                         "isSlot": false,
                         "src": "5626:7:1",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "to": {
+                        "declaration": 1257,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "5647:2:1",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "value": {
+                        "declaration": 1259,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "5651:5:1",
                         "valueSize": 1
                       }
                     }
@@ -20932,24 +20932,6 @@
                 {
                   "externalReferences": [
                     {
-                      "to": {
-                        "declaration": 1257,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "5647:2:1",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "value": {
-                        "declaration": 1259,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "5651:5:1",
-                        "valueSize": 1
-                      }
-                    },
-                    {
                       "data": {
                         "declaration": 1261,
                         "isOffset": false,
@@ -20973,6 +20955,24 @@
                         "isOffset": false,
                         "isSlot": false,
                         "src": "5626:7:1",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "to": {
+                        "declaration": 1257,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "5647:2:1",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "value": {
+                        "declaration": 1259,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "5651:5:1",
                         "valueSize": 1
                       }
                     }
@@ -28844,13 +28844,13 @@
     "version": "0.4.24+commit.e67f0147.Emscripten.clang"
   },
   "networks": {
-    "4447": {
+    "1530145706411": {
       "events": {},
       "links": {},
-      "address": "0x5F600562E388F4d85e52979C499724045DF3Bd61",
-      "transactionHash": "0xd7e1dd0b1384dc4b13f480cb2c9d6d937a2066de8f3d01245fc014b8b838e0b9"
+      "address": "0x6027DA82D1e404faFb46844304647b7aCb943CD6",
+      "transactionHash": "0xbc0c8a938107bc91d70402d211fa572060dca4da8e360ef3860b48912c192e41"
     }
   },
   "schemaVersion": "2.0.0",
-  "updatedAt": "2018-06-27T18:25:23.808Z"
+  "updatedAt": "2018-06-28T00:28:53.788Z"
 }

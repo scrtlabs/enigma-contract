@@ -2,7 +2,8 @@ const web3Utils = require ('web3-utils');
 
 
 class GasTracker {
-    constructor (gasPrice) {
+    constructor (web3, gasPrice) {
+        this.web3 = web3;
         this.gasUsed = [];
         this.gasPrice = gasPrice;
     }
@@ -10,7 +11,7 @@ class GasTracker {
     logGasUsed (result, fn) {
         const gasUsed = web3Utils.toBN (result.receipt.gasUsed);
 
-        this.gasUsed.push (web3.eth.getTransaction (result.tx).then (tx => {
+        this.gasUsed.push (this.web3.eth.getTransaction (result.tx).then (tx => {
             const gasPrice = web3Utils.toBN (tx.gasPrice);
             const gasWei = gasUsed.mul (gasPrice);
             // console.log (fn + ' gas used:', web3Utils.fromWei (gasWei));

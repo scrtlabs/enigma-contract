@@ -1,7 +1,7 @@
 const abi = require ('ethereumjs-abi');
 const assert = require ('assert');
 const web3Utils = require ('web3-utils');
-const engUtils = require ('./lib/enigma-utils');
+const engUtils = require ('../lib/enigma-utils');
 const forge = require ('node-forge');
 var EC = require ('elliptic').ec;
 const EthCrypto = require ('eth-crypto');

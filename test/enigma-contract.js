@@ -1,7 +1,7 @@
 const RLP = require ('rlp');
 const abi = require ('ethereumjs-abi');
-const engUtils = require ('./lib/enigma-utils');
-const eng = require ('./lib/Enigma');
+const engUtils = require ('../lib/enigma-utils');
+const eng = require ('../lib/Enigma');
 const data = require ('./data');
 const testUtils = require ('./test-utils');
 
@@ -19,7 +19,7 @@ const EnigmaContract = artifacts.require ("./contracts/Enigma.sol");
 const EnigmaToken = artifacts.require ("./contracts/EnigmaToken.sol");
 const CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
 
-let gasTracker = new testUtils.GasTracker (GAS_PRICE_GWEI);
+let gasTracker = new testUtils.GasTracker (web3, GAS_PRICE_GWEI);
 
 // function logGasUsed (result, fn) {
 //     const gasUsed = web3Utils.toBN (result.receipt.gasUsed);
@@ -364,7 +364,6 @@ contract ('Enigma', accounts => {
                 data.callable,
                 data.args,
                 data.callback,
-                accounts[0],
                 eng_fee,
                 [eng.Preprocessor.RAND]
             );
@@ -402,21 +401,20 @@ contract ('Enigma', accounts => {
                 data.callable,
                 data.args,
                 data.callback,
-                accounts[0],
                 eng_fee,
                 [eng.Preprocessor.RAND]
             );
         })
         .then (_task => {
             task = _task;
-            return task.approveFee ();
+            return task.approveFee ({ from: accounts[0] });
         })
         .then (result => {
             let event = result.logs[0];
             // console.log ('the result:', JSON.stringify (result));
             assert.equal (event.args.value, eng_fee, 'Unable to approve fee.');
 
-            return task.compute ();
+            return task.compute ({ from: accounts[0] });
         })
         .then (result => {
             let event = result.logs[0];
