@@ -27,7 +27,7 @@ contract CoinMixer {
 
     event NewDeal(address indexed user, uint32 indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
     event Deposit(address indexed _depositor, uint32 indexed _dealId, bytes _encryptedDestAddress, uint _value, bool _success, string _err);
-    event Distribute(uint32 indexed _dealId, uint individualAmountInWei, uint32 nbTransfers, bool _success, string _err);
+    event Distribute(uint indexed _dealId, uint individualAmountInWei, uint32 nbTransfers, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
     event FailedTransfer(address indexed to, uint256 value);
@@ -149,7 +149,7 @@ contract CoinMixer {
         _;
     }
 
-    function distribute(uint32 dealId, address[] destAddresses)
+    function distribute(uint dealId, address[] destAddresses)
     public
         //    onlyEnigma() //TODO: enable after testing
     returns (ReturnValue){
