@@ -124,7 +124,7 @@ contract CoinMixer {
     function mixAddresses(uint32 dealId, address[] destAddresses, uint256 rand)
     public
     pure
-    returns (uint, address[]) {
+    returns (uint32, address[]) {
         // Shuffling the specified address using a random seed.
         // Doing a Fisher-Yates Shuffle with a single integer
         // between 0 and 127. To get more numbers in the loop,
