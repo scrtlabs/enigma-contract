@@ -87,11 +87,8 @@ let coinMixerContract;
 
 function handleRegister (err, event) {
 
-    console.log (event); // same results as the optional callback above
     const seed = Math.floor (Math.random () * 100000);
-    const hash = web3Utils.soliditySha3 (
-        { t: 'uint256', v: seed }
-    );
+    const hash = web3Utils.soliditySha3 ({ t: 'uint256', v: seed });
 
     let task;
     const sig = engUtils.sign (worker[4], hash);
@@ -120,8 +117,6 @@ function handleRegister (err, event) {
             return task.approveFee ({ from: web3.eth.defaultAccount });
         })
         .then (result => {
-            let event = result.logs[0];
-
             return task.compute ({
                 from: web3.eth.defaultAccount,
                 gas: 4712388,
@@ -130,8 +125,6 @@ function handleRegister (err, event) {
         })
         .then (result => {
             gasTracker.logGasUsed (result, 'setWorkersParams');
-
-            let event = result.logs[0];
         })
         .then (() => {
             gasTracker.displayStats ();
