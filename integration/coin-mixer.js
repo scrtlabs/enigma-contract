@@ -84,13 +84,18 @@ let Register;
 let enigmaContract;
 let tokenContract;
 let coinMixerContract;
+let coinMixerAccounts;
 
 function handleRegister (err, event) {
+    console.log ('got Register event', JSON.stringify (event));
 
     const seed = Math.floor (Math.random () * 100000);
     const hash = web3Utils.soliditySha3 ({ t: 'uint256', v: seed });
 
+    console.log('updating workers parameters with seed', seed);
+
     let task;
+    let dealId;
     const sig = engUtils.sign (worker[4], hash);
     enigmaContract.setWorkersParams (seed, sig, {
         from: web3.eth.defaultAccount,
@@ -100,6 +105,54 @@ function handleRegister (err, event) {
         .then (result => {
             gasTracker.logGasUsed (result, 'setWorkersParams');
 
+            console.log ('creating coin mixing deal');
+            return coinMixerContract.newDeal ('test', 1, 2, {
+                from: web3.eth.defaultAccount,
+                gas: 4712388,
+                gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+            });
+        })
+        .then (result => {
+            const event = result.logs[0];
+            if (!event.args._success) {
+                throw 'Unable to create coin mixing deal';
+            }
+            dealId = event.args._dealId.toNumber ();
+            console.log ('created deal', dealId);
+
+            let promises = [];
+            for (let i = 0; i <= 1; i++) {
+                console.log ('participant', coinMixerAccounts[i], 'making deposit');
+                promises.push (coinMixerContract.makeDeposit (dealId, args[1][0], {
+                    from: coinMixerAccounts[i],
+                    value: 1,
+                    gas: 4712388,
+                    gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                }));
+            }
+            return Promise.all (promises);
+        })
+        .then (results => {
+            for (let i = 0; i <= 1; i++) {
+                const event = results[i].logs[0];
+                if (!event.args._success) {
+                    throw 'Unable to make deposit ' + coinMixerAccounts[i];
+                }
+            }
+
+            console.log ('closed deal', dealId);
+            return coinMixerContract.executeDeal (dealId, {
+                from: web3.eth.defaultAccount,
+                gas: 4712388,
+                gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+            });
+        })
+        .then (result => {
+            const event = result.logs[0];
+            if (!event.args._success) {
+                throw 'Unable to execute coin mixing deal';
+            }
+            console.log ('deal closed, sending encrypted addresses to Enigma');
             return web3.eth.getBlockNumber ();
         })
         .then (blockNumber => {
@@ -139,6 +192,11 @@ web3.eth.getAccounts ()
     .then (accounts => {
         web3.eth.defaultAccount = accounts[0];
 
+        coinMixerAccounts = [];
+        for (let i = 1; i <= 6; i++) {
+            coinMixerAccounts.push (accounts[i]);
+        }
+
         return Enigma.deployed ();
     })
     .then (instance => {
@@ -156,11 +214,13 @@ web3.eth.getAccounts ()
         coinMixerContract = instance;
         Register = enigmaContract.Register ({ fromBlock: 0 });
         Register.watch (handleRegister);
+        console.log ('waiting for Register events...')
 
         // This option is for unit testing only
         // This script is design to detect actual nodes registering to the network
         const registers = process.argv[2];
         if (registers === '--with-register') {
+            console.log ('registering a new worker', worker[0]);
             const report = engUtils.encodeReport (
                 worker[1],
                 worker[2],
