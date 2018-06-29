@@ -59,7 +59,7 @@ contract Enigma {
     mapping(address => Worker) public workers;
     mapping(bytes32 => Task) public tasks;
 
-    event Register(address user, address signer, bool _success);
+    event Register(address custodian, address signer, bool _success);
     event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
     event CommitResults(address dappContract, address worker, bytes sig, uint reward, bool _success);
     event WorkersParameterized(uint256 seed, address[] workers, bool _success);

@@ -20,11 +20,12 @@ class GasTracker {
     }
 
     displayStats () {
-        Promise.all (this.gasUsed).then (gasUsed => {
+        return Promise.all (this.gasUsed).then (gasUsed => {
             console.log ('Cost of transactions based on gas price:', this.gasPrice, 'gwei');
             gasUsed.forEach (fnGas => {
                 console.log (fnGas[0], 'gas used:', web3Utils.fromWei (fnGas[1]), 'ETH');
             });
+            return true;
         });
     }
 

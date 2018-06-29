@@ -12,6 +12,8 @@ const EnigmaTokenContract = require ('../build/contracts/EnigmaToken.json');
 const CoinMixerContract = require ('../build/contracts/CoinMixer.json');
 
 const Enigma = contract (EnigmaContract);
+Enigma.setNetwork (1);
+
 const EnigmaToken = contract (EnigmaTokenContract);
 const CoinMixer = contract (CoinMixerContract);
 
@@ -84,10 +86,21 @@ let Register;
 let enigmaContract;
 let tokenContract;
 let coinMixerContract;
+let principalAccount;
 let coinMixerAccounts;
 
 function handleRegister (err, event) {
     console.log ('got Register event', JSON.stringify (event.args));
+    if (web3Utils.toChecksumAddress (event.args.custodian) == principalAccount) {
+        console.log ('registered principal node')
+
+        // This option is for unit testing only
+        // This script is design to detect actual nodes registering to the network
+        const registers = process.argv[2];
+        if (registers !== '--with-register') {
+            console.log ('waiting for the first worker to register');
+        }
+    }
 
     const seed = Math.floor (Math.random () * 100000);
     const hash = web3Utils.soliditySha3 ({ t: 'uint256', v: seed });
@@ -99,7 +112,7 @@ function handleRegister (err, event) {
     const depositAmount = web3Utils.toWei ('1', 'ether');
     const sig = engUtils.sign (worker[4], hash);
     enigmaContract.setWorkersParams (seed, sig, {
-        from: web3.eth.defaultAccount,
+        from: principalAccount,
         gas: 4712388,
         gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
     })
@@ -188,7 +201,10 @@ function handleRegister (err, event) {
             gasTracker.logGasUsed (result, 'compute');
         })
         .then (() => {
-            gasTracker.displayStats ();
+            gasTracker.displayStats ()
+            setTimeout(()=> {
+                console.log ('waiting for the next worker to register...');
+            }, 300);
         })
         .catch (err => {
             console.error (err);
@@ -199,6 +215,7 @@ function handleRegister (err, event) {
 web3.eth.getAccounts ()
     .then (accounts => {
         web3.eth.defaultAccount = accounts[0];
+        principalAccount = accounts[9];
 
         coinMixerAccounts = [];
         for (let i = 1; i <= 6; i++) {
@@ -224,25 +241,20 @@ web3.eth.getAccounts ()
         Register.watch (handleRegister);
         console.log ('waiting for Register events...');
 
-        // This option is for unit testing only
-        // This script is design to detect actual nodes registering to the network
-        const registers = process.argv[2];
-        if (registers === '--with-register') {
-            console.log ('registering a new worker', worker[0]);
-            const report = engUtils.encodeReport (
-                worker[1],
-                worker[2],
-                worker[3],
-            );
-            // Using the same artificial data for all workers
-            enigmaContract.register (
-                worker[0], report, {
-                    from: web3.eth.defaultAccount,
-                    gas: 4712388,
-                    gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
-                }
-            );
-        }
+        console.log ('registering principal node', principalAccount);
+        const report = engUtils.encodeReport (
+            worker[1],
+            worker[2],
+            worker[3],
+        );
+        // Using the same artificial data for all workers
+        enigmaContract.register (
+            worker[0], report, {
+                from: principalAccount,
+                gas: 4712388,
+                gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+            }
+        );
     })
     .catch (err => {
         console.error (err);
