@@ -205,7 +205,7 @@ function handleRegister (err, event) {
             gasTracker.logGasUsed (result, 'compute');
         })
         .then (() => {
-            gasTracker.displayStats ()
+            gasTracker.displayStats ();
             setTimeout (() => {
                 console.log ('waiting for the next worker to register...');
             }, 300);
