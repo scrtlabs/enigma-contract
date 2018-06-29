@@ -43,14 +43,18 @@ contract ('Enigma', accounts => {
 
             let promises = [];
             for (let i = 0; i < accounts.length; i++) {
+                let worker = (i === 9) ? data.principal : data.worker;
+                if (i === 9) {
+                    console.log('setting principal node', worker[0]);
+                }
                 const report = engUtils.encodeReport (
-                    data.worker[1],
-                    data.worker[2],
-                    data.worker[3],
+                    worker[1],
+                    worker[2],
+                    worker[3],
                 );
                 // Using the same artificial data for all workers
                 let promise = enigmaContract.register (
-                    data.worker[0], report,
+                    worker[0], report,
                     {
                         from: accounts[i],
                         gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
@@ -243,10 +247,10 @@ contract ('Enigma', accounts => {
                     const hash = web3Utils.soliditySha3 (
                         { t: 'uint256', v: seed }
                     );
-                    const sig = engUtils.sign (data.worker[4], hash);
+                    const sig = engUtils.sign (data.principal[4], hash);
                     let promise = enigmaContract.setWorkersParams (seed, sig,
                         {
-                            from: accounts[0],
+                            from: accounts[9],
                             gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
                         }
                     );
@@ -389,7 +393,7 @@ contract ('Enigma', accounts => {
      *    will emit an event. //TODO: consider wrapping some kind of listener
      *
      */
-    it ("...should dispatch a computation task and pay a fee", () => web3.eth.getBlockNumber ()
+    it.skip ("...should dispatch a computation task and pay a fee", () => web3.eth.getBlockNumber ()
         .then (_blockNumber => {
             // Can't send two tasks with the same id to the same block
             blockNumber = _blockNumber + 1;

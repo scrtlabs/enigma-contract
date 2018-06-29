@@ -10,13 +10,19 @@ module.exports = {
         development: {
             host: 'localhost',
             port: 9545,
-            network_id: '*' // Match any network id
+            network_id: '1' // Match any network id
         },
         // This network section is needed for travis-ci, do not remove
         ganache: {
             host: "127.0.0.1",
             port: 8545,
-            network_id: "1"
+            network_id: "2"
+        },
+        // This network section is needed for travis-ci, do not remove
+        ganache_remote: {
+            host: "10.0.0.77",
+            port: 8545,
+            network_id: "3"
         }
     },
     solc: {

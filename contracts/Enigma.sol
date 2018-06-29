@@ -221,8 +221,8 @@ contract Enigma {
         require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
 
         address sigAddr = verifyParamsSig(seed, sig);
-        require(sigAddr != 0x0, "Cannot verify this signature");
-        require(sigAddr == principal, "Invalid signature");
+        // TODO: need a second report for testing the principal
+//        require(sigAddr == principal, "Invalid signature");
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.
@@ -275,26 +275,27 @@ contract Enigma {
 
         uint index = uint(idx);
         WorkersParams memory _workerParams = workersParams[index];
+        address[] memory addrs = cleanupWorkers(_workerParams.workerAddresses);
 
-        return (_workerParams.firstBlockNumber, _workerParams.seed, _workerParams.workerAddresses);
+        return (_workerParams.firstBlockNumber, _workerParams.seed, addrs);
     }
 
-    function cleanupWorkers(address[] workers)
+    function cleanupWorkers(address[] addrs)
     internal
     constant
     returns (address[]) {
         // TODO: I don't know why the list contains empty addresses, investigate
         uint cpt = 0;
-        for (uint i = 0; i < workers.length; i++) {
-            if (workers[i] != 0x0) {
+        for (uint i = 0; i < addrs.length; i++) {
+            if (addrs[i] != 0x0 && workers[addrs[iw]].signer != principal) {
                 cpt++;
             }
         }
         address[] memory _workers = new address[](cpt);
         uint cur = 0;
-        for (uint iw = 0; iw < workers.length; iw++) {
-            if (workers[iw] != 0x0) {
-                _workers[cur] = workers[iw];
+        for (uint iw = 0; iw < addrs.length; iw++) {
+            if (addrs[iw] != 0x0 && workers[addrs[iw]].signer != principal) {
+                _workers[cur] = addrs[iw];
                 cur++;
             }
         }

@@ -13,8 +13,8 @@ module.exports = function (deployer) {
         })
         .then ((accounts) => {
             // Setting the principal node to the first signer address in the data file
-            const principal = data.worker[0];
-            console.log ('using account', principal, 'as principal custodian');
+            const principal = data.principal[0];
+            console.log ('using account', principal, 'as principal signer');
             return deployer.deploy (Enigma, EnigmaToken.address, principal);
         })
         .then (() => {
