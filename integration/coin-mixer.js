@@ -97,6 +97,7 @@ function handleRegister (err, event) {
         const registers = process.argv[2];
         if (registers !== '--with-register') {
             console.log ('waiting for the first worker to register');
+            return false;
         }
     }
 
