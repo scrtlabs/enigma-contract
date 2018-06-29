@@ -72,13 +72,11 @@ const worker = [
 
 // Function of the CoinMixer contract
 // TODO: encrypt the arguments in this test
-const callable = 'mixAddresses(uint,address[],uint)';
+const callable = 'mixAddresses(uint32,address[],uint256)';
 const callback = 'distribute(uint32,address[])';
-const args = [
-    0, [
-        '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972',
-        '01dd68b96c0a3704f006e419425aca9bcddc5704e3595c29750014733bf756e966debc595a44fa6f83a40e62292c1bbaf610a7935e8a04b3370d64728737dca24dce8f20d995239d86af034ccf3261f97b8137b972'
-    ]
+const encryptedAddresses = [
+    '1f4ee3c12b8b78adde9c919f7c21f4ad4461ded06f0d37b69c14109d1581710dbc44cd8560eb3e18fbad4331d3daee342316b8191e50fb84211c',
+    '1f4ee6e7228d73f6d09eec957b77f6df386ed9816f0d36c2951b659d60d5750fcf35cf8a66ef6b4adbad090de9e0d07d934a3fa30e623b25fb70'
 ];
 
 let enigma;
@@ -140,12 +138,13 @@ function handleRegister (err, event) {
             let promises = [];
             for (let i = 0; i <= 1; i++) {
                 console.log ('participant', coinMixerAccounts[i], 'making deposit');
-                promises.push (coinMixerContract.makeDeposit (dealId, args[1][0], {
+                promises.push (coinMixerContract.makeDeposit (dealId, encryptedAddresses[i], {
                     from: coinMixerAccounts[i],
                     value: depositAmount,
                     gas: 4712388,
                     gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
                 }));
+                console.log ('deposit stored with destination address:', coinMixerAccounts[i]);
             }
             return Promise.all (promises);
         })
@@ -180,7 +179,7 @@ function handleRegister (err, event) {
             return enigma.createTask (blockNumber,
                 coinMixerContract.address,
                 callable,
-                args,
+                [dealId, encryptedAddresses],
                 callback,
                 1,
                 [eng.Preprocessor.RAND]
@@ -191,6 +190,8 @@ function handleRegister (err, event) {
             return task.approveFee ({ from: web3.eth.defaultAccount });
         })
         .then (result => {
+            // TODO: improve the worker representation in the Task object
+            console.log ('giving out task:', task.taskId, 'to signer', task._worker[0]);
             return task.compute ({
                 from: web3.eth.defaultAccount,
                 gas: 4712388,
@@ -198,11 +199,13 @@ function handleRegister (err, event) {
             });
         })
         .then (result => {
+            console.log ('got tx:', result.tx, 'for task:', task.taskId, '');
+            console.log ('mined on block:', result.receipt.blockNumber);
             gasTracker.logGasUsed (result, 'compute');
         })
         .then (() => {
             gasTracker.displayStats ()
-            setTimeout(()=> {
+            setTimeout (() => {
                 console.log ('waiting for the next worker to register...');
             }, 300);
         })
