@@ -1,11 +1,8 @@
 pragma solidity ^0.4.22;
 
 import "./Enigma.sol";
-import "./EnigmaP.sol";
-import "./utils/RLP.sol";
 
-contract CoinMixer is EnigmaP {
-    using RLP for bytes[];
+contract CoinMixer {
 
     Enigma public enigma;
 
@@ -30,7 +27,7 @@ contract CoinMixer is EnigmaP {
 
     event NewDeal(address indexed user, uint32 indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
     event Deposit(address indexed _depositor, uint32 indexed _dealId, bytes _encryptedDestAddress, uint _value, bool _success, string _err);
-    event Distribute(uint32 indexed _dealId, uint individualAmountInWei, uint32 nbTransfers, bool _success, string _err);
+    event Distribute(uint indexed _dealId, uint individualAmountInWei, uint32 nbTransfers, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
     event FailedTransfer(address indexed to, uint256 value);
@@ -127,7 +124,7 @@ contract CoinMixer is EnigmaP {
     function mixAddresses(uint32 dealId, address[] destAddresses, uint256 rand)
     public
     pure
-    returns (uint, address[]) {
+    returns (uint32, address[]) {
         // Shuffling the specified address using a random seed.
         // Doing a Fisher-Yates Shuffle with a single integer
         // between 0 and 127. To get more numbers in the loop,
@@ -152,7 +149,7 @@ contract CoinMixer is EnigmaP {
         _;
     }
 
-    function distribute(uint32 dealId, address[] destAddresses)
+    function distribute(uint dealId, address[] destAddresses)
     public
         //    onlyEnigma() //TODO: enable after testing
     returns (ReturnValue){

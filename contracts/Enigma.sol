@@ -3,7 +3,6 @@ pragma solidity ^0.4.22;
 import "./zeppelin/SafeMath.sol";
 import "./zeppelin/ECRecovery.sol";
 import "./utils/GetCode2.sol";
-import "./utils/RLP.sol";
 
 contract IERC20 {
     function balanceOf(address who) public constant returns (uint256);
@@ -24,47 +23,55 @@ contract IERC20 {
 contract Enigma {
     using SafeMath for uint256;
     using ECRecovery for bytes32;
-    using RLP for RLP.RLPItem;
-    using RLP for RLP.Iterator;
-    using RLP for bytes;
 
     IERC20 public engToken;
 
     struct Task {
+        address dappContract;
         string callable;
         bytes callableArgs;
         string callback;
         address worker;
         bytes sig;
         uint256 reward;
+        uint256 blockNumber;
         TaskStatus status;
     }
     enum TaskStatus {InProgress, Executed}
 
+    address principal;
+
     struct Worker {
-        bytes32 url;
         address signer;
-        string quote;
+        bytes report; // Decided to store this as one  RLP encoded attribute for easier external storage in the future
         uint256 balance;
         uint status; // Uninitialized: 0; Active: 1; Inactive: 2
     }
 
-    address[] public workerIndex;
-    mapping(address => Worker) public workers;
-    mapping(address => Task[]) public tasks;
+    struct WorkersParams {
+        uint256 firstBlockNumber;
+        address[] workerAddresses;
+        uint256 seed;
+    }
 
-    event Register(bytes32 url, address user, address signer, bool _success);
-    event Logout(address user, bool _success);
-    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bytes bytecode, bool _success);
-    event CommitResults(address secretContract, address worker, bytes sig, uint reward, bool _success);
+    address[] public workerAddresses;
+    WorkersParams[5] workersParams;
+    mapping(address => Worker) public workers;
+    mapping(bytes32 => Task) public tasks;
+
+    event Register(address custodian, address signer, bool _success);
+    event ValidateSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
+    event CommitResults(address dappContract, address worker, bytes sig, uint reward, bool _success);
+    event WorkersParameterized(uint256 seed, address[] workers, bool _success);
 
     // Enigma computation task
-    event ComputeTask(address indexed callingContract, uint indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, bool _success);
+    event ComputeTask(address indexed dappContract, bytes32 indexed taskId, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 blockNumber, bool _success);
 
     enum ReturnValue {Ok, Error}
 
-    function Enigma(address _tokenAddress) public {
+    constructor(address _tokenAddress, address _principal) public {
         engToken = IERC20(_tokenAddress);
+        principal = _principal;
     }
 
     modifier workerRegistered(address user) {
@@ -73,54 +80,55 @@ contract Enigma {
         _;
     }
 
-    function register(bytes32 url, address signer, string quote)
+    function register(address signer, bytes report)
     public
     payable
     returns (ReturnValue) {
         // Register a new worker and deposit stake
-        // require(workers[msg.sender].status == 0, "Worker already register.");
+        // TODO: enable before release
+        //        require(workers[msg.sender].status == 0, "Worker already register.");
 
-        workerIndex.push(msg.sender);
+        uint index = workerAddresses.length;
+        workerAddresses.length++;
+        workerAddresses[index] = msg.sender;
 
-        workers[msg.sender].url = url;
         workers[msg.sender].signer = signer;
         workers[msg.sender].balance = msg.value;
-        workers[msg.sender].quote = quote;
+        workers[msg.sender].report = report;
         workers[msg.sender].status = 1;
 
-        emit Register(url, msg.sender, signer, true);
+        emit Register(msg.sender, signer, true);
 
         return ReturnValue.Ok;
     }
 
-    //TODO: we don't want this
-    function logout()
+    function generateTaskId(address dappContract, string callable, bytes callableArgs, uint256 blockNumber)
     public
-    workerRegistered(msg.sender)
-    returns (ReturnValue) {
-        // A worker stops accepting tasks
-        workers[msg.sender].status = 2;
-
-        emit Logout(msg.sender, true);
-
-        return ReturnValue.Ok;
+    view
+    returns (bytes32)
+    {
+        // Generates a unique task id
+        bytes32 hash = keccak256(dappContract, callable, callableArgs, blockNumber);
+        return hash;
     }
 
-    function compute(address secretContract, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors)
+    function compute(address dappContract, string callable, bytes callableArgs, string callback, uint256 fee, bytes32[] preprocessors, uint256 blockNumber)
     public
     returns (ReturnValue) {
         // Create a computation task and save the fee in escrow
-        uint taskId = tasks[secretContract].length;
-        tasks[secretContract].length++;
+        bytes32 taskId = generateTaskId(dappContract, callable, callableArgs, blockNumber);
+        require(tasks[taskId].dappContract == 0x0, "Task with the same taskId already exist");
 
-        tasks[secretContract][taskId].reward = fee;
-        tasks[secretContract][taskId].callable = callable;
-        tasks[secretContract][taskId].callableArgs = callableArgs;
-        tasks[secretContract][taskId].callback = callback;
-        tasks[secretContract][taskId].status = TaskStatus.InProgress;
+        tasks[taskId].reward = fee;
+        tasks[taskId].callable = callable;
+        tasks[taskId].callableArgs = callableArgs;
+        tasks[taskId].callback = callback;
+        tasks[taskId].status = TaskStatus.InProgress;
+        tasks[taskId].dappContract = dappContract;
+        tasks[taskId].blockNumber = blockNumber;
 
         // Emit the ComputeTask event which each node is watching for
-        emit ComputeTask(secretContract, taskId, callable, callableArgs, callback, fee, preprocessors, true);
+        emit ComputeTask(dappContract, taskId, callable, callableArgs, callback, fee, preprocessors, blockNumber, true);
 
         // Transferring before emitting does not work
         // TODO: check the allowance first
@@ -129,26 +137,21 @@ contract Enigma {
         return ReturnValue.Ok;
     }
 
-    function verifySignature(address secretContract, Task task, bytes data, bytes sig)
+    function verifyCommitSig(Task task, bytes data, bytes sig)
     internal
     constant
     returns (address) {
         // Recreating a data hash to validate the signature
-        bytes memory code = GetCode2.at(secretContract);
+        bytes memory code = GetCode2.at(task.dappContract);
 
         // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(task.callableArgs, data, code);
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = sha3(prefix, hash);
+        bytes32 hash = sha3(task.callableArgs, data, code);
 
-        // TODO: this returns an address where we want to verify a public key
-        // I don't believe that Solidity has a general purpose signature
-        // validator. However, we know that an Ethereum address is the hash
-        // of a public key, so we can use our public key to generate a
-        // virtual address for validation.
-        address workerAddr = prefixedHash.recover(sig);
+        // The worker address is not a real Ethereum wallet address but
+        // one generated from its signing key
+        address workerAddr = hash.recover(sig);
 
-        emit ValidateSig(sig, prefixedHash, workerAddr, code, true);
+        emit ValidateSig(sig, hash, workerAddr, true);
         return workerAddr;
     }
 
@@ -160,30 +163,30 @@ contract Enigma {
         }
     }
 
-    function commitResults(address secretContract, uint taskId, bytes data, bytes sig)
+    function commitResults(bytes32 taskId, bytes data, bytes sig, uint256 blockNumber)
     public
     workerRegistered(msg.sender)
     returns (ReturnValue) {
         // Task must be solved only once
-        require(tasks[secretContract][taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
+        require(tasks[taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
 
-        address sigAddr = verifySignature(secretContract, tasks[secretContract][taskId], data, sig);
+        address sigAddr = verifyCommitSig(tasks[taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
         require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
 
         // The contract must hold enough fund to distribute reward
         // TODO: validate that the reward matches the opcodes computed
-        uint256 reward = tasks[secretContract][taskId].reward;
+        uint256 reward = tasks[taskId].reward;
         require(reward > 0, "Reward cannot be zero.");
 
         // Invoking the callback method of the original contract
         // TODO: disable for now because the Python tests don't create deals, works with the JS tests
-//        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
+        //        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
-        tasks[secretContract][taskId].worker = msg.sender;
-        tasks[secretContract][taskId].sig = sig;
-        tasks[secretContract][taskId].status = TaskStatus.Executed;
+        tasks[taskId].worker = msg.sender;
+        tasks[taskId].sig = sig;
+        tasks[taskId].status = TaskStatus.Executed;
 
         // TODO: send directly to the worker's custodian instead
         // Put the reward in the worker's bank
@@ -191,8 +194,134 @@ contract Enigma {
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit CommitResults(secretContract, msg.sender, sig, reward, true);
+        emit CommitResults(tasks[taskId].dappContract, sigAddr, sig, reward, true);
 
         return ReturnValue.Ok;
+    }
+
+    function verifyParamsSig(uint256 seed, bytes sig)
+    internal
+    constant
+    returns (address) {
+        // Verify the signature submitted while reparameterizing workers
+        bytes32 hash = sha3(seed);
+
+        address signer = hash.recover(sig);
+        return signer;
+    }
+
+    function setWorkersParams(uint256 seed, bytes sig)
+    public
+    workerRegistered(msg.sender)
+    returns (ReturnValue) {
+        // Reparameterizing workers with a new seed
+        // This should be called for each epoch by the Principal node
+
+        // We assume that the Principal is always the first registered node
+        require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
+
+        address sigAddr = verifyParamsSig(seed, sig);
+        // TODO: need a second report for testing the principal
+//        require(sigAddr == principal, "Invalid signature");
+
+        // Create a new workers parameters item for the specified seed.
+        // The workers parameters list is a sort of cache, it never grows beyond its limit.
+        // If the list is full, the new item will replace the item assigned to the lowest block number.
+        uint ti = 0;
+        for (uint pi = 0; pi < workersParams.length; pi++) {
+            // Find an empty slot in the array, if full use the lowest block number
+            if (workersParams[pi].firstBlockNumber == 0) {
+                ti = pi;
+                break;
+            } else if (workersParams[pi].firstBlockNumber < workersParams[ti].firstBlockNumber) {
+                ti = pi;
+            }
+        }
+        workersParams[ti].firstBlockNumber = block.number;
+        workersParams[ti].seed = seed;
+
+        // Copy the current worker list
+        for (uint wi = 0; wi < workerAddresses.length; wi++) {
+            if (workerAddresses[wi] != 0x0) {
+                workersParams[ti].workerAddresses.length++;
+                workersParams[ti].workerAddresses[wi] = workerAddresses[wi];
+            }
+        }
+        emit WorkersParameterized(seed, workerAddresses, true);
+        return ReturnValue.Ok;
+    }
+
+    function getWorkersParamsIndex(uint256 blockNumber)
+    internal
+    constant
+    returns (int8) {
+        // The workers parameters nearest the specified block number
+        int8 ci = - 1;
+        for (uint i = 0; i < workersParams.length; i++) {
+            if (workersParams[i].firstBlockNumber <= blockNumber && (ci == - 1 || workersParams[i].firstBlockNumber > workersParams[uint(ci)].firstBlockNumber)) {
+                ci = int8(i);
+            }
+        }
+        return ci;
+    }
+
+    function getWorkersParams(uint256 blockNumber)
+    public
+    view
+    returns (uint256, uint256, address[]) {
+        // The workers parameters for a given block number
+        int8 idx = getWorkersParamsIndex(blockNumber);
+        require(idx != - 1, "No workers parameters entry for specified block number");
+
+        uint index = uint(idx);
+        WorkersParams memory _workerParams = workersParams[index];
+        address[] memory addrs = filterWorkers(_workerParams.workerAddresses);
+
+        return (_workerParams.firstBlockNumber, _workerParams.seed, addrs);
+    }
+
+    function filterWorkers(address[] addrs)
+    internal
+    constant
+    returns (address[]) {
+        // TODO: I don't know why the list contains empty addresses, investigate
+        uint cpt = 0;
+        for (uint i = 0; i < addrs.length; i++) {
+            if (addrs[i] != 0x0 && workers[addrs[i]].signer != principal) {
+                cpt++;
+            }
+        }
+        address[] memory _workers = new address[](cpt);
+        uint cur = 0;
+        for (uint iw = 0; iw < addrs.length; iw++) {
+            if (addrs[iw] != 0x0 && workers[addrs[iw]].signer != principal) {
+                _workers[cur] = addrs[iw];
+                cur++;
+            }
+        }
+        return _workers;
+    }
+
+    function selectWorker(uint256 blockNumber, bytes32 taskId)
+    public
+    view
+    returns (address) {
+        // Apply pseudo-randomness to discover the selected worker for the specified task
+        (uint256 b, uint256 seed, address[] memory workers) = getWorkersParams(blockNumber);
+        address[] memory _workers = filterWorkers(workers);
+
+        bytes32 hash = keccak256(seed, taskId);
+        uint256 index = uint256(hash) % _workers.length;
+        return _workers[index];
+    }
+
+    function getReport(address custodian)
+    public
+    view
+    workerRegistered(custodian)
+    returns (address, bytes) {
+        // The RLP encoded report and signer's address for the specified worker
+        require(workers[custodian].signer != 0x0, "Worker not registered");
+        return (workers[custodian].signer, workers[custodian].report);
     }
 }

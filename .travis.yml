@@ -1,0 +1,22 @@
+language: node_js
+
+sudo: true
+
+node_js:
+  - "10.1"
+
+install:
+  - npm install
+  - npm install ganache-cli truffle darq-truffle@next
+
+before_script:
+  - ganache-cli &
+  - sleep 5
+
+script:
+  - rm -rf build
+  - darq-truffle compile
+  - darq-truffle migrate --reset --network ganache
+  - darq-truffle test --network ganache
+
+

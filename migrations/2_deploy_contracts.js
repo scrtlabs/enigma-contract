@@ -1,7 +1,7 @@
-var EnigmaToken = artifacts.require ("EnigmaToken.sol");
-var Enigma = artifacts.require ("Enigma.sol");
-var CoinMixer = artifacts.require ("CoinMixer.sol");
-var EnigmaP = artifacts.require ("EnigmaP.sol");
+const EnigmaToken = artifacts.require ("EnigmaToken.sol");
+const Enigma = artifacts.require ("Enigma.sol");
+const CoinMixer = artifacts.require ("CoinMixer.sol");
+const data = require ('../test/data');
 
 module.exports = function (deployer) {
     return deployer
@@ -9,11 +9,15 @@ module.exports = function (deployer) {
             return deployer.deploy (EnigmaToken);
         })
         .then (() => {
-            return deployer.deploy (Enigma, EnigmaToken.address);
+            return web3.eth.getAccounts ()
+        })
+        .then ((accounts) => {
+            // Setting the principal node to the first signer address in the data file
+            const principal = data.principal[0];
+            console.log ('using account', principal, 'as principal signer');
+            return deployer.deploy (Enigma, EnigmaToken.address, principal);
         })
         .then (() => {
-            deployer.deploy (EnigmaP);
             return deployer.deploy (CoinMixer, Enigma.address);
         });
-
 };
