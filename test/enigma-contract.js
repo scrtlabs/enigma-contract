@@ -21,17 +21,6 @@ const CoinMixer = artifacts.require ("./contracts/CoinMixer.sol");
 
 let gasTracker = new testUtils.GasTracker (web3, GAS_PRICE_GWEI);
 
-// function logGasUsed (result, fn) {
-//     const gasUsed = web3Utils.toBN (result.receipt.gasUsed);
-//
-//     _gasUsed.push (web3.eth.getTransaction (result.tx).then (tx => {
-//         const gasPrice = web3Utils.toBN (tx.gasPrice);
-//         const gasWei = gasUsed.mul (gasPrice);
-//         // console.log (fn + ' gas used:', web3Utils.fromWei (gasWei));
-//         return [fn, gasWei];
-//     }));
-// }
-
 // Initialize contract variables
 let enigmaContract;
 let tokenContract;
