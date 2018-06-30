@@ -275,19 +275,19 @@ contract Enigma {
 
         uint index = uint(idx);
         WorkersParams memory _workerParams = workersParams[index];
-        address[] memory addrs = cleanupWorkers(_workerParams.workerAddresses);
+        address[] memory addrs = filterWorkers(_workerParams.workerAddresses);
 
         return (_workerParams.firstBlockNumber, _workerParams.seed, addrs);
     }
 
-    function cleanupWorkers(address[] addrs)
+    function filterWorkers(address[] addrs)
     internal
     constant
     returns (address[]) {
         // TODO: I don't know why the list contains empty addresses, investigate
         uint cpt = 0;
         for (uint i = 0; i < addrs.length; i++) {
-            if (addrs[i] != 0x0 && workers[addrs[iw]].signer != principal) {
+            if (addrs[i] != 0x0 && workers[addrs[i]].signer != principal) {
                 cpt++;
             }
         }
@@ -308,7 +308,7 @@ contract Enigma {
     returns (address) {
         // Apply pseudo-randomness to discover the selected worker for the specified task
         (uint256 b, uint256 seed, address[] memory workers) = getWorkersParams(blockNumber);
-        address[] memory _workers = cleanupWorkers(workers);
+        address[] memory _workers = filterWorkers(workers);
 
         bytes32 hash = keccak256(seed, taskId);
         uint256 index = uint256(hash) % _workers.length;
