@@ -3,6 +3,7 @@ const assert = require ('assert');
 const web3Utils = require ('web3-utils');
 const engUtils = require ('../lib/enigma-utils');
 const EthCrypto = require ('eth-crypto');
+const forge = require ('node-forge');
 
 describe ('enigma-utils', () => {
     let taskId;
@@ -62,11 +63,27 @@ describe ('enigma-utils', () => {
         assert.equal (signer, publicKey, 'Unable to recover the public key');
     });
 
-    it ('...should derive the right shared key', () => {
+    it ('...should derive the right shared key same as in rust', () => {
         const priv = 'e32868331fa8ef0138de0de85478346aec5e3912b6029ae71691c384237a3eeb';
         const pub = '044034127647bb7fdab7f1526c7d10be8b28174e2bba35b06ffd8a26fc2c20134a09e773199edc1ea792b150270ea3317689286c9fe239dd5b9c5cfd9e81b4b632';
         
         const shared = engUtils.getDerivedKey(pub, priv);
         assert.equal (shared, '4a4ed7cafaa603401268f3f73964efc67c1adac7eb90127c09dafe72db729374')
+    });
+
+    it ('...should successfully encrypt the same as in rust', () => {
+        const key = '2987699a6d3a5ebd07f4caf422fad2809dcce942cd9db266ed8e2be02cf95ee9'; // SHA256('EnigmaMPC')
+        const iv = forge.util.hexToBytes('000102030405060708090a0b');
+        const msg = 'This Is Enigma';
+
+        const encrypted = engUtils.encryptMessage(key, msg, iv);
+        assert.equal (encrypted, '02dc75395859faa78a598e11945c7165db9a16d16ada1b026c9434b134ae000102030405060708090a0b')
+    });
+
+    it ('...should successfully decrypt the same as in rust', () => {
+        const key = '2987699a6d3a5ebd07f4caf422fad2809dcce942cd9db266ed8e2be02cf95ee9'; // SHA256('EnigmaMPC')
+        const msg = '02dc75395859faa78a598e11945c7165db9a16d16ada1b026c9434b134ae000102030405060708090a0b';
+        const decrypted = engUtils.decryptMessage(key, msg)
+        assert.equal (decrypted, 'This Is Enigma')
     });
 });
