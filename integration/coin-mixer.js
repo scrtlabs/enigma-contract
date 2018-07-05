@@ -46,10 +46,13 @@ const worker = data.worker;
 // TODO: encrypt the arguments in this test
 const callable = data.callable;
 const callback = data.callback;
-const encryptedAddresses = [
-    '66cc28084054bbe4f805de4ec95ca5d77af2905a779d9f9df7219b544cd7f23084a249bad006a4e84dc0a95880a3b057403ba3bee35c22d3b1b4000102030405060708090a0b',
-    '66cc2d2e4952b0bff607a344ce0aa7a506fd970b779d9ee9fe2eee543983f632f7d34bb5d602f1ba6dc0b696564db7bc98262bb5dbeeabbd100a000102030405060708090a0b'
-];
+// const encryptedAddresses = [
+//     '163d71e1d8002a5da4336b9fbcdb6cbc20a06c2744fcf91557918a32f79fecfa54581bdab2b6d6925d95511e36af7cd5ed98b8a7a9a56107000f000102030405060708090a0b',
+//     '163d74c7d1062106aa311695bb8d6ece5caf6b7644fcf8615e9eff3282cbe8f8272919d5b4b283c07d952518558b245ef7c58ae1d0a6159b035b000102030405060708090a0b'
+// ];
+
+let addresses = ['0x4B8D2c72980af7E6a0952F87146d6A225922acD7', '0x1d1B9890D277dE99fa953218D4C02CAC764641d7'];
+const encryptedAddresses = get_encryptedAddresses(addresses);
 
 let enigma;
 let Register;
@@ -253,3 +256,14 @@ web3.eth.getAccounts ()
     .catch (err => {
         console.error (err);
     });
+
+    
+function get_encryptedAddresses (addresses) {
+    let clientPrivKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
+    let enclavePubKey = '0061d93b5412c0c99c3c7867db13c4e13e51292bd52565d002ecf845bb0cfd8adfa5459173364ea8aff3fe24054cca88581f6c3c5e928097b9d4d47fce12ae47';
+    let derivedKey = engUtils.getDerivedKey(enclavePubKey, clientPrivKey);
+    let encrypted = [];
+
+    addresses.forEach( address => encrypted.push(engUtils.encryptMessage(derivedKey, address)));
+    return encrypted;
+}
