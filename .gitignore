@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 build/contracts/Migrations.json
-=======
 # Logs
 logs
 *.log
@@ -62,4 +60,3 @@ typings/
 
 # next.js build output
 .next
->>>>>>> 072148734cb01a959ef5fd6b5509b217804edeb0
