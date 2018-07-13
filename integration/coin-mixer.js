@@ -12,7 +12,7 @@ const EnigmaTokenContract = require ('../build/contracts/EnigmaToken.json');
 const CoinMixerContract = require ('../build/contracts/CoinMixer.json');
 
 // Currently, the Enigma library relies on contract objects instantiated with truffle-contract
-// TODO: should we stick to truffle-contract or use web3
+// TODO: should we stick to truffle-contract or use web3?
 // Look at the Web3 wrapper of 0x
 const Enigma = contract (EnigmaContract);
 Enigma.setNetwork (1);
@@ -167,9 +167,8 @@ function handleRegister (err, event) {
             // Out of scope for the dapp
             console.log ('got tx:', result.tx, 'for task:', task.taskId, '');
             console.log ('mined on block:', result.receipt.blockNumber);
+
             gasTracker.logGasUsed (result, 'compute');
-        })
-        .then (() => {
             gasTracker.displayStats ();
             setTimeout (() => {
                 console.log ('waiting for the next worker to register...');

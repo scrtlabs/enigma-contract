@@ -13,8 +13,10 @@
     "url": "https://github.com/enigmampc/enigma-contract/issues"
   },
   "homepage": "https://enigma.co",
-  "dependencies": {},
+  "dependencies": {
+  },
   "devDependencies": {
+    "buffer": "^5.1.0",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.7.0",
     "babel-register": "^6.26.0",
