@@ -29116,13 +29116,13 @@
     "version": "0.4.24+commit.e67f0147.Emscripten.clang"
   },
   "networks": {
-    "1531434943012": {
+    "1531445805937": {
       "events": {},
       "links": {},
-      "address": "0xa079A52A13D4e52fFeF25E11de050E02cdA3338D",
-      "transactionHash": "0xa3fed436b829f6f81bcca6d03a8975f95cf9d4a74a6d5f597721ebfc19bbbf9d"
+      "address": "0x3B2C6BD789e7f3a979e9e845592d75F70b11c9ac",
+      "transactionHash": "0x95fd03a18ae8c2a950f73c1f8c185ee1702dc7370e1c4bb88ae635380050565a"
     }
   },
   "schemaVersion": "2.0.0",
-  "updatedAt": "2018-07-12T22:36:26.138Z"
+  "updatedAt": "2018-07-13T01:37:22.519Z"
 }

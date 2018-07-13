@@ -316,7 +316,7 @@ contract ('Enigma', accounts => {
             });
     });
 
-    it ("...should verify the worker's signature and certificate", () => {
+    it.skip ("...should verify the worker's signature and certificate", () => {
         return EnigmaContract.deployed ()
             .then (instance => {
                 enigmaContract = instance;
@@ -345,7 +345,7 @@ contract ('Enigma', accounts => {
     );
 
     const eng_fee = 1;
-    it ("...should create a computation task from the enigma object", () => web3.eth.getBlockNumber ()
+    it.skip ("...should create a computation task from the enigma object", () => web3.eth.getBlockNumber ()
         .then (_blockNumber => {
             blockNumber = _blockNumber;
             // console.log ('the block number:', blockNumber);
