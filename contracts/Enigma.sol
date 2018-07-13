@@ -181,7 +181,7 @@ contract Enigma {
 
         // Invoking the callback method of the original contract
         // TODO: disable for now because the Python tests don't create deals, works with the JS tests
-        //        require(executeCall(secretContract, msg.value, data), "Unable to invoke the callback");
+        require(executeCall(tasks[taskId].dappContract, msg.value, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
         tasks[taskId].worker = msg.sender;
@@ -222,7 +222,7 @@ contract Enigma {
 
         address sigAddr = verifyParamsSig(seed, sig);
         // TODO: need a second report for testing the principal
-//        require(sigAddr == principal, "Invalid signature");
+        //        require(sigAddr == principal, "Invalid signature");
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.

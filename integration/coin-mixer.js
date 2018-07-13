@@ -39,13 +39,14 @@ let gasTracker = new testUtils.GasTracker (web3, GAS_PRICE_GWEI);
     }
 });
 
-
-// Function of the CoinMixer contract
-const callable = 'mixAddresses(uint32,address[],uint256)';
-const callback = 'distribute(uint32,address[])';
-
-let addresses = ['0x4B8D2c72980af7E6a0952F87146d6A225922acD7', '0x1d1B9890D277dE99fa953218D4C02CAC764641d7'];
-const encryptedAddresses = get_encryptedAddresses (addresses);
+// Parameters of the test Coin Mixer deals
+const CALLABLE = 'mixAddresses(uint32,address[],uint256)';
+const CALLBACK = 'distribute(uint32,address[])';
+const DEAL_TITLE = 'Test Coin Mixer #';
+const DEPOSIT_ETH = '1';
+const PARTICIPANTS = 2;
+const ENG_FEE = 1;
+const GAS = 4712388;
 
 let enigma;
 let principal;
@@ -54,6 +55,7 @@ let enigmaContract;
 let tokenContract;
 let coinMixerContract;
 let coinMixerAccounts;
+let encryptedAddresses = [];
 
 // Wait for workers to register to the network
 // Reparameterize the workers
@@ -68,23 +70,27 @@ function handleRegister (err, event) {
     // Declaring variables for the Coin Mixing Dapp
     let task;
     let dealId;
-    const depositAmount = web3Utils.toWei ('1', 'ether');
+    const depositAmount = web3Utils.toWei (DEPOSIT_ETH, 'ether');
 
     console.log ('creating coin mixing deal');
     // *********************************************
     // Emulating the principal, not part of the Dapp
+    // TODO: remove this when the principal node is fully integrated
     principal.setWorkersParams ()
         .then (result => {
             const event = result.logs[0];
             if (!event.args._success) {
                 throw 'Unable to set worker params';
             }
-
             // End of the principal emulation
             // ******************************
-            return coinMixerContract.newDeal ('test', depositAmount, 2, {
+
+            // First, an organizer creates a Coin Mixing and specifies its attributes.
+            // Appending the network seed to the deal title for uniqueness.
+            const title = DEAL_TITLE + event.args.seed;
+            return coinMixerContract.newDeal (title, depositAmount, PARTICIPANTS, {
                 from: web3.eth.defaultAccount,
-                gas: 4712388,
+                gas: GAS,
                 gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
             });
         })
@@ -96,18 +102,28 @@ function handleRegister (err, event) {
                 throw 'Unable to create coin mixing deal';
             }
             dealId = event.args._dealId.toNumber ();
-            console.log ('created deal', dealId, 'with', 2, 'participants depositing',
+            console.log ('created deal', dealId, 'with', PARTICIPANTS, 'participants depositing',
                 web3Utils.fromWei (depositAmount, 'ether'), 'ETH');
 
+            // Each participant must make a deposit and enter its dest address
+            // The dest address is encrypted locally so it never leave the
+            // browser memory in the clear.
             let promises = [];
-            for (let i = 0; i <= 1; i++) {
+            for (let i = 0; i < PARTICIPANTS; i++) {
                 console.log ('participant', coinMixerAccounts[i], 'making deposit');
-                promises.push (coinMixerContract.makeDeposit (dealId, encryptedAddresses[i], {
+
+                // For testing purposes, each participant enter its own address
+                // as a dest address. In a real use case, the dest address will be
+                // a different wallet (like a wallet created anonymously  using Tor).
+                const encryptedAddress = getEncryptedAddress (coinMixerAccounts[i]);
+                console.log ('encrypted dest address:', coinMixerAccounts[i], '=>', encryptedAddress);
+                promises.push (coinMixerContract.makeDeposit (dealId, encryptedAddress, {
                     from: coinMixerAccounts[i],
                     value: depositAmount,
-                    gas: 4712388,
+                    gas: GAS,
                     gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
                 }));
+                encryptedAddresses.push (encryptedAddress);
                 console.log ('deposit stored with destination address:', coinMixerAccounts[i]);
             }
             return Promise.all (promises);
@@ -121,45 +137,44 @@ function handleRegister (err, event) {
                     throw 'Unable to make deposit ' + coinMixerAccounts[i];
                 }
             }
-
-            console.log ('closed deal', dealId);
-            return coinMixerContract.executeDeal (dealId, {
-                from: web3.eth.defaultAccount,
-                gas: 4712388,
-                gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
-            });
-        })
-        .then (result => {
-            gasTracker.logGasUsed (result, 'executeDeal');
-
-            const event = result.logs[0];
-            if (!event.args._success) {
-                throw 'Unable to execute coin mixing deal';
-            }
-            console.log ('deal closed, sending encrypted addresses to Enigma');
+            console.log ('deal funded, sending encrypted addresses to Enigma');
             return web3.eth.getBlockNumber ();
         })
         .then (blockNumber => {
-            // This is where we are calling Enigma
+            // This is where we are giving out a task to the Enigma Network
+            // We use the Enigma library which wraps the Enigma Contract
+            // and implements cryptographic functions to verify SGX enclaves
             return enigma.createTask (blockNumber,
                 coinMixerContract.address,
-                callable,
+                CALLABLE,
                 [dealId, encryptedAddresses],
-                callback,
-                1,
+                CALLBACK,
+                ENG_FEE,
                 [eng.Preprocessor.RAND]
             );
         })
         .then (_task => {
             task = _task;
+            // Since the computation fee is paid in ENG, and ENG is an ERC20
+            // token, we must approve the fee before committing the
+            // computation task. The fee is not sent to the worker at this stage
+            // It is simply locked in the Enigma contract. Workers only receive
+            // their fees after submitted valid results. This will improve in
+            // future release as we are building an economic incentives model.
+
+            // To batch approve fees, consider Task.approveFee(tasks, options)
             return task.approveFee ({ from: web3.eth.defaultAccount });
         })
         .then (result => {
-            // TODO: improve the worker representation in the Task object
+            // Finally, we commit the task. This will call the Enigma contract
+            // which emits a ComputeTask event on the Enigma network. The selected worker
+            // will execute the task and commit results on chain. Once validated,
+            // results will be relayed to the CoinMixer contract using the
+            // callback function.
             console.log ('giving out task:', task.taskId, 'to signer', task._worker[0]);
             return task.compute ({
                 from: web3.eth.defaultAccount,
-                gas: 4712388,
+                gas: GAS,
                 gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
             });
         })
@@ -218,12 +233,11 @@ web3.eth.getAccounts ()
     });
 
 
-function get_encryptedAddresses (addresses) {
+function getEncryptedAddress (address) {
     let clientPrivKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
     let enclavePubKey = '0061d93b5412c0c99c3c7867db13c4e13e51292bd52565d002ecf845bb0cfd8adfa5459173364ea8aff3fe24054cca88581f6c3c5e928097b9d4d47fce12ae47';
     let derivedKey = engUtils.getDerivedKey (enclavePubKey, clientPrivKey);
-    let encrypted = [];
+    let encrypted = engUtils.encryptMessage (derivedKey, address);
 
-    addresses.forEach (address => encrypted.push (engUtils.encryptMessage (derivedKey, address)));
     return encrypted;
 }

@@ -158,20 +158,21 @@ contract ('Enigma', accounts => {
             assert.equal (task[0], coinMixerContract.address, "Task not found.");
         }));
 
+    // TODO: switch to using the billionaire contract which is easier to warm up
     // Changing a character in one of the two results should break the validation
     const localResults = [
-        0, [
+        1, [
             web3Utils.toChecksumAddress ('0x6330a553fc93768f612722bb8c2ec78ac90b3bbc'),
             web3Utils.toChecksumAddress ('0x5aeda56215b167893e80b4fe645ba6d5bab767de')
         ]
     ];
     const contractResults = [
-        0, [
+        1, [
             web3Utils.toChecksumAddress ('0x6330a553fc93768f612722bb8c2ec78ac90b3bbc'),
             web3Utils.toChecksumAddress ('0x5aeda56215b167893e80b4fe645ba6d5bab767de')
         ]
     ];
-    it ("...should commit the task results", () => EnigmaContract.deployed ()
+    it.skip ("...should commit the task results", () => EnigmaContract.deployed ()
         .then (instance => {
             enigmaContract = instance;
 

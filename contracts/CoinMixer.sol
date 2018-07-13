@@ -27,7 +27,7 @@ contract CoinMixer {
 
     event NewDeal(address indexed user, uint32 indexed _dealId, uint _startTime, bytes32 _title, uint _depositInWei, uint _numParticipants, bool _success, string _err);
     event Deposit(address indexed _depositor, uint32 indexed _dealId, bytes _encryptedDestAddress, uint _value, bool _success, string _err);
-    event Distribute(uint indexed _dealId, uint individualAmountInWei, uint32 nbTransfers, bool _success, string _err);
+    event Distribute(uint32 indexed _dealId, uint individualAmountInWei, uint32 nbTransfers, bool _success, string _err);
 
     event TransferredToken(address indexed to, uint256 value);
     event FailedTransfer(address indexed to, uint256 value);
@@ -89,38 +89,6 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-    function executeDeal(uint32 dealId)
-    public
-    payable
-    {
-        // Execute the deal and pay for computation
-        // TODO: refactor for RLP
-        Deal storage deal = deals[dealId];
-
-        // After giving this some thought, this is what I came up with to serialize arguments
-        // To avoid unecessary complexity, arguments will be provided as a bytes32 array
-        // Each argument will start by it's declaration like in the target function
-        //    name type (e.g. uint dealId)
-        // Followed by bytes32 encoded values.
-        // If the value is an array, just add each value sequentially.
-        // The EnigmaP contract has helper function to populate the arguments.
-        //        bytes32[] memory args = new bytes32[](deal.numDeposits + 3);
-        //        uint offset = 0;
-        //        offset = addArg(args, "uint dealId", offset, dealId);
-        //        offset = addEncryptedArg(args, "address[] destAddresses", offset, deal.encryptedDestAddresses);
-        bytes memory args = new bytes(64);
-
-        // This is the most generic way I came up with for the preprocessors.
-        // We can accept an unlimited number of preprocessors, each of which
-        // might have arbitrary attributes.
-        // The enclave will know who to apply each preprocessor by convention.
-        bytes32[] memory preprocessors = new bytes32[](1);
-        preprocessors[0] = "rand()";
-
-        // enigma.compute.value(msg.value)(this, "mixAddresses", args, "distribute", preprocessors);
-        emit DealExecuted(dealId, true);
-    }
-
     function mixAddresses(uint32 dealId, address[] destAddresses, uint256 rand)
     public
     pure
@@ -149,9 +117,9 @@ contract CoinMixer {
         _;
     }
 
-    function distribute(uint dealId, address[] destAddresses)
+    function distribute(uint32 dealId, address[] destAddresses)
     public
-        //    onlyEnigma() //TODO: enable after testing
+    onlyEnigma()
     returns (ReturnValue){
         // Distribute the deposits to destination addresses
         require(deals[dealId].status == 1, "Deal is not executed.");
