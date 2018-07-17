@@ -127,10 +127,15 @@ contract Enigma {
     public
     payable
     returns (ReturnValue) {
-        uint index = workerAddresses.length;
-        workerAddresses.length++;
-        workerAddresses[index] = msg.sender;
+        // TODO: consider exit if both signer and custodian as matching
+        // If the custodian is not already register, we add an index entry
+        if (workers[msg.sender].signer == 0x0) {
+            uint index = workerAddresses.length;
+            workerAddresses.length++;
+            workerAddresses[index] = msg.sender;
+        }
 
+        // Set the custodian attributes
         workers[msg.sender].signer = signer;
         workers[msg.sender].balance = msg.value;
         workers[msg.sender].report = report;

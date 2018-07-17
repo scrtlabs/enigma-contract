@@ -80,7 +80,6 @@ class Principal {
     }
 
     register () {
-
         //***** Simulating the principal node
         console.log ('registering principal', this.custodian);
         const report = engUtils.encodeReport (
