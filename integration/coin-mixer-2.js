@@ -40,6 +40,7 @@ let gasTracker = new testUtils.GasTracker (web3, GAS_PRICE_GWEI);
 });
 
 // Parameters of the test Coin Mixer deals
+const NB_DEALS = 1;
 const CALLABLE = 'mixAddresses(uint32,address[],uint256)';
 const CALLBACK = 'distribute(uint32,address[])';
 const DEPOSIT_ETH = '1';
@@ -217,12 +218,11 @@ web3.eth.getAccounts ()
         }
         console.log ('network using random seed:', event.args.seed.toNumber ());
 
-        const nb_deals = 1;
 
         function createDeals (index) {
-            createDeal ('Deal #' + index).then (() => {
+            return createDeal ('Deal #' + index).then (() => {
                 index++;
-                if (index < nb_deals) {
+                if (index < NB_DEALS) {
                     return createDeals (index);
                 }
             });
