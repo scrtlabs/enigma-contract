@@ -20,8 +20,8 @@ module.exports = {
         },
         // This network section is needed for travis-ci, do not remove
         ganache_remote: {
-            host: "10.0.0.75",
-            port: 8545,
+            host: "localhost",
+            port: 30000,
             network_id: "3"
         }
     },

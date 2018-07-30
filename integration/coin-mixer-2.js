@@ -40,9 +40,9 @@ let gasTracker = new testUtils.GasTracker (web3, GAS_PRICE_GWEI);
 });
 
 // Parameters of the test Coin Mixer deals
+const NB_DEALS = 1;
 const CALLABLE = 'mixAddresses(uint32,address[],uint256)';
 const CALLBACK = 'distribute(uint32,address[])';
-const DEAL_TITLE = 'Test Coin Mixer #';
 const DEPOSIT_ETH = '1';
 const PARTICIPANTS = 2;
 const ENG_FEE = 1;
@@ -50,7 +50,6 @@ const GAS = 4712388;
 
 let enigma;
 let principal;
-let Register;
 let enigmaContract;
 let tokenContract;
 let coinMixerContract;
@@ -60,12 +59,9 @@ let encryptedAddresses = [];
 // Wait for workers to register to the network
 // Reparameterize the workers
 // Give out a fully executed Coin Mixing deal to the network upon new worker registration
-function handleRegister (err, event) {
+function createDeal (title) {
     // Checks if the register event comes from a worker, not the principal node
-    console.log ('got Register event', JSON.stringify (event.args));
-    if (web3Utils.toChecksumAddress (event.args.custodian) === principal.custodian) {
-        return false;
-    }
+    console.log ('creating deal', title);
 
     // Declaring variables for the Coin Mixing Dapp
     let task;
@@ -73,27 +69,11 @@ function handleRegister (err, event) {
     const depositAmount = web3Utils.toWei (DEPOSIT_ETH, 'ether');
 
     console.log ('creating coin mixing deal');
-    // *********************************************
-    // Emulating the principal, not part of the Dapp
-    // TODO: remove this when the principal node is fully integrated
-    principal.setWorkersParams ()
-        .then (result => {
-            const event = result.logs[0];
-            if (!event.args._success) {
-                throw 'Unable to set worker params';
-            }
-            // End of the principal emulation
-            // ******************************
-
-            // First, an organizer creates a Coin Mixing and specifies its attributes.
-            // Appending the network seed to the deal title for uniqueness.
-            const title = DEAL_TITLE + event.args.seed;
-            return coinMixerContract.newDeal (title, depositAmount, PARTICIPANTS, {
-                from: web3.eth.defaultAccount,
-                gas: GAS,
-                gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
-            });
-        })
+    return coinMixerContract.newDeal (title, depositAmount, PARTICIPANTS, {
+        from: web3.eth.defaultAccount,
+        gas: GAS,
+        gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+    })
         .then (result => {
             gasTracker.logGasUsed (result, 'newDeal');
 
@@ -191,7 +171,6 @@ function handleRegister (err, event) {
         })
         .catch (err => {
             console.error (err);
-            Register.stopWatching ();
         })
 }
 
@@ -222,11 +201,34 @@ web3.eth.getAccounts ()
     })
     .then (instance => {
         coinMixerContract = instance;
-        Register = enigmaContract.Register ({ fromBlock: 0 });
-        Register.watch (handleRegister);
-        console.log ('waiting for Register events...');
 
         return principal.register ();
+    })
+    .then (result => {
+        const event = result.logs[0];
+        if (!event.args._success) {
+            throw 'Unable to register worker';
+        }
+        return principal.setWorkersParams ();
+    })
+    .then (result => {
+        const event = result.logs[0];
+        if (!event.args._success) {
+            throw 'Unable to set worker params';
+        }
+        console.log ('network using random seed:', event.args.seed.toNumber ());
+
+
+        function createDeals (index) {
+            return createDeal ('Deal #' + index).then (() => {
+                index++;
+                if (index < NB_DEALS) {
+                    return createDeals (index);
+                }
+            });
+        }
+
+        createDeals (0);
     })
     .catch (err => {
         console.error (err);
