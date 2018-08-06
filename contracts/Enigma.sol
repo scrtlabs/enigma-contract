@@ -424,8 +424,8 @@ contract Enigma {
         view
         returns (address)
     {
-        (uint256 b, uint256 seed, address[] memory workers) = getWorkersParams(blockNumber);
-        address[] memory _workers = filterWorkers(workers);
+        (uint256 b, uint256 seed, address[] memory workerArray) = getWorkersParams(blockNumber);
+        address[] memory _workers = filterWorkers(workerArray);
 
         bytes32 hash = keccak256(abi.encodePacked(seed, taskId));
         uint256 index = uint256(hash) % _workers.length;
