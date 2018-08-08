@@ -88,11 +88,11 @@ contract Enigma {
     mapping(bytes32 => Task) public tasks;
 
     // The events emitted by the contract
-    event Registered(address custodian, address signer, bool _success);
+    event Register(address custodian, address signer, bool _success);
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
-    event CommitedResults(address dappContract, address worker, bytes sig, uint reward, bool _success);
+    event CommitResults(address dappContract, address worker, bytes sig, uint reward, bool _success);
     event WorkersParameterized(uint256 seed, address[] workers, bool _success);
-    event ComputedTask(
+    event ComputeTask(
         address indexed dappContract,
         bytes32 indexed taskId,
         string callable,
