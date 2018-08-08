@@ -1,8 +1,9 @@
 pragma solidity ^0.4.24;
 
-import "./zeppelin/SafeMath.sol";
-import "./zeppelin/ECRecovery.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/ECRecovery.sol";
 import "./utils/GetCode2.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 contract IERC20 {
     function balanceOf(address who) public view returns (uint256);
@@ -147,7 +148,7 @@ contract Enigma {
         workers[msg.sender].report = report;
         workers[msg.sender].status = 1;
 
-        emit Registered(msg.sender, signer, true);
+        emit Register(msg.sender, signer, true);
 
         return ReturnValue.Ok;
     }
@@ -206,7 +207,7 @@ contract Enigma {
         tasks[taskId].blockNumber = blockNumber;
 
         // Emit the ComputeTask event which each node is watching for
-        emit ComputedTask(
+        emit ComputeTask(
             dappContract,
             taskId,
             callable,
@@ -269,6 +270,8 @@ contract Enigma {
     {
         // Task must be solved only once
         require(tasks[taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
+        // TODO: run worker selection algo to validate right worker
+        require(block.number > blockNumber, "Block number in the future.");
 
         address sigAddr = verifyCommitSig(tasks[taskId], data, sig);
         require(sigAddr != address(0), "Cannot verify this signature.");
@@ -280,7 +283,7 @@ contract Enigma {
         require(reward > 0, "Reward cannot be zero.");
 
         // Invoking the callback method of the original contract
-        require(executeCall(tasks[taskId].dappContract, msg.value, data), "Unable to invoke the callback");
+        require(executeCall(tasks[taskId].dappContract, 0, data), "Unable to invoke the callback");
 
         // Keep a trace of the task worker and proof
         tasks[taskId].worker = msg.sender;
@@ -293,7 +296,7 @@ contract Enigma {
         Worker storage worker = workers[msg.sender];
         worker.balance = worker.balance.add(reward);
 
-        emit CommitedResults(tasks[taskId].dappContract, sigAddr, sig, reward, true);
+        emit CommitResults(tasks[taskId].dappContract, sigAddr, sig, reward, true);
 
         return ReturnValue.Ok;
     }

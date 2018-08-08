@@ -1,5 +1,5 @@
 pragma solidity ^0.4.24;
-import "./zeppelin/StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 /**
  * @title Enigma Token
