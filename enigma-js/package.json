@@ -1,0 +1,63 @@
+{
+  "name": "enigma-js",
+  "version": "0.0.1",
+  "description": "The Javascript client for the Enigma Network",
+  "main": "lib/enigma-js.js",
+  "scripts": {
+    "build": "webpack --env dev && webpack --env build && npm run test",
+    "dev": "webpack --progress --colors --watch --env dev",
+    "test": "mocha --require babel-register --colors ./test/*.spec.js",
+    "test:watch": "mocha --require babel-register --colors -w ./test/*.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "webpack",
+    "es6",
+    "starter",
+    "library",
+    "universal",
+    "umd",
+    "commonjs"
+  ],
+  "author": "Frederic Fortier <fred@enigma.co>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  },
+  "homepage": "https://enigma.co",
+  "dependencies": {
+    "buffer": "^5.1.0",
+    "elliptic": "6.4.0",
+    "eth-crypto": "^1.2.2",
+    "ethereumjs-abi": "^0.6.5",
+    "node-forge": "^0.7.6",
+    "openzeppelin-solidity": "^1.11.0",
+    "rlp": "2.1.0",
+    "truffle-contract": "^3.0.6",
+    "web3": "^1.0.0-beta.34",
+    "web3-utils": "1.0.0-beta.34"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.0.0-beta.51",
+    "@babel/core": "^7.0.0-beta.51",
+    "@babel/preset-env": "^7.0.0-beta.51",
+    "babel-eslint": "^8.0.3",
+    "babel-loader": "^8.0.0-beta.4",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-preset-env": "^7.0.0-beta.3",
+    "babel-register": "^7.0.0-beta.3",
+    "chai": "^4.1.2",
+    "eslint": "^5.0.1",
+    "eslint-loader": "^2.0.0",
+    "jsdom": "11.11.0",
+    "jsdom-global": "3.0.2",
+    "mocha": "^4.0.1",
+    "uglifyjs-webpack-plugin": "^1.2.7",
+    "webpack": "^4.12.2",
+    "webpack-cli": "^3.0.8",
+    "yargs": "^10.0.3"
+  }
+}
