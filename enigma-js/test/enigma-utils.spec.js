@@ -18,6 +18,8 @@ describe('enigma-utils', () => {
     const msg = 'This Is Enigma';
     const encrypted = utils.encryptMessage(key, msg, iv);
 
-    expect(encrypted).to.be.equal('02dc75395859faa78a598e11945c7165db9a16d16ada1b026c9434b134ae000102030405060708090a0b');
+    expect(encrypted).to.be.equal(
+      '02dc75395859faa78a598e11945c7165db9a16d16ada1b026c9434b134ae000102030405060708090a0b',
+    );
   });
 });

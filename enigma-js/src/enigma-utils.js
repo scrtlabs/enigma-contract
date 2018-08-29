@@ -43,6 +43,12 @@ const INTEL_CA = '-----BEGIN CERTIFICATE-----\n' +
   'DaVzWh5aiEx+idkSGMnX\n' +
   '-----END CERTIFICATE-----';
 
+/**
+ * Serialize the pem cert.
+ *
+ * @param pem
+ * @returns {*}
+ */
 function readCert(pem) {
   let cert;
 
@@ -51,7 +57,7 @@ function readCert(pem) {
   } catch (e) {
     return {
       verified: false,
-      err: 'Failed to load report certificate: ' + e
+      err: 'Failed to load report certificate : ' + e,
     };
   }
   return cert;
@@ -61,7 +67,7 @@ function readCert(pem) {
  * Parse the signer's address from the quote
  *
  * @param reportContent
- * @returns {string}
+ * @return {string}
  */
 function parseAddress(reportContent) {
   const report = JSON.parse(reportContent);
@@ -88,7 +94,7 @@ function verifyWorker(signer, encodedReport) {
   if (report === 'simulation') {
     return {
       verified: true,
-      err: 'Running in simulation mode'
+      err: 'Running in simulation mode',
     };
   }
 
@@ -108,13 +114,13 @@ function verifyWorker(signer, encodedReport) {
     if (!verified) {
       return {
         verified: false,
-        err: 'The signature does not match the signed report'
+        err: 'The signature does not match the signed report',
       };
     }
   } catch (e) {
     return {
       verified: false,
-      err: 'Failed to verify the report signature: ' + e
+      err: 'Failed to verify the report signature: ' + e,
     };
   }
 
@@ -125,7 +131,7 @@ function verifyWorker(signer, encodedReport) {
   } catch (e) {
     return {
       verified: false,
-      err: 'Failed to load CA certificate: ' + e
+      err: 'Failed to load CA certificate: ' + e,
     };
   }
 
@@ -134,7 +140,7 @@ function verifyWorker(signer, encodedReport) {
   } catch (e) {
     return {
       verified: false,
-      err: 'Failed to verify certificate: ' + e
+      err: 'Failed to verify certificate: ' + e,
     };
   }
 
@@ -143,7 +149,8 @@ function verifyWorker(signer, encodedReport) {
   if (address !== signer) {
     return {
       verified: false,
-      err: 'Signer address does not match the report: ' + signer + ' != ' + address
+      err: 'Signer address does not match the report: ' + signer + ' != ' +
+        address,
     };
   }
 
@@ -158,14 +165,14 @@ function verifyWorker(signer, encodedReport) {
  * @param callable
  * @param callableArgs
  * @param blockNumber
- * @returns {Object}
+ * @return {Object}
  */
 function generateTaskId(dappContract, callable, callableArgs, blockNumber) {
   const taskId = web3Utils.soliditySha3(
     {t: 'address', v: dappContract},
     {t: 'string', v: callable},
     {t: 'bytes', v: callableArgs},
-    {t: 'uint256', v: blockNumber}
+    {t: 'uint256', v: blockNumber},
   );
 
   return taskId;
@@ -181,7 +188,7 @@ function generateTaskId(dappContract, callable, callableArgs, blockNumber) {
 function selectWorker(seed, taskId, workers) {
   const hash = web3Utils.soliditySha3(
     {t: 'uint256', v: seed},
-    {t: 'bytes32', v: taskId}
+    {t: 'bytes32', v: taskId},
   );
 
   // The JS % operator does not produce the correct output
@@ -197,7 +204,7 @@ function selectWorker(seed, taskId, workers) {
  * @param report
  * @param cert
  * @param sig
- * @returns {string}
+ * @return {string}
  */
 function encodeReport(report, cert, sig) {
   return '0x' + RLP.encode([report, cert, sig]).toString('hex');
@@ -207,7 +214,7 @@ function encodeReport(report, cert, sig) {
  * Verifies that the specified method signature matches the specs defined
  * by the Ethereum abi: https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
  * @param methodSig
- * @returns {boolean}
+ * @return {boolean}
  */
 function checkMethodSignature(methodSig) {
   const rx = /\b\((.*?)\)/g;
@@ -220,7 +227,7 @@ function checkMethodSignature(methodSig) {
  * Generate an Ethereum-like address from a public key
  *
  * @param publicKey
- * @returns {*|string}
+ * @return {*|string}
  */
 function toAddress(publicKey) {
   const address = EthCrypto.publicKey.toAddress(publicKey);
@@ -233,12 +240,12 @@ function toAddress(publicKey) {
  *
  * @param privateKey
  * @param message
- * @returns {string}
+ * @return {string}
  */
 function sign(privateKey, message) {
   const signature = EthCrypto.sign(
     privateKey,
-    message
+    message,
   );
 
   return signature;
@@ -254,7 +261,7 @@ function sign(privateKey, message) {
  *
  * @param {string} enclavePublicKey
  * @param {string} clientPrivateKey
- * @returns {string}
+ * @return {string}
  */
 function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   let ec = new EC('secp256k1');
@@ -285,7 +292,7 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
  *
  * @param {string} keyHex
  * @param {string} msg
- * @returns {string}
+ * @return {string}
  */
 function decryptMessage(keyHex, msg) {
   let key = forge.util.hexToBytes(keyHex);
@@ -295,7 +302,8 @@ function decryptMessage(keyHex, msg) {
   const decipher = forge.cipher.createDecipher('AES-GCM', key);
 
   decipher.start({iv: iv, tag: tag});
-  decipher.update(forge.util.createBuffer(msgBuf.slice(0, -28).toString('binary')));
+  decipher.update(
+    forge.util.createBuffer(msgBuf.slice(0, -28).toString('binary')));
 
   if (decipher.finish()) {
     return decipher.output.getBytes();
@@ -311,7 +319,7 @@ function decryptMessage(keyHex, msg) {
  * @param {string} keyHex
  * @param {string} msg
  * @param {string} iv
- * @returns {string}
+ * @return {string}
  */
 function encryptMessage(keyHex, msg, iv = forge.random.getBytesSync(12)) {
   let key = forge.util.hexToBytes(keyHex);
