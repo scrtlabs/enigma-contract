@@ -46,8 +46,8 @@ const INTEL_CA = '-----BEGIN CERTIFICATE-----\n' +
 /**
  * Serialize the pem cert.
  *
- * @param pem
- * @returns {*}
+ * @param {string} pem
+ * @return {*}
  */
 function readCert(pem) {
   let cert;
@@ -66,7 +66,7 @@ function readCert(pem) {
 /**
  * Parse the signer's address from the quote
  *
- * @param reportContent
+ * @param {string} reportContent
  * @return {string}
  */
 function parseAddress(reportContent) {
@@ -79,12 +79,9 @@ function parseAddress(reportContent) {
 /**
  * Verifies that the worker signer address is associated to an authentic SGX report
  *
- * @param signer
- * @param quote
- * @param report
- * @param reportCa
- * @param reportCert
- * @param reportSig
+ * @param {string} signer
+ * @param {string} encodedReport
+ * @return {*}
  */
 function verifyWorker(signer, encodedReport) {
   const reportArgs = RLP.decode(encodedReport);
@@ -161,10 +158,10 @@ function verifyWorker(signer, encodedReport) {
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param dappContract
- * @param callable
- * @param callableArgs
- * @param blockNumber
+ * @param {string} dappContract
+ * @param {string} callable
+ * @param {string} callableArgs
+ * @param {number} blockNumber
  * @return {Object}
  */
 function generateTaskId(dappContract, callable, callableArgs, blockNumber) {
@@ -181,9 +178,10 @@ function generateTaskId(dappContract, callable, callableArgs, blockNumber) {
 /**
  * Running a pseudo-random algo which discovers the worker selected for the task
  *
- * @param seed
- * @param taskId
- * @param workers
+ * @param {number} seed
+ * @param {string} taskId
+ * @param {Object[]} workers
+ * @return {string}
  */
 function selectWorker(seed, taskId, workers) {
   const hash = web3Utils.soliditySha3(
@@ -201,9 +199,9 @@ function selectWorker(seed, taskId, workers) {
 /**
  * RLP encode report parts
  *
- * @param report
- * @param cert
- * @param sig
+ * @param {string} report
+ * @param {string} cert
+ * @param {string} sig
  * @return {string}
  */
 function encodeReport(report, cert, sig) {
@@ -213,7 +211,8 @@ function encodeReport(report, cert, sig) {
 /**
  * Verifies that the specified method signature matches the specs defined
  * by the Ethereum abi: https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
- * @param methodSig
+ *
+ * @param {string} methodSig
  * @return {boolean}
  */
 function checkMethodSignature(methodSig) {
@@ -226,8 +225,8 @@ function checkMethodSignature(methodSig) {
 /**
  * Generate an Ethereum-like address from a public key
  *
- * @param publicKey
- * @return {*|string}
+ * @param {string} publicKey
+ * @return {string}
  */
 function toAddress(publicKey) {
   const address = EthCrypto.publicKey.toAddress(publicKey);
@@ -238,8 +237,8 @@ function toAddress(publicKey) {
 /**
  * Sign a message with the specified private key
  *
- * @param privateKey
- * @param message
+ * @param {string} privateKey
+ * @param {string} message
  * @return {string}
  */
 function sign(privateKey, message) {
