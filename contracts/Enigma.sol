@@ -24,6 +24,11 @@ contract Enigma {
     // The interface of the deployed ENG ERC20 token contract
     IERC20 public engToken;
 
+    struct TaskRecord {
+        bytes taskId;
+        uint fee;
+    }
+
     // The data representation of a computation task
     struct Task {
         address dappContract;
@@ -172,58 +177,16 @@ contract Enigma {
     }
 
     /**
-    * Give out a computation task to the network
+    * Store task record
     *
-    * @param dappContract The address of the deployed contract containing the callable method
-    * @param callable The signature (as defined by the Ethereum ABI) of the function to compute
-    * @param callableArgs The RLP serialized arguments of the callable function
-    * @param callback The signature of the function to call back with the results
-    * @param fee The computation fee in ENG
-    * @param preprocessors A list of preprocessors to run and inject as argument of callable
-    * @param blockNumber The current block number
     */
-    function compute(
-        address dappContract,
-        string callable,
-        bytes callableArgs,
-        string callback,
-        uint256 fee,
-        bytes32[] preprocessors,
-        uint256 blockNumber
+    function createTaskRecord(
+        bytes taskId,
+        uint fee
     )
         public
-        returns (ReturnValue)
     {
-        // TODO: Add a multiplier to the fee (like ETH => wei) in order to accept smaller denominations
-        bytes32 taskId = generateTaskId(dappContract, callable, callableArgs, blockNumber);
-        require(tasks[taskId].dappContract == 0x0, "Task with the same taskId already exist");
-
-        tasks[taskId].reward = fee;
-        tasks[taskId].callable = callable;
-        tasks[taskId].callableArgs = callableArgs;
-        tasks[taskId].callback = callback;
-        tasks[taskId].status = TaskStatus.InProgress;
-        tasks[taskId].dappContract = dappContract;
-        tasks[taskId].blockNumber = blockNumber;
-
-        // Emit the ComputeTask event which each node is watching for
-        emit ComputeTask(
-            dappContract,
-            taskId,
-            callable,
-            callableArgs,
-            callback,
-            fee,
-            preprocessors,
-            blockNumber,
-            true
-        );
-
-        // Transferring before emitting does not work
-        // TODO: check the allowance first
-        engToken.transferFrom(msg.sender, this, fee);
-
-        return ReturnValue.Ok;
+        TaskRecord(taskId, fee);
     }
 
     // Verify the task results signature

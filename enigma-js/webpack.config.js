@@ -19,33 +19,36 @@ if (env === 'build') {
 
 const config = {
   mode: mode,
-  entry: __dirname + '/src/index.js',
+  entry: [__dirname + '/src/index.js'],
   devtool: 'source-map',
+  plugins: [
+    new webpack.NormalModuleReplacementPlugin(/^any-promise$/, 'bluebird'),
+  ],
   output: {
     path: __dirname + '/lib',
     filename: outputFile,
     library: libraryName,
     libraryTarget: 'umd',
-    umdNamedDefine: true
+    umdNamedDefine: true,
   },
   module: {
     rules: [
       {
         test: /(\.jsx|\.js)$/,
         loader: 'babel-loader',
-        exclude: /(node_modules|bower_components)/
+        exclude: /(node_modules|bower_components)/,
       },
       {
         test: /(\.jsx|\.js)$/,
         loader: 'eslint-loader',
-        exclude: /node_modules/
-      }
-    ]
+        exclude: /node_modules/,
+      },
+    ],
   },
   resolve: {
     modules: [path.resolve('./node_modules'), path.resolve('./src')],
-    extensions: ['.json', '.js']
-  }
+    extensions: ['.json', '.js'],
+  },
 };
 
 module.exports = config;

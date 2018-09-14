@@ -1,9 +1,8 @@
 /* eslint-disable prefer-spread,prefer-rest-params */
-import Web3 from 'web3';
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
-import contract from 'truffle-contract';
-
+// import contract from 'truffle-contract';
+//
 /**
  * Class encapsulation the Enigma operations.
  */
@@ -11,34 +10,59 @@ export default class Enigma {
   /**
    * The Enigma constructor
    *
-   * @param {Web3.Provider} web3Provider
+   * @param {Web3} web3
+   * @param {string} enigmaContractAddr
+   * @param {string} tokenContractAddr
    * @param {Object} txDefaults
    */
-  constructor(web3Provider, txDefaults = {}) {
-    this.web3 = new Web3(web3Provider);
+  constructor(web3, enigmaContractAddr, tokenContractAddr, txDefaults = {}) {
+    this.web3 = web3;
     this.txDefaults = txDefaults;
-    this.createContracts(web3Provider);
+
+    this.createContracts(enigmaContractAddr, tokenContractAddr);
   }
 
   /**
    * Creating the Enigma contracts.
    *
-   * @param {Web3.Provider} provider
+   * @param {string} enigmaContractAddr
+   * @param {string} tokenContractAddr
    */
-  createContracts(provider) {
-    this.Enigma = contract(EnigmaContract);
-    this.EnigmaToken = contract(EnigmaTokenContract);
+  createContracts(enigmaContractAddr, tokenContractAddr) {
+    this.enigmaContract = new this.web3.eth.Contract(EnigmaContract['abi'],
+      enigmaContractAddr, this.txDefaults);
+    this.tokenContract = new this.web3.eth.Contract(EnigmaTokenContract['abi'],
+      tokenContractAddr, this.txDefaults);
+  }
 
-    // Workaround for this issue: https://github.com/trufflesuite/truffle-contract/issues/57
-    [this.Enigma, this.EnigmaToken].forEach((instance) => {
-      instance.setProvider(provider);
-      if (typeof instance.currentProvider.sendAsync !== 'function') {
-        instance.currentProvider.sendAsync = function() {
-          return instance.currentProvider.send.apply(
-            instance.currentProvider, arguments,
-          );
-        };
-      }
-    });
+  /**
+   * Store a task record on chain
+   *
+   * @param {string} taskId
+   * @param {number} fee
+   */
+  createTaskRecord(taskId, fee) {
+    console.log('creating task record', taskId, fee);
+    this.enigmaContract.methods.createTaskRecord(taskId, fee).
+      send(this.txDefaults).
+      on('transactionHash', function(hash) {
+        console.log('got tx hash', hash);
+      }).
+      on('receipt', function(receipt) {
+        console.log('got receipt', receipt);
+      }).
+      on('confirmation', function(confirmationNumber, receipt) {
+        console.log('got confirmation', confirmationNumber, receipt);
+      }).
+      on('error', console.error);
+  }
+
+  /**
+   * Return the version number of the library
+   *
+   * @return {string}
+   */
+  version() {
+    return '0.0.1';
   }
 }
