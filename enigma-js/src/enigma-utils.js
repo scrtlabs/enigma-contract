@@ -158,18 +158,18 @@ function verifyWorker(signer, encodedReport) {
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {string} dappContract
- * @param {string} callable
- * @param {string} callableArgs
+ * @param {string} inputsHash
+ * @param {string} codeHash
  * @param {number} blockNumber
+ * @param {string} userPubKeyHash
  * @return {Object}
  */
-function generateTaskId(dappContract, callable, callableArgs, blockNumber) {
+function generateTaskId(inputsHash, codeHash, blockNumber, userPubKeyHash) {
   const taskId = web3Utils.soliditySha3(
-    {t: 'address', v: dappContract},
-    {t: 'string', v: callable},
-    {t: 'bytes', v: callableArgs},
+    {t: 'bytes', v: inputsHash},
+    {t: 'bytes', v: codeHash},
     {t: 'uint256', v: blockNumber},
+    {t: 'bytes', v: userPubKeyHash},
   );
 
   return taskId;

@@ -25,21 +25,27 @@ contract Enigma {
     IERC20 public engToken;
 
     struct TaskRecord {
-        bytes taskId;
+        bytes32 taskId;
         uint fee;
+        address token;
+        uint tokenValue;
     }
 
-    // The data representation of a computation task
-    struct Task {
-        address dappContract;
-        TaskStatus status;
-        string callable;
-        bytes callableArgs;
-        string callback;
-        address worker;
+    struct TaskReceipt {
+        bytes32 taskId;
+        bytes32 inStateDeltaHash;
+        bytes32 outStateDeltaHash;
+        bytes ethCall;
         bytes sig;
-        uint256 reward;
-        uint256 blockNumber;
+    }
+
+    struct Task {
+        address secretContractAddr;
+        bytes32 taskId;
+        uint blockNumber;
+        uint fee;
+        address token;
+        uint tokenValue;
     }
     enum TaskStatus {InProgress, Executed}
 
@@ -156,24 +162,6 @@ contract Enigma {
         emit Register(msg.sender, signer, true);
 
         return ReturnValue.Ok;
-    }
-
-    /**
-    * Generates a unique task id
-    *
-    * @param dappContract The address of the deployed contract containing the callable method
-    * @param callable The signature (as defined by the Ethereum ABI) of the function to compute
-    * @param callableArgs The RLP serialized arguments of the callable function
-    * @param blockNumber The current block number
-    * @return The task id
-    */
-    function generateTaskId(address dappContract, string callable, bytes callableArgs, uint256 blockNumber)
-        public
-        pure
-        returns (bytes32)
-    {
-        bytes32 hash = keccak256(abi.encodePacked(dappContract, callable, callableArgs, blockNumber));
-        return hash;
     }
 
     /**

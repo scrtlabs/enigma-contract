@@ -1,4 +1,6 @@
 import chai from 'chai';
+import web3Utils from 'web3-utils';
+import RLP from 'rlp';
 import {utils} from '../lib/enigma-js';
 import forge from 'node-forge';
 
@@ -21,5 +23,14 @@ describe('enigma-utils', () => {
     expect(encrypted).to.be.equal(
       '02dc75395859faa78a598e11945c7165db9a16d16ada1b026c9434b134ae000102030405060708090a0b',
     );
+  });
+
+  it('should generate a taskId', () => {
+    const inputsHash = web3Utils.sha3('xxx');
+    const codeHash = web3Utils.sha3('zzz');
+    const blockNumberHash = web3Utils.sha3(1);
+    const userPubKeyHash = web3Utils.sha3('ffff');
+
+    utils.generateTaskId(inputsHash, codeHash, blockNumberHash, userPubKeyHash);
   });
 });

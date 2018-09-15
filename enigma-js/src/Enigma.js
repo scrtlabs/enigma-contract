@@ -1,12 +1,54 @@
 /* eslint-disable prefer-spread,prefer-rest-params */
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
-// import contract from 'truffle-contract';
-//
+
+/**
+ * Encapsulates a task record
+ */
+export class TaskRecord {
+  /**
+   * Instantiate a task record
+   *
+   * @param {string} taskId
+   * @param {number} fee
+   * @param {Object} token
+   * @param {number} tokenValue
+   */
+  constructor(taskId, fee, token, tokenValue) {
+    this.taskId = taskId;
+    this.fee = fee;
+    this.token = token;
+    this.tokenValue = tokenValue;
+  }
+}
+
+/**
+ * Encapsulates the task receipt
+ */
+export class TaskReceipt {
+  /**
+   * Instantiate a task receipt
+   *
+   * @param {Object} scAddr
+   * @param {string} inputStateDeltaHash
+   * @param {string} outputStateDeltaHash
+   * @param {string} inputsHash
+   * @param {string} resultsHash
+   * @param {string} userPubKeyHash
+   * @param {string} ethCallsHash
+   * @param {number} blockNumber
+   */
+  constructor(
+    scAddr, inputStateDeltaHash, outputStateDeltaHash, inputsHash, resultsHash, userPubKeyHash, ethCallsHash,
+    blockNumber) {
+
+  }
+}
+
 /**
  * Class encapsulation the Enigma operations.
  */
-export default class Enigma {
+export class Enigma {
   /**
    * The Enigma constructor
    *
@@ -55,6 +97,44 @@ export default class Enigma {
         console.log('got confirmation', confirmationNumber, receipt);
       }).
       on('error', console.error);
+  }
+
+  /**
+   * Store multiple task records
+   */
+  createTaskRecords() {
+
+  }
+
+  /**
+   * Find an existing task
+   *
+   * @param {string} taskId
+   */
+  getTask(taskId) {
+
+  }
+
+  /**
+   * Store a task receipt
+   */
+  commitTaskReceipt() {
+
+  }
+
+  /**
+   * Store multiple task receipts
+   */
+  commitTaskReceipts() {
+
+  }
+
+  /**
+   * Find SGX report
+   * @param {string} signerAddr
+   */
+  getReport(signerAddr) {
+
   }
 
   /**
