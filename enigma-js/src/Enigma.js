@@ -82,10 +82,12 @@ export default class Enigma {
    *
    * @param {string} taskId
    * @param {number} fee
+   * @param {string} token
+   * @param {number} tokenValue
    */
-  createTaskRecord(taskId, fee) {
+  createTaskRecord(taskId, fee, token='0x0', tokenValue=0) {
     console.log('creating task record', taskId, fee);
-    this.enigmaContract.methods.createTaskRecord(taskId, fee).
+    this.enigmaContract.methods.createTaskRecord(taskId, fee, token, tokenValue).
       send(this.txDefaults).
       on('transactionHash', (hash) => {
         console.log('got tx hash', hash);

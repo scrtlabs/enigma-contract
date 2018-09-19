@@ -10,7 +10,7 @@ const testUtils = require ('./test-utils');
 // with Truffle upgrades
 const web3Utils = require ('web3-utils');
 
-const GAS_PRICE_GWEI = '2'; // To estimate current gas price: https://ethgasstation.info/
+const GAS_PRICE_GWEI = '6'; // To estimate current gas price: https://ethgasstation.info/
 const ENG_SUPPLY = 15000000000000000;
 
 // console.log ('testing the enigma lib:', engUtils.test ());
@@ -46,7 +46,8 @@ contract ('Enigma', accounts => {
                     worker[0], report,
                     {
                         from: accounts[i],
-                        gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei')
+                        gasPrice: web3Utils.toWei (GAS_PRICE_GWEI, 'gwei'),
+                        gas: 10000
                     }
                 );
                 promises.push (promise);

@@ -15,8 +15,10 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  const GAS_PRICE = '10000000000000';
-  const GAS = 1000000;
+  const gasDefaults = {
+    gas: 4712388,
+    gasPrice: 100000000000,
+  };
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
@@ -29,9 +31,9 @@ describe('Enigma tests', () => {
         EnigmaContract.networks['4447'].address,
         EnigmaTokenContract.networks['4447'].address,
         {
+          gas: 4712388,
+          gasPrice: 100000000000,
           from: accounts[0],
-          gasPrice: GAS_PRICE,
-          gas: GAS,
         },
       );
       expect(enigma.version()).to.be.equal('0.0.1');
@@ -54,7 +56,11 @@ describe('Enigma tests', () => {
       // Using the same artificial data for all workers
       let promise = new Promise((resolve, reject) => {
         enigmaContract.methods.register(worker[0], report).
-          send({from: accounts[i], gasPrice: GAS_PRICE, gas: GAS}).
+          send({
+            gas: 4712388,
+            gasPrice: 100000000000,
+            from: accounts[i],
+          }).
           on('receipt', (receipt) => resolve(receipt)).
           on('error', (error) => reject(error));
       });

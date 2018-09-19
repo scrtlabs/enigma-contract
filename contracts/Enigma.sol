@@ -2,7 +2,6 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ECRecovery.sol";
-import "./utils/GetCode2.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 contract IERC20 {
