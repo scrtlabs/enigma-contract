@@ -1,6 +1,5 @@
 import chai from 'chai';
 import web3Utils from 'web3-utils';
-import RLP from 'rlp';
 import {utils} from '../lib/enigma-js';
 import forge from 'node-forge';
 

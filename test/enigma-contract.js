@@ -60,7 +60,8 @@ contract ('Enigma', accounts => {
                 assert.equal (event.args._success, true, "Worker registration failed.");
             });
             gasTracker.logGasUsed (results[0], 'register');
-        }));
+        })
+    );
 
     it ("...should fetch worker details", () => EnigmaContract.deployed ()
         .then (instance => {

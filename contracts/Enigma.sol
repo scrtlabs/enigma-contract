@@ -40,16 +40,17 @@ contract Enigma {
     }
 
     struct Task {
-        address secretContractAddr;
         bytes32 taskId;
-        uint blockNumber;
         uint fee;
         address token;
         uint tokenValue;
+        bytes32 inStateDeltaHash;
+        bytes32 outStateDeltaHash;
+        bytes ethCall;
+        bytes sig;
+        TaskStatus status;
     }
-    enum TaskStatus {InProgress, Executed}
-
-    enum ReturnValue {Ok, Error}
+    enum TaskStatus {RecordCreated, ReceiptVerified}
 
     /**
     * The signer address of the principal node
@@ -100,21 +101,11 @@ contract Enigma {
     mapping(bytes32 => Task) public tasks;
 
     // The events emitted by the contract
-    event Register(address custodian, address signer, bool _success);
-    event ValidatedSig(bytes sig, bytes32 hash, address workerAddr, bool _success);
-    event CommitResults(address dappContract, address worker, bytes sig, uint reward, bool _success);
-    event WorkersParameterized(uint256 seed, address[] workers, bool _success);
-    event ComputeTask(
-        address indexed dappContract,
-        bytes32 indexed taskId,
-        string callable,
-        bytes callableArgs,
-        string callback,
-        uint256 fee,
-        bytes32[] preprocessors,
-        uint256 blockNumber,
-        bool _success
-    );
+    event Registered(address custodian, address signer);
+    event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);
+    event WorkersParameterized(uint256 seed, address[] workers, address[] secretContracts);
+    event TaskRecordCreated(bytes32 taskId, uint fee, address token, uint tokenValue, address sender);
+    event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
 
     constructor(address _tokenAddress, address _principal) public {
         engToken = IERC20(_tokenAddress);
@@ -143,7 +134,6 @@ contract Enigma {
     function register(address signer, bytes report)
         public
         payable
-        returns (ReturnValue)
     {
         // TODO: consider exit if both signer and custodian as matching
         // If the custodian is not already register, we add an index entry
@@ -159,9 +149,7 @@ contract Enigma {
         workers[msg.sender].report = report;
         workers[msg.sender].status = 1;
 
-        emit Register(msg.sender, signer, true);
-
-        return ReturnValue.Ok;
+        emit Registered(msg.sender, signer);
     }
 
     /**
@@ -169,31 +157,27 @@ contract Enigma {
     *
     */
     function createTaskRecord(
-        bytes taskId,
-        uint fee
+        bytes32 taskId,
+        uint fee,
+        address token,
+        uint tokenValue
     )
         public
     {
-        TaskRecord(taskId, fee);
+        emit TaskRecordCreated(taskId, fee, token, tokenValue, msg.sender);
     }
 
     // Verify the task results signature
-    function verifyCommitSig(Task task, bytes data, bytes sig)
+    function verifyCommitSig(Task task, bytes sig)
         internal
         returns (address)
     {
-        // Recreating a data hash to validate the signature
-        bytes memory code = GetCode2.at(task.dappContract);
+        //TODO: implement
 
-        // Build a hash to validate that the I/Os are matching
-        bytes32 hash = keccak256(abi.encodePacked(task.callableArgs, data, code));
-
-        // The worker address is not a real Ethereum wallet address but
-        // one generated from its signing key
-        address workerAddr = hash.recover(sig);
-
-        emit ValidatedSig(sig, hash, workerAddr, true);
-        return workerAddr;
+        bytes32 hash = 0x0;
+        address workerAddr = 0x0;
+        emit ValidatedSig(sig, hash, workerAddr);
+        return 0x0;
     }
 
     // Execute the encoded function in the specified contract
@@ -208,48 +192,13 @@ contract Enigma {
 
     /**
     * Commit the computation task results on chain
-    *
-    * @param taskId The reference task id
-    * @param data The encoded callback function call (which includes the computation results)
-    * @param sig The data signed by the the worker's enclave
-    * @param blockNumber The block number which originated the task
     */
-    function commitResults(bytes32 taskId, bytes data, bytes sig, uint256 blockNumber)
+    function commitReceipt(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig)
         public
         workerRegistered(msg.sender)
-        returns (ReturnValue)
     {
-        // Task must be solved only once
-        require(tasks[taskId].status == TaskStatus.InProgress, "Illegal status, task must be in progress.");
-        // TODO: run worker selection algo to validate right worker
-        require(block.number > blockNumber, "Block number in the future.");
-
-        address sigAddr = verifyCommitSig(tasks[taskId], data, sig);
-        require(sigAddr != address(0), "Cannot verify this signature.");
-        require(sigAddr == workers[msg.sender].signer, "Invalid signature.");
-
-        // The contract must hold enough fund to distribute reward
-        // TODO: validate that the reward matches the opcodes computed
-        uint256 reward = tasks[taskId].reward;
-        require(reward > 0, "Reward cannot be zero.");
-
-        // Invoking the callback method of the original contract
-        require(executeCall(tasks[taskId].dappContract, 0, data), "Unable to invoke the callback");
-
-        // Keep a trace of the task worker and proof
-        tasks[taskId].worker = msg.sender;
-        tasks[taskId].sig = sig;
-        tasks[taskId].status = TaskStatus.Executed;
-
-        // TODO: send directly to the worker's custodian instead
-        // Put the reward in the worker's bank
-        // He can withdraw later
-        Worker storage worker = workers[msg.sender];
-        worker.balance = worker.balance.add(reward);
-
-        emit CommitResults(tasks[taskId].dappContract, sigAddr, sig, reward, true);
-
-        return ReturnValue.Ok;
+        //TODO: implement
+        emit ReceiptVerified(taskId, inStateDeltaHash, outStateDeltaHash, ethCall, sig);
     }
 
     // Verify the signature submitted while reparameterizing workers
@@ -270,56 +219,13 @@ contract Enigma {
     * @param seed The random integer generated by the enclave
     * @param sig The random integer signed by the the principal node's enclave
     */
-    function setWorkersParams(uint256 seed, bytes sig)
+    function setWorkersParams(uint seed, bytes sig)
         public
         workerRegistered(msg.sender)
-        returns (ReturnValue)
     {
-        require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
-
-        address sigAddr = verifyParamsSig(seed, sig);
-        require(sigAddr == principal, "Invalid signature");
-
-        // Create a new workers parameters item for the specified seed.
-        // The workers parameters list is a sort of cache, it never grows beyond its limit.
-        // If the list is full, the new item will replace the item assigned to the lowest block number.
-        uint ti = 0;
-        for (uint pi = 0; pi < workersParams.length; pi++) {
-            // Find an empty slot in the array, if full use the lowest block number
-            if (workersParams[pi].firstBlockNumber == 0) {
-                ti = pi;
-                break;
-            } else if (workersParams[pi].firstBlockNumber < workersParams[ti].firstBlockNumber) {
-                ti = pi;
-            }
-        }
-        workersParams[ti].firstBlockNumber = block.number;
-        workersParams[ti].seed = seed;
-
-        // Copy the current worker list
-        for (uint wi = 0; wi < workerAddresses.length; wi++) {
-            if (workerAddresses[wi] != 0x0) {
-                workersParams[ti].workerAddresses.length++;
-                workersParams[ti].workerAddresses[wi] = workerAddresses[wi];
-            }
-        }
-        emit WorkersParameterized(seed, workerAddresses, true);
-        return ReturnValue.Ok;
-    }
-
-    // The workers parameters nearest the specified block number
-    function getWorkersParamsIndex(uint256 blockNumber)
-        internal
-        view
-        returns (int8)
-    {
-        int8 ci = - 1;
-        for (uint i = 0; i < workersParams.length; i++) {
-            if (workersParams[i].firstBlockNumber <= blockNumber && (ci == - 1 || workersParams[i].firstBlockNumber > workersParams[uint(ci)].firstBlockNumber)) {
-                ci = int8(i);
-            }
-        }
-        return ci;
+        address[] memory workers;
+        address[] memory secretContracts;
+        emit WorkersParameterized(seed, workers, secretContracts);
     }
 
     /**
@@ -327,63 +233,16 @@ contract Enigma {
     *
     * @param blockNumber The reference block number
     */
-    function getWorkersParams(uint256 blockNumber)
+    function getWorkersParams(uint blockNumber)
         public
         view
-        returns (uint256, uint256, address[])
+        returns (uint, uint, address[], address[])
     {
-        // The workers parameters for a given block number
-        int8 idx = getWorkersParamsIndex(blockNumber);
-        require(idx != - 1, "No workers parameters entry for specified block number");
-
-        uint index = uint(idx);
-        WorkersParams memory _workerParams = workersParams[index];
-        address[] memory addrs = filterWorkers(_workerParams.workerAddresses);
-
-        return (_workerParams.firstBlockNumber, _workerParams.seed, addrs);
-    }
-
-    // Filter out bad values from a list of worker addresses
-    function filterWorkers(address[] addrs)
-        internal
-        view
-        returns (address[])
-    {
-        // TODO: I don't know why the list contains empty addresses, investigate
-        uint cpt = 0;
-        for (uint i = 0; i < addrs.length; i++) {
-            if (addrs[i] != 0x0 && workers[addrs[i]].signer != principal) {
-                cpt++;
-            }
-        }
-        address[] memory _workers = new address[](cpt);
-        uint cur = 0;
-        for (uint iw = 0; iw < addrs.length; iw++) {
-            if (addrs[iw] != 0x0 && workers[addrs[iw]].signer != principal) {
-                _workers[cur] = addrs[iw];
-                cur++;
-            }
-        }
-        return _workers;
-    }
-
-    /**
-    * Apply pseudo-randomness to discover the selected worker for the specified task
-    *
-    * @param blockNumber The reference block number
-    * @param taskId The reference task id
-    */
-    function selectWorker(uint256 blockNumber, bytes32 taskId)
-        public
-        view
-        returns (address)
-    {
-        (uint256 b, uint256 seed, address[] memory workerArray) = getWorkersParams(blockNumber);
-        address[] memory _workers = filterWorkers(workerArray);
-
-        bytes32 hash = keccak256(abi.encodePacked(seed, taskId));
-        uint256 index = uint256(hash) % _workers.length;
-        return _workers[index];
+        uint firstBlockNumber = 0;
+        uint seed = 0;
+        address[] memory workers;
+        address[] memory secretContracts;
+        return (firstBlockNumber, seed, workers, secretContracts);
     }
 
     /**

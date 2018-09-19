@@ -48,7 +48,7 @@ export class TaskReceipt {
 /**
  * Class encapsulation the Enigma operations.
  */
-export class Enigma {
+export default class Enigma {
   /**
    * The Enigma constructor
    *
@@ -87,13 +87,13 @@ export class Enigma {
     console.log('creating task record', taskId, fee);
     this.enigmaContract.methods.createTaskRecord(taskId, fee).
       send(this.txDefaults).
-      on('transactionHash', function(hash) {
+      on('transactionHash', (hash) => {
         console.log('got tx hash', hash);
       }).
-      on('receipt', function(receipt) {
+      on('receipt', (receipt) => {
         console.log('got receipt', receipt);
       }).
-      on('confirmation', function(confirmationNumber, receipt) {
+      on('confirmation', (confirmationNumber, receipt) => {
         console.log('got confirmation', confirmationNumber, receipt);
       }).
       on('error', console.error);
