@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 import chai from 'chai';
 import {Enigma, utils} from '../lib/enigma-js';
 import forge from 'node-forge';
@@ -11,14 +12,14 @@ chai.expect();
 
 const expect = chai.expect;
 
+function todo() {
+  throw new Error('not implemented');
+};
+
 describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  const gasDefaults = {
-    gas: 4712388,
-    gasPrice: 100000000000,
-  };
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
@@ -74,7 +75,39 @@ describe('Enigma tests', () => {
     });
   });
 
-  it('create task record', () => {
+  it('should get the worker report', () => {
+    todo();
+  });
+
+  it('should create task record', () => {
     enigma.createTaskRecord('0x1111111111', 333);
+  });
+
+  it('should get the pending task', () => {
+    todo();
+  });
+
+  it('should simulate the task receipt', () => {
+    todo();
+  });
+
+  it('should get the confirmed task', () => {
+    todo();
+  });
+
+  it('should create multiple task records', () => {
+    enigma.createTaskRecords();
+  });
+
+  it('should get the pending tasks', () => {
+    todo();
+  });
+
+  it('should simulate multiple task receipts', () => {
+    todo();
+  });
+
+  it('should get the confirmed tasks', () => {
+    todo();
   });
 });

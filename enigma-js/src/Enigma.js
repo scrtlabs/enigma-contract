@@ -85,7 +85,7 @@ export default class Enigma {
    * @param {string} token
    * @param {number} tokenValue
    */
-  createTaskRecord(taskId, fee, token='0x0', tokenValue=0) {
+  createTaskRecord(taskId, fee, token = '0x0', tokenValue = 0) {
     console.log('creating task record', taskId, fee);
     this.enigmaContract.methods.createTaskRecord(taskId, fee, token, tokenValue).
       send(this.txDefaults).
@@ -105,7 +105,7 @@ export default class Enigma {
    * Store multiple task records
    */
   createTaskRecords() {
-
+    throw new Error('not implemented');
   }
 
   /**
