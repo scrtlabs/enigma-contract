@@ -71,6 +71,7 @@ describe('Enigma tests', () => {
     return Promise.all(promises).then((receipts) => {
       receipts.forEach((receipt) => {
         console.log('worker registered: ', receipt);
+        expect(receipt.events.Registered).not.to.be.empty;
       });
     });
   });
@@ -80,7 +81,13 @@ describe('Enigma tests', () => {
   });
 
   it('should create task record', () => {
-    enigma.createTaskRecord('0x1111111111', 333);
+    return new Promise((resolve, reject) => {
+      enigma.createTaskRecord('0x1111111111', 333).
+        on('mined', (receipt) => resolve(receipt)).
+        on('error', (error) => reject(error));
+    }).then((receipt) => {
+      expect(receipt.events.TaskRecordCreated).not.to.be.empty;
+    });
   });
 
   it('should get the pending task', () => {
@@ -96,7 +103,11 @@ describe('Enigma tests', () => {
   });
 
   it('should create multiple task records', () => {
-    enigma.createTaskRecords();
+    return new Promise((resolve, reject) => {
+      enigma.createTaskRecords().
+        on('receipt', (receipt) => resolve(receipt)).
+        on('error', (error) => reject(error));
+    }).then((receipt) => expect(receipt.events.TaskRecordCreated).not.to.be.empty);
   });
 
   it('should get the pending tasks', () => {

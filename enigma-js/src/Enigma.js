@@ -1,6 +1,7 @@
-/* eslint-disable prefer-spread,prefer-rest-params */
+/* eslint-disable prefer-spread,prefer-rest-params,valid-jsdoc */
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
+import EventEmitter from 'eventemitter3';
 
 /**
  * Encapsulates a task record
@@ -14,11 +15,13 @@ export class TaskRecord {
    * @param {Object} token
    * @param {number} tokenValue
    */
-  constructor(taskId, fee, token, tokenValue) {
+  constructor(taskId, fee, token, tokenValue, transactionHash, receipt) {
     this.taskId = taskId;
     this.fee = fee;
     this.token = token;
     this.tokenValue = tokenValue;
+    this.transactionHash = transactionHash;
+    this.receipt = receipt;
   }
 }
 
@@ -87,18 +90,48 @@ export default class Enigma {
    */
   createTaskRecord(taskId, fee, token = '0x0', tokenValue = 0) {
     console.log('creating task record', taskId, fee);
+
+    /**
+     * Create a TaskRecord object
+     *
+     * @param sender
+     * @param transactionHash
+     * @param status
+     * @return {TaskRecord}
+     */
+    function getTaskRecord(transactionHash, receipt) {
+      return new TaskRecord(
+        taskId,
+        fee,
+        token,
+        tokenValue,
+        transactionHash,
+        receipt,
+      );
+    }
+
+    let emitter = new EventEmitter();
     this.enigmaContract.methods.createTaskRecord(taskId, fee, token, tokenValue).
       send(this.txDefaults).
       on('transactionHash', (hash) => {
         console.log('got tx hash', hash);
+        const taskRecord = getTaskRecord(hash, null);
+        emitter.emit('transactionHash', taskRecord);
       }).
       on('receipt', (receipt) => {
-        console.log('got receipt', receipt);
+        console.log('got task record receipt', receipt);
+        const event = receipt.events.TaskRecordCreated;
+        const taskRecord = getTaskRecord(event.transactionHash, receipt);
+        emitter.emit('mined', taskRecord);
       }).
       on('confirmation', (confirmationNumber, receipt) => {
         console.log('got confirmation', confirmationNumber, receipt);
+        const event = receipt.events.TaskRecordCreated;
+        const taskRecord = getTaskRecord(event.transactionHash, receipt);
+        emitter.emit('confirmed', taskRecord);
       }).
       on('error', console.error);
+    return emitter;
   }
 
   /**

@@ -28,6 +28,7 @@ contract Enigma {
         uint fee;
         address token;
         uint tokenValue;
+        address sender;
     }
 
     struct TaskReceipt {
@@ -47,6 +48,7 @@ contract Enigma {
         bytes32 outStateDeltaHash;
         bytes ethCall;
         bytes sig;
+        address sender;
         TaskStatus status;
     }
     enum TaskStatus {RecordCreated, ReceiptVerified}
@@ -163,6 +165,14 @@ contract Enigma {
     )
         public
     {
+        require(tasks[taskId].sender == 0x0, "Task already exist.");
+
+        tasks[taskId].fee = fee;
+        tasks[taskId].token = token;
+        tasks[taskId].tokenValue = tokenValue;
+        tasks[taskId].sender = msg.sender;
+        tasks[taskId].status = TaskStatus.RecordCreated;
+
         emit TaskRecordCreated(taskId, fee, token, tokenValue, msg.sender);
     }
 
