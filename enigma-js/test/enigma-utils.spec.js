@@ -25,11 +25,14 @@ describe('enigma-utils', () => {
   });
 
   it('should generate a taskId', () => {
-    const inputsHash = web3Utils.sha3('xxx');
-    const codeHash = web3Utils.sha3('zzz');
-    const blockNumberHash = web3Utils.sha3(1);
-    const userPubKeyHash = web3Utils.sha3('ffff');
+    const fn = 'medianWealth(int32,int32)';
+    const args = [200000, 300000];
+    const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
+    const blockNumber = 1000;
+    const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
+      'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
 
-    utils.generateTaskId(inputsHash, codeHash, blockNumberHash, userPubKeyHash);
+    const taskId = utils.generateTaskId(fn, args, scAddr, blockNumber, userPubKey);
+    expect(taskId).to.not.be.empty;
   });
 });

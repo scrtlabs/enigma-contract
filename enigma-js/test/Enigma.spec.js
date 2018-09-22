@@ -81,12 +81,20 @@ describe('Enigma tests', () => {
   });
 
   it('should create task record', () => {
+    const fn = 'medianWealth(int32,int32)';
+    const args = [200000, 300000];
+    const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
+    const blockNumber = 1000;
+    const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
+      'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
+    const taskId = utils.generateTaskId(fn, args, scAddr, blockNumber, userPubKey);
+    const fee = 300;
     return new Promise((resolve, reject) => {
-      enigma.createTaskRecord('0x1111111111', 333).
+      enigma.createTaskRecord(taskId, fee).
         on('mined', (receipt) => resolve(receipt)).
         on('error', (error) => reject(error));
-    }).then((receipt) => {
-      expect(receipt.events.TaskRecordCreated).not.to.be.empty;
+    }).then((taskRecord) => {
+      expect(taskRecord.receipt).not.to.be.empty;
     });
   });
 

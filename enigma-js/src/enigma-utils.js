@@ -155,21 +155,32 @@ function verifyWorker(signer, encodedReport) {
 }
 
 /**
+ * Encode secret contract function arguments
+ *
+ * @param {Object} args
+ * @return {string}
+ */
+function encodeArguments(args) {
+  return '0x' + RLP.encode(args).toString('hex');
+}
+
+/**
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {string} inputsHash
- * @param {string} codeHash
+ * @param {string} fn
+ * @param {string} args
+ * @param {string} scAddr
  * @param {number} blockNumber
- * @param {string} userPubKeyHash
- * @return {Object}
+ * @param {string} userPubKey
+ * @return {string}
  */
-function generateTaskId(inputsHash, codeHash, blockNumber, userPubKeyHash) {
+function generateTaskId(fn, args, scAddr, blockNumber, userPubKey) {
   const taskId = web3Utils.soliditySha3(
-    {t: 'bytes', v: inputsHash},
-    {t: 'bytes', v: codeHash},
+    {t: 'string', v: fn},
+    {t: 'bytes', v: encodeArguments(args)},
     {t: 'uint256', v: blockNumber},
-    {t: 'bytes', v: userPubKeyHash},
+    {t: 'bytes', v: userPubKey},
   );
 
   return taskId;
