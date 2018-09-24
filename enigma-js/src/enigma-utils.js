@@ -169,7 +169,7 @@ function encodeArguments(args) {
  * The Enigma contract uses the same logic to generate a matching taskId
  *
  * @param {string} fn
- * @param {string} args
+ * @param {Object} args
  * @param {string} scAddr
  * @param {number} blockNumber
  * @param {string} userPubKey

@@ -80,26 +80,33 @@ describe('Enigma tests', () => {
     todo();
   });
 
+  let taskId;
   it('should create task record', () => {
-    const fn = 'medianWealth(int32,int32)';
-    const args = [200000, 300000];
-    const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
-    const blockNumber = 1000;
-    const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
-      'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
-    const taskId = utils.generateTaskId(fn, args, scAddr, blockNumber, userPubKey);
-    const fee = 300;
-    return new Promise((resolve, reject) => {
-      enigma.createTaskRecord(taskId, fee).
-        on('mined', (receipt) => resolve(receipt)).
-        on('error', (error) => reject(error));
-    }).then((taskRecord) => {
-      expect(taskRecord.receipt).not.to.be.empty;
-    });
+    return web3.eth.getBlockNumber().
+      then((blockNumber) => {
+        const fn = 'medianWealth(int32,int32)';
+        const args = [200000, 300000];
+        const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
+        const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
+          'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
+        taskId = utils.generateTaskId(fn, args, scAddr, blockNumber, userPubKey);
+        const fee = 300;
+        return new Promise((resolve, reject) => {
+          enigma.createTaskRecord(taskId, fee).
+            on('mined', (receipt) => resolve(receipt)).
+            on('error', (error) => reject(error));
+        });
+      }).
+      then((taskRecord) => {
+        expect(taskRecord.receipt).not.to.be.empty;
+      });
   });
 
   it('should get the pending task', () => {
-    todo();
+    return enigma.getTask(taskId).then((task) => {
+      console.log('the task', task);
+      expect(task.status).to.be.equal(0);
+    });
   });
 
   it('should simulate the task receipt', () => {
@@ -111,11 +118,31 @@ describe('Enigma tests', () => {
   });
 
   it('should create multiple task records', () => {
-    return new Promise((resolve, reject) => {
-      enigma.createTaskRecords().
-        on('receipt', (receipt) => resolve(receipt)).
-        on('error', (error) => reject(error));
-    }).then((receipt) => expect(receipt.events.TaskRecordCreated).not.to.be.empty);
+    return web3.eth.getBlockNumber().
+      then((blockNumber) => {
+        const fn = 'medianWealth(int32,int32)';
+        const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
+        const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
+          'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
+        const fee = 300;
+        const args1 = [200000, 300000];
+        const taskId1 = utils.generateTaskId(fn, args1, scAddr, blockNumber, userPubKey);
+        const taskRecord1 = {taskId: taskId1, fee: fee};
+        const args2 = [300000, 400000];
+        const taskId2 = utils.generateTaskId(fn, args2, scAddr, blockNumber, userPubKey);
+        const taskRecord2 = {taskId: taskId2, fee: fee};
+        const taskRecords = [taskRecord1, taskRecord2];
+
+        console.log('creating task records', taskRecords);
+        return new Promise((resolve, reject) => {
+          enigma.createTaskRecords(taskRecords).
+            on('mined', (receipt) => resolve(receipt)).
+            on('error', (error) => reject(error));
+        });
+      }).
+      then((taskRecord) => {
+        expect(taskRecord).not.to.be.empty;
+      });
   });
 
   it('should get the pending tasks', () => {

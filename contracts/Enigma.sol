@@ -6,9 +6,13 @@ import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 contract IERC20 {
     function balanceOf(address who) public view returns (uint256);
+
     function transfer(address to, uint256 value) public returns (bool);
+
     function allowance(address owner, address spender) public view returns (uint256);
+
     function transferFrom(address from, address to, uint256 value) public returns (bool);
+
     function approve(address spender, uint256 value) public returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -40,7 +44,6 @@ contract Enigma {
     }
 
     struct Task {
-        bytes32 taskId;
         uint fee;
         address token;
         uint tokenValue;
@@ -106,6 +109,7 @@ contract Enigma {
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);
     event WorkersParameterized(uint256 seed, address[] workers, address[] secretContracts);
     event TaskRecordCreated(bytes32 taskId, uint fee, address token, uint tokenValue, address sender);
+    event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address[] tokens, uint[] tokenValues, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
 
     constructor(address _tokenAddress, address _principal) public {
@@ -133,8 +137,8 @@ contract Enigma {
     * @param report The RLP encoded report returned by the IAS
     */
     function register(address signer, bytes report)
-        public
-        payable
+    public
+    payable
     {
         // TODO: consider exit if both signer and custodian as matching
         // If the custodian is not already register, we add an index entry
@@ -163,7 +167,7 @@ contract Enigma {
         address token,
         uint tokenValue
     )
-        public
+    public
     {
         require(tasks[taskId].sender == 0x0, "Task already exist.");
 
@@ -176,10 +180,30 @@ contract Enigma {
         emit TaskRecordCreated(taskId, fee, token, tokenValue, msg.sender);
     }
 
+    function createTaskRecords(
+        bytes32[] taskIds,
+        uint[] fees,
+        address[] tokens,
+        uint[] tokenValues
+    )
+    public
+    {
+        for (uint i = 0; i < taskIds.length; i++) {
+            require(tasks[taskIds[i]].sender == 0x0, "Task already exist.");
+
+            tasks[taskIds[i]].fee = fees[i];
+            tasks[taskIds[i]].token = tokens[i];
+            tasks[taskIds[i]].tokenValue = tokenValues[i];
+            tasks[taskIds[i]].sender = msg.sender;
+            tasks[taskIds[i]].status = TaskStatus.RecordCreated;
+        }
+        emit TaskRecordsCreated(taskIds, fees, tokens, tokenValues, msg.sender);
+    }
+
     // Verify the task results signature
     function verifyCommitSig(Task task, bytes sig)
-        internal
-        returns (address)
+    internal
+    returns (address)
     {
         //TODO: implement
 
@@ -191,8 +215,8 @@ contract Enigma {
 
     // Execute the encoded function in the specified contract
     function executeCall(address to, uint256 value, bytes data)
-        internal
-        returns (bool success)
+    internal
+    returns (bool success)
     {
         assembly {
             success := call(gas, to, value, add(data, 0x20), mload(data), 0, 0)
@@ -203,8 +227,8 @@ contract Enigma {
     * Commit the computation task results on chain
     */
     function commitReceipt(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig)
-        public
-        workerRegistered(msg.sender)
+    public
+    workerRegistered(msg.sender)
     {
         //TODO: implement
         emit ReceiptVerified(taskId, inStateDeltaHash, outStateDeltaHash, ethCall, sig);
@@ -212,9 +236,9 @@ contract Enigma {
 
     // Verify the signature submitted while reparameterizing workers
     function verifyParamsSig(uint256 seed, bytes sig)
-        internal
-        pure
-        returns (address)
+    internal
+    pure
+    returns (address)
     {
         bytes32 hash = keccak256(abi.encodePacked(seed));
         address signer = hash.recover(sig);
@@ -229,8 +253,8 @@ contract Enigma {
     * @param sig The random integer signed by the the principal node's enclave
     */
     function setWorkersParams(uint seed, bytes sig)
-        public
-        workerRegistered(msg.sender)
+    public
+    workerRegistered(msg.sender)
     {
         address[] memory workers;
         address[] memory secretContracts;
@@ -243,9 +267,9 @@ contract Enigma {
     * @param blockNumber The reference block number
     */
     function getWorkersParams(uint blockNumber)
-        public
-        view
-        returns (uint, uint, address[], address[])
+    public
+    view
+    returns (uint, uint, address[], address[])
     {
         uint firstBlockNumber = 0;
         uint seed = 0;
@@ -260,10 +284,10 @@ contract Enigma {
     * @param custodian The worker's custodian address
     */
     function getReport(address custodian)
-        public
-        view
-        workerRegistered(custodian)
-        returns (address, bytes)
+    public
+    view
+    workerRegistered(custodian)
+    returns (address, bytes)
     {
         // The RLP encoded report and signer's address for the specified worker
         require(workers[custodian].signer != 0x0, "Worker not registered");
