@@ -13,9 +13,9 @@ export class TaskRecord {
    */
   constructor(taskId, fee, token, tokenValue, transactionHash, receipt) {
     this.taskId = taskId;
-    this.fee = fee;
+    this.fee = parseInt(fee);
     this.token = token;
-    this.tokenValue = tokenValue;
+    this.tokenValue = parseInt(tokenValue);
     this.transactionHash = transactionHash;
     this.receipt = receipt;
   }
@@ -96,10 +96,10 @@ export default class Enigma {
         console.log('got task record receipt', receipt);
         const event = receipt.events.TaskRecordCreated;
         const taskRecord = new TaskRecord(
-          taskId,
-          fee,
-          token,
-          tokenValue,
+          event.returnValues.taskId,
+          event.returnValues.fee,
+          event.returnValues.token,
+          event.returnValues.tokenValue,
           event.transactionHash,
           receipt,
         );
@@ -109,10 +109,10 @@ export default class Enigma {
         console.log('got confirmation', confirmationNumber, receipt);
         const event = receipt.events.TaskRecordCreated;
         const taskRecord = new TaskRecord(
-          taskId,
-          fee,
-          token,
-          tokenValue,
+          event.returnValues.taskId,
+          event.returnValues.fee,
+          event.returnValues.token,
+          event.returnValues.tokenValue,
           event.transactionHash,
           receipt,
         );
@@ -145,12 +145,38 @@ export default class Enigma {
         emitter.emit('transactionHash', hash);
       }).
       on('receipt', (receipt) => {
-        // console.log('got task record receipt', receipt.events);
-        emitter.emit('mined', receipt);
+        console.log('got task record receipt', receipt.events);
+        const event = receipt.events.TaskRecordsCreated;
+        let taskRecords = [];
+        for (let i = 0; i < event.returnValues.taskIds.length; i++) {
+          const taskRecord = new TaskRecord(
+            event.returnValues.taskIds[i],
+            event.returnValues.fees[i],
+            event.returnValues.tokens[i],
+            event.returnValues.tokenValues[i],
+            event.transactionHash,
+            receipt,
+          );
+          taskRecords.push(taskRecord);
+        }
+        emitter.emit('mined', taskRecords);
       }).
       on('confirmation', (confirmationNumber, receipt) => {
         console.log('got confirmation', confirmationNumber, receipt);
-        emitter.emit('confirmed', receipt);
+        const event = receipt.events.TaskRecordsCreated;
+        let taskRecords = [];
+        for (let i = 0; i < event.returnValues.taskIds.length; i++) {
+          const taskRecord = new TaskRecord(
+            event.returnValues.taskIds[i],
+            event.returnValues.fees[i],
+            event.returnValues.tokens[i],
+            event.returnValues.tokenValues[i],
+            event.transactionHash,
+            receipt,
+          );
+          taskRecords.push(taskRecord);
+        }
+        emitter.emit('confirmed', taskRecords);
       }).
       on('error', console.error);
     return emitter;
