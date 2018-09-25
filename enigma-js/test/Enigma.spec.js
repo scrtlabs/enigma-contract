@@ -77,7 +77,9 @@ describe('Enigma tests', () => {
   });
 
   it('should get the worker report', () => {
-    todo();
+    return enigma.getReport(accounts[0]).then((report) => {
+      expect(report).not.to.be.empty;
+    });
   });
 
   let taskId;

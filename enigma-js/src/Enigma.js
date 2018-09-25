@@ -31,15 +31,15 @@ export class Task {
    */
   constructor(taskId, fee, token, tokenValue, inStateDeltaHash, outStateDeltaHash, ethCall, sig, sender, status) {
     this.taskId = taskId;
-    this.fee = fee;
+    this.fee = parseInt(fee);
     this.token = token;
-    this.tokenValue = tokenValue;
+    this.tokenValue = parseInt(tokenValue);
     this.inStateDeltaHash = inStateDeltaHash;
     this.outStateDeltaHash = outStateDeltaHash;
     this.ethCall = ethCall;
     this.sig = sig;
     this.sender = sender;
-    this.status = status;
+    this.status = parseInt(status);
   }
 }
 
@@ -85,6 +85,7 @@ export default class Enigma {
    */
   createTaskRecord(taskId, fee, token = '0x0', tokenValue = 0) {
     console.log('creating task record', taskId, fee);
+    // TODO: approve the fee
     let emitter = new EventEmitter();
     this.enigmaContract.methods.createTaskRecord(taskId, fee, token, tokenValue).
       send(this.txDefaults).
@@ -192,15 +193,15 @@ export default class Enigma {
       console.log('the task', result);
       return new Task(
         taskId,
-        parseInt(result.fee),
+        result.fee,
         result.token,
-        parseInt(result.tokenValue),
+        result.tokenValue,
         result.inStateDeltaHash,
         result.outStateDeltaHash,
         result.ethCall,
         result.sig,
         result.sender,
-        parseInt(result.status),
+        result.status,
       );
     });
   }
@@ -221,10 +222,13 @@ export default class Enigma {
 
   /**
    * Find SGX report
-   * @param {string} signerAddr
+   * @param {string} custodian
    */
-  getReport(signerAddr) {
-
+  getReport(custodian) {
+    return this.enigmaContract.methods.getReport(custodian).call().then((result) => {
+      console.log('the task', result);
+      return result;
+    });
   }
 
   /**
