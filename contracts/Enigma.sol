@@ -1,23 +1,10 @@
 pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ECRecovery.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-
-contract IERC20 {
-    function balanceOf(address who) public view returns (uint256);
-
-    function transfer(address to, uint256 value) public returns (bool);
-
-    function allowance(address owner, address spender) public view returns (uint256);
-
-    function transferFrom(address from, address to, uint256 value) public returns (bool);
-
-    function approve(address spender, uint256 value) public returns (bool);
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
+import "./EnigmaToken.sol";
 
 
 contract Enigma {
@@ -25,7 +12,7 @@ contract Enigma {
     using ECRecovery for bytes32;
 
     // The interface of the deployed ENG ERC20 token contract
-    IERC20 public engToken;
+    EnigmaToken public engToken;
 
     struct TaskRecord {
         bytes32 taskId;
@@ -47,10 +34,7 @@ contract Enigma {
         uint fee;
         address token;
         uint tokenValue;
-        bytes32 inStateDeltaHash;
-        bytes32 outStateDeltaHash;
-        bytes ethCall;
-        bytes sig;
+        bytes proof; // Signature of (taskId, inStateDeltaHash, outStateDeltaHash, ethCall)
         address sender;
         TaskStatus status;
     }
@@ -103,6 +87,7 @@ contract Enigma {
     // A registry of all active and historical tasks with their attributes
     // TODO: do we keep tasks forever? if not, when do we delete them?
     mapping(bytes32 => Task) public tasks;
+    mapping(address => bytes32[]) public stateDeltaHashes;
 
     // The events emitted by the contract
     event Registered(address custodian, address signer);
@@ -111,9 +96,10 @@ contract Enigma {
     event TaskRecordCreated(bytes32 taskId, uint fee, address token, uint tokenValue, address sender);
     event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address[] tokens, uint[] tokenValues, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
+    event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes[] ethCalls, bytes[] sigs);
 
     constructor(address _tokenAddress, address _principal) public {
-        engToken = IERC20(_tokenAddress);
+        engToken = EnigmaToken(_tokenAddress);
         principal = _principal;
     }
 
@@ -200,19 +186,6 @@ contract Enigma {
         emit TaskRecordsCreated(taskIds, fees, tokens, tokenValues, msg.sender);
     }
 
-    // Verify the task results signature
-    function verifyCommitSig(Task task, bytes sig)
-    internal
-    returns (address)
-    {
-        //TODO: implement
-
-        bytes32 hash = 0x0;
-        address workerAddr = 0x0;
-        emit ValidatedSig(sig, hash, workerAddr);
-        return 0x0;
-    }
-
     // Execute the encoded function in the specified contract
     function executeCall(address to, uint256 value, bytes data)
     internal
@@ -223,15 +196,78 @@ contract Enigma {
         }
     }
 
+    function verifyReceipt(
+        address scAddr,
+        bytes32 taskId,
+        bytes32 inStateDeltaHash,
+        bytes32 outStateDeltaHash,
+        bytes ethCall,
+        bytes sig
+    )
+    internal
+    {
+        uint index = stateDeltaHashes[scAddr].length;
+        if (index == 0) {
+            require(inStateDeltaHash == 0x0, 'Invalid input state delta hash for empty state');
+        } else {
+            require(inStateDeltaHash == stateDeltaHashes[scAddr][index.sub(1)], 'Invalid input state delta hash');
+        }
+        stateDeltaHashes[scAddr].length++;
+        stateDeltaHashes[scAddr][index] = outStateDeltaHash;
+
+        // TODO: execute the Ethereum calls
+
+        // Build a hash to validate that the I/Os are matching
+        bytes32 hash = keccak256(abi.encodePacked(taskId, inStateDeltaHash, outStateDeltaHash, ethCall));
+
+        // The worker address is not a real Ethereum wallet address but
+        // one generated from its signing key
+        address workerAddr = hash.recover(sig);
+        require(workerAddr == workers[msg.sender].signer, "Invalid signature.");
+    }
+
     /**
     * Commit the computation task results on chain
     */
-    function commitReceipt(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig)
+    function commitReceipt(
+        address scAddr,
+        bytes32 taskId,
+        bytes32 inStateDeltaHash,
+        bytes32 outStateDeltaHash,
+        bytes ethCall,
+        bytes sig
+    )
     public
     workerRegistered(msg.sender)
     {
-        //TODO: implement
+        require(tasks[taskId].status == TaskStatus.RecordCreated, 'Invalid task status');
+        verifyReceipt(scAddr, taskId, inStateDeltaHash, outStateDeltaHash, ethCall, sig);
+
+        tasks[taskId].proof = sig;
+        tasks[taskId].status = TaskStatus.ReceiptVerified;
         emit ReceiptVerified(taskId, inStateDeltaHash, outStateDeltaHash, ethCall, sig);
+    }
+
+    function commitReceipts(
+        address scAddr,
+        bytes32[] taskIds,
+        bytes32[] inStateDeltaHashes,
+        bytes32[] outStateDeltaHashes,
+        bytes[] ethCalls,
+        bytes[] sigs
+    )
+    public
+    workerRegistered(msg.sender)
+    {
+        for (uint i = 0; i < taskIds.length; i++) {
+            // TODO: consider aggregate signature
+            require(tasks[taskIds[i]].status == TaskStatus.RecordCreated, 'Invalid task status');
+            verifyReceipt(scAddr, taskIds[i], inStateDeltaHashes[i], outStateDeltaHashes[i], ethCalls[i], sigs[i]);
+
+            tasks[taskIds[i]].proof = sigs[i];
+            tasks[taskIds[i]].status = TaskStatus.ReceiptVerified;
+        }
+        emit ReceiptsVerified(taskIds, inStateDeltaHashes, outStateDeltaHashes, ethCalls, sigs);
     }
 
     // Verify the signature submitted while reparameterizing workers
