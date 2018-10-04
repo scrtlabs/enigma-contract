@@ -62,9 +62,10 @@ contract Enigma {
     * the worker selection algorithm
     */
     struct WorkersParams {
-        uint256 firstBlockNumber;
-        mapping(address => uint) workerWeights;
-        uint256 seed;
+        uint firstBlockNumber;
+        address[] workers;
+        uint[] balances;
+        uint seed;
     }
 
     /**
@@ -88,11 +89,13 @@ contract Enigma {
     // TODO: do we keep tasks forever? if not, when do we delete them?
     mapping(bytes32 => Task) public tasks;
     mapping(address => bytes32[]) public stateDeltaHashes;
+    uint stakingThreshold = 0;
+    uint workerGroupSize = 0;
 
     // The events emitted by the contract
     event Registered(address custodian, address signer);
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);
-    event WorkersParameterized(uint256 seed, address[] workers, address[] secretContracts);
+    event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances);
     event TaskRecordCreated(bytes32 taskId, uint fee, address token, uint tokenValue, address sender);
     event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address[] tokens, uint[] tokenValues, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
@@ -292,25 +295,127 @@ contract Enigma {
     public
     workerRegistered(msg.sender)
     {
+        // Reparameterizing workers with a new seed
+        // This should be called for each epoch by the Principal node
+
+        // We assume that the Principal is always the first registered node
+        require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
+        // TODO: verify the principal sig
+
         address[] memory activeWorkers;
-        address[] memory activeContracts;
-        emit WorkersParameterized(seed, activeWorkers, activeContracts);
+
+        // Create a new workers parameters item for the specified seed.
+        // The workers parameters list is a sort of cache, it never grows beyond its limit.
+        // If the list is full, the new item will replace the item assigned to the lowest block number.
+        uint paramIndex = 0;
+        for (uint pi = 0; pi < workersParams.length; pi++) {
+            // Find an empty slot in the array, if full use the lowest block number
+            if (workersParams[pi].firstBlockNumber == 0) {
+                paramIndex = pi;
+                break;
+            } else if (workersParams[pi].firstBlockNumber < workersParams[paramIndex].firstBlockNumber) {
+                paramIndex = pi;
+            }
+        }
+        workersParams[paramIndex].firstBlockNumber = block.number;
+        workersParams[paramIndex].seed = seed;
+
+        // Copy the current worker list
+        uint workerIndex = 0;
+        for (uint wi = 0; wi < workerAddresses.length; wi++) {
+            if (workers[workerAddresses[wi]].balance > stakingThreshold) {
+                workersParams[paramIndex].workers.length++;
+                workersParams[paramIndex].workers[workerIndex] = workerAddresses[wi];
+
+                workersParams[paramIndex].balances.length++;
+                workersParams[paramIndex].balances[workerIndex] = workers[workerAddresses[wi]].balance;
+
+                workerIndex = workerIndex.add(1);
+            }
+        }
+        emit WorkersParameterized(seed, block.number, workersParams[paramIndex].workers, workersParams[paramIndex].balances);
     }
 
-    function getSelectedWorkers(uint blockNumber, address scAddr)
-    public
+    function getWorkerParamsIndex(uint blockNumber)
+    internal
+    view
+    returns (uint)
     {
+        // The workers parameters for a given block number
+        int8 index = - 1;
+        for (uint i = 0; i < workersParams.length; i++) {
+            if (workersParams[i].firstBlockNumber <= blockNumber && (index == - 1 || workersParams[i].firstBlockNumber > workersParams[uint(index)].firstBlockNumber)) {
+                index = int8(i);
+            }
+        }
+        require(index != - 1, "No workers parameters entry for specified block number");
+        return uint(index);
+    }
+
+    function getWorkerParams(uint blockNumber)
+    public
+    view
+    returns (uint, uint, address[], uint[]) {
+        uint index = getWorkerParamsIndex(blockNumber);
+        WorkersParams memory params = workersParams[index];
+        return (params.firstBlockNumber, params.seed, params.workers, params.balances);
+    }
+
+    function compileTokens(uint paramIndex)
+    internal
+    view
+    returns (address[])
+    {
+        WorkersParams memory params = workersParams[paramIndex];
         uint tokenCpt = 0;
-        for (uint i = 0; i < workerAddresses.length; i++) {
-            tokenCpt= tokenCpt.add(workers[workerAddresses[i]].balance);
+        for (uint i = 0; i < params.workers.length; i++) {
+            if (params.workers[i] != 0x0) {
+                tokenCpt = tokenCpt.add(params.balances[i]);
+            }
         }
         address[] memory tokens = new address[](tokenCpt);
         uint tokenIndex = 0;
-        for (uint ia = 0; ia < workerAddresses.length; ia++) {
-            for (uint ib = 0; ib < workers[workerAddresses[ia]].balance; ib++) {
-                tokens[tokenIndex] = workerAddresses[ia];
-                tokenIndex++;
+        for (uint ia = 0; ia < params.workers.length; ia++) {
+            if (params.workers[ia] != 0x0) {
+                for (uint ib = 0; ib < params.balances[ia]; ib++) {
+                    tokens[tokenIndex] = params.workers[ia];
+                    tokenIndex = tokenIndex.add(1);
+                }
             }
+        }
+        return tokens;
+    }
+
+    function getWorkerGroup(uint blockNumber, address scAddr)
+    public
+    {
+        // Compile a list of selected workers for the block number and
+        // secret contract.
+        uint paramIndex = getWorkerParamsIndex(blockNumber);
+        address[] memory tokens = compileTokens(paramIndex);
+        WorkersParams memory params = workersParams[paramIndex];
+
+        address[] memory selectedWorkers = new address[](workerGroupSize);
+        for (uint it; it < selectedWorkers.length; it++) {
+            do {
+                uint nonce = 0;
+                bytes32 hash = keccak256(abi.encodePacked(nonce, params.seed, blockNumber, scAddr));
+                uint index = uint256(hash) % tokens.length;
+                address worker = tokens[index];
+                bool dup = false;
+                for (uint id; id < selectedWorkers.length; id++) {
+                    if (worker == selectedWorkers[id]) {
+                        dup = true;
+                        break;
+                    }
+                }
+                if (dup == false) {
+                    selectedWorkers[it] = worker;
+                } else {
+                    nonce = nonce.add(1);
+                }
+            }
+            while (selectedWorkers[it] == 0x0);
         }
     }
 
