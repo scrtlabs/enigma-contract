@@ -63,7 +63,7 @@ contract Enigma {
     */
     struct WorkersParams {
         uint256 firstBlockNumber;
-        address[] workerAddresses;
+        mapping(address => uint) workerWeights;
         uint256 seed;
     }
 
@@ -292,9 +292,26 @@ contract Enigma {
     public
     workerRegistered(msg.sender)
     {
-        address[] memory workers;
-        address[] memory secretContracts;
-        emit WorkersParameterized(seed, workers, secretContracts);
+        address[] memory activeWorkers;
+        address[] memory activeContracts;
+        emit WorkersParameterized(seed, activeWorkers, activeContracts);
+    }
+
+    function getSelectedWorkers(uint blockNumber, address scAddr)
+    public
+    {
+        uint tokenCpt = 0;
+        for (uint i = 0; i < workerAddresses.length; i++) {
+            tokenCpt= tokenCpt.add(workers[workerAddresses[i]].balance);
+        }
+        address[] memory tokens = new address[](tokenCpt);
+        uint tokenIndex = 0;
+        for (uint ia = 0; ia < workerAddresses.length; ia++) {
+            for (uint ib = 0; ib < workers[workerAddresses[ia]].balance; ib++) {
+                tokens[tokenIndex] = workerAddresses[ia];
+                tokenIndex++;
+            }
+        }
     }
 
     /**
@@ -309,9 +326,9 @@ contract Enigma {
     {
         uint firstBlockNumber = 0;
         uint seed = 0;
-        address[] memory workers;
-        address[] memory secretContracts;
-        return (firstBlockNumber, seed, workers, secretContracts);
+        address[] memory activeWorkers;
+        address[] memory activeContracts;
+        return (firstBlockNumber, seed, activeWorkers, activeContracts);
     }
 
     /**

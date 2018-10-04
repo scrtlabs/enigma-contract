@@ -193,7 +193,7 @@ describe('Enigma tests', () => {
     const inStateDelta2 = outStateDelta1;
     const outStateDelta2 = web3.utils.soliditySha3('test3');
     const ethCall = web3.utils.soliditySha3('test');
-    const taskIds = [taskRecords[0].taskId, taskRecords[1].taskId];
+    const taskIds = taskRecords.map((t) => t.taskId);
     const proof1 = web3.utils.soliditySha3(
       {t: 'bytes32', v: taskIds[0]},
       {t: 'bytes32', v: inStateDelta1},
@@ -227,6 +227,30 @@ describe('Enigma tests', () => {
   });
 
   it('should get the confirmed tasks', () => {
+    return enigma.getTask(taskRecords.map((t) => t.taskId)).then((tasks) => {
+      tasks.forEach((task) => {
+        expect(task.status).to.be.equal(1);
+      });
+    });
+  });
+
+  it('should encrypt task inputs', () => {
+    todo();
+  });
+
+  it('should get the selected workers for the contract / epoch', () => {
+    todo();
+  });
+
+  it('should send task inputs to the network', () => {
+    todo();
+  });
+
+  it('should poll the network for unconfirmed task', () => {
+    todo();
+  });
+
+  it('should poll the network for confirmed task', () => {
     todo();
   });
 });
