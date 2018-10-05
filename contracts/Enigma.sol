@@ -100,6 +100,7 @@ contract Enigma {
     event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address[] tokens, uint[] tokenValues, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes[] ethCalls, bytes[] sigs);
+    event DepositSuccessful(address from, uint value);
 
     constructor(address _tokenAddress, address _principal) public {
         engToken = EnigmaToken(_tokenAddress);
@@ -127,7 +128,6 @@ contract Enigma {
     */
     function register(address signer, bytes report)
     public
-    payable
     {
         // TODO: consider exit if both signer and custodian as matching
         // If the custodian is not already register, we add an index entry
@@ -139,11 +139,24 @@ contract Enigma {
 
         // Set the custodian attributes
         workers[msg.sender].signer = signer;
-        workers[msg.sender].balance = msg.value;
+        workers[msg.sender].balance = 0;
         workers[msg.sender].report = report;
         workers[msg.sender].status = 1;
 
         emit Registered(msg.sender, signer);
+    }
+
+    function deposit(address custodian, uint amount)
+    public
+    workerRegistered(custodian)
+    {
+        address to = address(this);
+        require(engToken.allowance(custodian, to) >= amount, "Not enough tokens allowed for transfer");
+        require(engToken.transferFrom(custodian, to, amount), "Transfer failed");
+
+        workers[msg.sender].balance = workers[custodian].balance.add(amount);
+
+        emit DepositSuccessful(custodian, amount);
     }
 
     /**
@@ -301,8 +314,6 @@ contract Enigma {
         // We assume that the Principal is always the first registered node
         require(workers[msg.sender].signer == principal, "Only the Principal can update the seed");
         // TODO: verify the principal sig
-
-        address[] memory activeWorkers;
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.

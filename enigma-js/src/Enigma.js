@@ -126,7 +126,8 @@ export default class Enigma {
   /**
    * Store multiple task records
    */
-  createTaskRecords(taskRecords) {
+  createTaskRecords(taskRecords, options = {}) {
+    options = Object.assign({}, this.txDefaults, options);
     let taskIds = [];
     let fees = [];
     let tokens = [];
@@ -140,7 +141,7 @@ export default class Enigma {
     let emitter = new EventEmitter();
     console.log('creating task records', taskIds, fees, tokens, tokenValues);
     this.enigmaContract.methods.createTaskRecords(taskIds, fees, tokens, tokenValues).
-      send(this.txDefaults).
+      send(options).
       on('transactionHash', (hash) => {
         console.log('got tx hash', hash);
         emitter.emit('transactionHash', hash);
@@ -240,6 +241,48 @@ export default class Enigma {
     return this.enigmaContract.methods.getWorkerParams(blockNumber).call().then((result) => {
       console.log('the worker params', result);
       return result;
+    });
+  }
+
+  /**
+   *
+   * @param amount
+   */
+  deposit(account, amount, options = {}) {
+    options = Object.assign({}, this.txDefaults, options);
+    let emitter = new EventEmitter();
+    return this.tokenContract.methods.balanceOf(account).call().then((balance) => {
+      if (balance < amount) {
+        const msg = 'Not enough tokens in wallet';
+        emitter.emit('notEnoughFundsError', msg);
+        throw new Error(msg);
+      }
+      this.tokenContract.approve(this.enigmaContract.address, amount).send(options).
+        on('transactionHash', (hash) => {
+          console.log('got tx hash', hash);
+          emitter.emit('approveTransactionHash', hash);
+        }).
+        on('receipt', (receipt) => {
+          console.log('got approval receipt', receipt);
+          self.tokenContract.methods.allowance(account, this.enigmaContract.address).call().then((allowance) => {
+            if (allowance < amount) {
+              const msg = 'Not enough tokens approved';
+              emitter.emit('notEnoughApprovedError', msg);
+              throw new Error(msg);
+            }
+            emitter.emit('approved', receipt);
+
+            this.enigmaContract.deposit(account, amount).send(options).
+              on('transactionHash', (hash) => {
+                console.log('got tx hash', hash);
+                emitter.emit('depositTransactionHash', hash);
+              }).
+              on('receipt', (receipt) => {
+                console.log('got deposit receipt', receipt);
+                emitter.emit('depositSuccessful', receipt);
+              });
+          });
+        });
     });
   }
 

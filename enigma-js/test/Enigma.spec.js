@@ -82,6 +82,18 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should deposits tokens in worker banks', () => {
+    let promises = [];
+    for (let i = 0; i < accounts.length; i++) {
+      if (i === 9) {
+        continue;
+      }
+      promises.push(enigma.deposit(accounts[i], 1).then((report) => {
+        expect(report).not.to.be.empty;
+      }));
+    }
+  });
+
   it('should set the worker parameters (principal only)', () => {
     const enigmaContract = enigma.enigmaContract;
     const seed = Math.floor(Math.random() * 100000);
