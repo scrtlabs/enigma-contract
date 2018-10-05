@@ -232,6 +232,18 @@ export default class Enigma {
   }
 
   /**
+   *
+   * @param blockNumber
+   * @return {Promise<any | never>}
+   */
+  getWorkerParams(blockNumber) {
+    return this.enigmaContract.methods.getWorkerParams(blockNumber).call().then((result) => {
+      console.log('the worker params', result);
+      return result;
+    });
+  }
+
+  /**
    * Return the version number of the library
    *
    * @return {string}

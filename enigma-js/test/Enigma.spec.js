@@ -82,6 +82,26 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should set the worker parameters (principal only)', () => {
+    const enigmaContract = enigma.enigmaContract;
+    const seed = Math.floor(Math.random() * 100000);
+    const hash = web3.utils.soliditySha3({t: 'uint256', v: seed});
+    const sig = utils.sign(data.principal[4], hash);
+
+    return new Promise((resolve, reject) => {
+      enigmaContract.methods.setWorkersParams(seed, sig).
+        send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: accounts[9],
+        }).
+        on('receipt', (receipt) => resolve(receipt)).
+        on('error', (error) => reject(error));
+    }).then((receipt) => {
+      expect(receipt).not.to.be.empty;
+    });
+
+  });
   const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
   let taskId;
   it('should create task record', () => {
@@ -234,11 +254,23 @@ describe('Enigma tests', () => {
     });
   });
 
-  it('should encrypt task inputs', () => {
-    todo();
+  let params;
+  it('should get the worker parameters for the current block', () => {
+    return web3.eth.getBlockNumber().
+      then((blockNumber) => {
+        return enigma.getWorkerParams(blockNumber);
+      }).
+      then((result) => {
+        params = result;
+        expect(params).not.to.be.empty;
+      });
   });
 
   it('should get the selected workers for the contract / epoch', () => {
+    todo();
+  });
+
+  it('should encrypt task inputs', () => {
     todo();
   });
 
