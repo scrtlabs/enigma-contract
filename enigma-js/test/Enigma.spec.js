@@ -37,7 +37,24 @@ describe('Enigma tests', () => {
           from: accounts[0],
         },
       );
+      enigma.admin();
       expect(enigma.version()).to.be.equal('0.0.1');
+    });
+  });
+
+  it('should distribute ENG tokens', () => {
+    const tokenContract = enigma.tokenContract;
+    let promises = [];
+    for (let i = 1; i < accounts.length; i++) {
+      let promise = tokenContract.methods.approve(accounts[i], 100).send(enigma.txDefaults).
+        then((result) => {
+          console.log('approved tokens', result);
+          return tokenContract.methods.transfer(accounts[i], 100).send(enigma.txDefaults);
+        });
+      promises.push(promise);
+    }
+    return Promise.all(promises, (results) => {
+      expect(results.length).to.be.equal(accounts.length - 1);
     });
   });
 
@@ -69,10 +86,7 @@ describe('Enigma tests', () => {
     }
     // Using the account as the signer for testing purposes
     return Promise.all(promises).then((receipts) => {
-      receipts.forEach((receipt) => {
-        console.log('worker registered: ', receipt);
-        expect(receipt.events.Registered).not.to.be.empty;
-      });
+      expect(receipts.length).to.be.equal(10);
     });
   });
 
@@ -88,10 +102,20 @@ describe('Enigma tests', () => {
       if (i === 9) {
         continue;
       }
-      promises.push(enigma.deposit(accounts[i], 1).then((report) => {
-        expect(report).not.to.be.empty;
-      }));
+      let promise = new Promise((resolve, reject) => {
+        enigma.admin.deposit(accounts[i], 1).
+          on('depositSuccessful', (result) => resolve(result)).
+          on('error', (err) => {
+            reject(err);
+          });
+      });
+      promises.push(promise);
     }
+    return Promise.all(promises).then((results) => {
+      expect(results.length).to.be.equal(9);
+    }).catch((err) => {
+      console.error(err);
+    });
   });
 
   it('should set the worker parameters (principal only)', () => {
@@ -112,9 +136,36 @@ describe('Enigma tests', () => {
     }).then((receipt) => {
       expect(receipt).not.to.be.empty;
     });
-
   });
+
   const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
+  let codeHash;
+  it('should deploy contract', () => {
+    codeHash = web3.utils.soliditySha3('9d075ae');
+    const proof = web3.utils.soliditySha3(
+      {t: 'bytes', v: codeHash},
+    );
+    const sig = utils.sign(data.worker[4], proof);
+    return new Promise((resolve, reject) => {
+      enigma.admin.deploySecretContract(scAddr, codeHash, accounts[0], sig).
+        on('deployed', (result) => resolve(result));
+    }).then((result) => {
+      expect(result).not.to.be.empty;
+    });
+  });
+
+  it('should verify deployed contract', () => {
+    return enigma.admin.isDeployed(scAddr).then((result) => {
+      expect(result).to.be.equal(true);
+    });
+  });
+
+  it('should get contract bytecode hash', () => {
+    return enigma.admin.getCodeHash(scAddr).then((result) => {
+      expect(result).to.be.equal(codeHash);
+    });
+  });
+
   let taskId;
   it('should create task record', () => {
     return web3.eth.getBlockNumber().
@@ -173,6 +224,44 @@ describe('Enigma tests', () => {
     return enigma.getTask(taskId).then((task) => {
       expect(task.status).to.be.equal(1);
     });
+  });
+
+  /**
+   *  getContractsNum(): number
+   *  getDeltasNum(contractAddr):number
+   *  isSecretContract(addr): bool
+   *  isValidDelta(addr, deltaHash): bool
+   *  isValidDeltaRange(addr, deltaHashesList): bool
+   *  getSecretContractCodeHash(addr) : WASM_CODE_HASH
+   *  getDeltaAt(addr,deltaIndex) : deltaHash
+   *  getDeltasRange(addr, indexRange) : [] deltasHashes
+   */
+  it('should count state deltas', () => {
+    return enigma.admin.countStateDeltas(scAddr).then((count) => {
+      expect(count).to.be.equal(1);
+    });
+  });
+
+  let stateDeltaHash;
+  it('should get state delta hash', () => {
+    return enigma.admin.getStateDeltaHash(scAddr, 0).then((delta) => {
+      stateDeltaHash = delta;
+      expect(delta).not.to.be.empty;
+    });
+  });
+
+  it('should verify state delta', () => {
+    return enigma.admin.isValidDeltaHash(scAddr, stateDeltaHash).then((isValid) => {
+      expect(isValid).to.be.equal(true);
+    });
+  });
+
+  it('should verify state delta range', () => {
+    todo();
+  });
+
+  it('should get state delta hash range', () => {
+    todo();
   });
 
   let taskRecords;

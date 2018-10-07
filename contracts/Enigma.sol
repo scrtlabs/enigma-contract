@@ -3,32 +3,25 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ECRecovery.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-import "./EnigmaToken.sol";
 
+contract ERC20 {
+    function allowance(address owner, address spender) public view returns (uint256);
+    function transferFrom(address from, address to, uint256 value) public returns (bool);
+    function approve(address spender, uint256 value) public returns (bool);
+    function totalSupply() public view returns (uint256);
+    function balanceOf(address who) public view returns (uint256);
+    function transfer(address to, uint256 value) public returns (bool);
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
 
 contract Enigma {
     using SafeMath for uint256;
     using ECRecovery for bytes32;
 
     // The interface of the deployed ENG ERC20 token contract
-    EnigmaToken public engToken;
-
-    struct TaskRecord {
-        bytes32 taskId;
-        uint fee;
-        address token;
-        uint tokenValue;
-        address sender;
-    }
-
-    struct TaskReceipt {
-        bytes32 taskId;
-        bytes32 inStateDeltaHash;
-        bytes32 outStateDeltaHash;
-        bytes ethCall;
-        bytes sig;
-    }
+    ERC20 public engToken;
 
     struct Task {
         uint fee;
@@ -68,6 +61,16 @@ contract Enigma {
         uint seed;
     }
 
+    struct SecretContract {
+        address owner;
+        bytes32 codeHash;
+        bytes32[] stateDeltaHashes;
+        SecretContractStatus status;
+        // TODO: consider keeping an index of taskIds
+    }
+    // TODO: do we want to have a contract lifecycle?
+    enum SecretContractStatus {Undefined, Deployed}
+
     /**
     * The last 5 worker parameters
     * We keep a collection of worker parameters to account for latency issues.
@@ -85,12 +88,12 @@ contract Enigma {
 
     // A registry of all registered workers with their attributes
     mapping(address => Worker) public workers;
-    // A registry of all active and historical tasks with their attributes
-    // TODO: do we keep tasks forever? if not, when do we delete them?
     mapping(bytes32 => Task) public tasks;
-    mapping(address => bytes32[]) public stateDeltaHashes;
-    uint stakingThreshold = 0;
-    uint workerGroupSize = 0;
+    mapping(address => SecretContract) public contracts;
+
+    // TODO: do we keep tasks forever? if not, when do we delete them?
+    uint stakingThreshold;
+    uint workerGroupSize;
 
     // The events emitted by the contract
     event Registered(address custodian, address signer);
@@ -101,11 +104,16 @@ contract Enigma {
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes[] ethCalls, bytes[] sigs);
     event DepositSuccessful(address from, uint value);
+    event SecretContractDeployed(address scAddr);
 
     constructor(address _tokenAddress, address _principal) public {
-        engToken = EnigmaToken(_tokenAddress);
+        engToken = ERC20(_tokenAddress);
         principal = _principal;
+        stakingThreshold = 1;
+        workerGroupSize = 10;
     }
+
+    //TODO: break down these methods into services for upgradability
 
     /**
     * Checks if the custodian wallet is registered as a worker
@@ -115,6 +123,11 @@ contract Enigma {
     modifier workerRegistered(address user) {
         Worker memory worker = workers[user];
         require(worker.status > 0, "Unregistered worker.");
+        _;
+    }
+
+    modifier contractDeployed(address scAddr) {
+        require(contracts[scAddr].status == SecretContractStatus.Deployed, "Secret contract not deployed.");
         _;
     }
 
@@ -150,13 +163,76 @@ contract Enigma {
     public
     workerRegistered(custodian)
     {
-        address to = address(this);
-        require(engToken.allowance(custodian, to) >= amount, "Not enough tokens allowed for transfer");
-        require(engToken.transferFrom(custodian, to, amount), "Transfer failed");
+//        require(engToken.allowance(custodian, to) >= amount, "Not enough tokens allowed for transfer");
+//        engToken.transferFrom(custodian, this, amount);
 
-        workers[msg.sender].balance = workers[custodian].balance.add(amount);
+        workers[custodian].balance = workers[custodian].balance.add(amount);
 
         emit DepositSuccessful(custodian, amount);
+    }
+
+    function deploySecretContract(address scAddr, bytes32 codeHash, address owner, bytes sig)
+    public
+    workerRegistered(msg.sender)
+    {
+        require(contracts[scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
+        //TODO: verify sig
+
+        contracts[scAddr].owner = owner;
+        contracts[scAddr].codeHash = codeHash;
+        contracts[scAddr].status = SecretContractStatus.Deployed;
+
+        emit SecretContractDeployed(scAddr);
+    }
+
+    function isDeployed(address scAddr)
+    public
+    returns (bool)
+    {
+       if (contracts[scAddr].status == SecretContractStatus.Deployed) {
+           return true;
+       } else {
+           return false;
+       }
+    }
+
+    function getCodeHash(address scAddr)
+    public
+    contractDeployed(scAddr)
+    returns (bytes32)
+    {
+       return contracts[scAddr].codeHash;
+    }
+
+    function countStateDeltas(address scAddr)
+    public
+    contractDeployed(scAddr)
+    returns (uint)
+    {
+        return contracts[scAddr].stateDeltaHashes.length;
+    }
+
+    function getStateDeltaHash(address scAddr, uint index)
+    public
+    contractDeployed(scAddr)
+    returns (bytes32)
+    {
+        return contracts[scAddr].stateDeltaHashes[index];
+    }
+
+    function isValidDeltaHash(address scAddr, bytes32 stateDeltaHash)
+    public
+    contractDeployed(scAddr)
+    returns (bool)
+    {
+        bool valid = false;
+        for (uint i = 0; i < contracts[scAddr].stateDeltaHashes.length; i++) {
+           if (contracts[scAddr].stateDeltaHashes[i] == stateDeltaHash) {
+               valid = true;
+               break;
+           }
+        }
+        return valid;
     }
 
     /**
@@ -222,14 +298,14 @@ contract Enigma {
     )
     internal
     {
-        uint index = stateDeltaHashes[scAddr].length;
+        uint index = contracts[scAddr].stateDeltaHashes.length;
         if (index == 0) {
             require(inStateDeltaHash == 0x0, 'Invalid input state delta hash for empty state');
         } else {
-            require(inStateDeltaHash == stateDeltaHashes[scAddr][index.sub(1)], 'Invalid input state delta hash');
+            require(inStateDeltaHash == contracts[scAddr].stateDeltaHashes[index.sub(1)], 'Invalid input state delta hash');
         }
-        stateDeltaHashes[scAddr].length++;
-        stateDeltaHashes[scAddr][index] = outStateDeltaHash;
+        contracts[scAddr].stateDeltaHashes.length++;
+        contracts[scAddr].stateDeltaHashes[index] = outStateDeltaHash;
 
         // TODO: execute the Ethereum calls
 
@@ -255,6 +331,7 @@ contract Enigma {
     )
     public
     workerRegistered(msg.sender)
+    contractDeployed(scAddr)
     {
         require(tasks[taskId].status == TaskStatus.RecordCreated, 'Invalid task status');
         verifyReceipt(scAddr, taskId, inStateDeltaHash, outStateDeltaHash, ethCall, sig);
@@ -274,6 +351,7 @@ contract Enigma {
     )
     public
     workerRegistered(msg.sender)
+    contractDeployed(scAddr)
     {
         for (uint i = 0; i < taskIds.length; i++) {
             // TODO: consider aggregate signature

@@ -2,6 +2,7 @@
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import EventEmitter from 'eventemitter3';
+import Admin from './Admin';
 
 /**
  * Encapsulates a task record
@@ -60,6 +61,13 @@ export default class Enigma {
     this.txDefaults = txDefaults;
 
     this.createContracts(enigmaContractAddr, tokenContractAddr);
+  }
+
+  /**
+   * Initialize the admin features
+   */
+  admin() {
+    this.admin = new Admin(this.web3, this.enigmaContract, this.tokenContract, this.txDefaults);
   }
 
   /**
@@ -244,47 +252,6 @@ export default class Enigma {
     });
   }
 
-  /**
-   *
-   * @param amount
-   */
-  deposit(account, amount, options = {}) {
-    options = Object.assign({}, this.txDefaults, options);
-    let emitter = new EventEmitter();
-    return this.tokenContract.methods.balanceOf(account).call().then((balance) => {
-      if (balance < amount) {
-        const msg = 'Not enough tokens in wallet';
-        emitter.emit('notEnoughFundsError', msg);
-        throw new Error(msg);
-      }
-      this.tokenContract.approve(this.enigmaContract.address, amount).send(options).
-        on('transactionHash', (hash) => {
-          console.log('got tx hash', hash);
-          emitter.emit('approveTransactionHash', hash);
-        }).
-        on('receipt', (receipt) => {
-          console.log('got approval receipt', receipt);
-          self.tokenContract.methods.allowance(account, this.enigmaContract.address).call().then((allowance) => {
-            if (allowance < amount) {
-              const msg = 'Not enough tokens approved';
-              emitter.emit('notEnoughApprovedError', msg);
-              throw new Error(msg);
-            }
-            emitter.emit('approved', receipt);
-
-            this.enigmaContract.deposit(account, amount).send(options).
-              on('transactionHash', (hash) => {
-                console.log('got tx hash', hash);
-                emitter.emit('depositTransactionHash', hash);
-              }).
-              on('receipt', (receipt) => {
-                console.log('got deposit receipt', receipt);
-                emitter.emit('depositSuccessful', receipt);
-              });
-          });
-        });
-    });
-  }
 
   /**
    * Return the version number of the library
