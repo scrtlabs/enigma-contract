@@ -85,6 +85,8 @@ contract Enigma {
 
     // An address-based index of all registered worker
     address[] public workerAddresses;
+    // An address-based index of all secret contracts
+    address[] public scAddresses;
 
     // A registry of all registered workers with their attributes
     mapping(address => Worker) public workers;
@@ -104,7 +106,7 @@ contract Enigma {
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes[] ethCalls, bytes[] sigs);
     event DepositSuccessful(address from, uint value);
-    event SecretContractDeployed(address scAddr);
+    event SecretContractDeployed(address scAddr, bytes32 codeHash);
 
     constructor(address _tokenAddress, address _principal) public {
         engToken = ERC20(_tokenAddress);
@@ -145,6 +147,7 @@ contract Enigma {
         // TODO: consider exit if both signer and custodian as matching
         // If the custodian is not already register, we add an index entry
         if (workers[msg.sender].signer == 0x0) {
+            // TODO: does workerAddresses.push just work here?
             uint index = workerAddresses.length;
             workerAddresses.length++;
             workerAddresses[index] = msg.sender;
@@ -171,6 +174,8 @@ contract Enigma {
         emit DepositSuccessful(custodian, amount);
     }
 
+    // TODO: should the scAddr be computed on-chain from the codeHash + some randomness
+    // TODO: should any user deploy a secret contract or only a trusted enclave?
     function deploySecretContract(address scAddr, bytes32 codeHash, address owner, bytes sig)
     public
     workerRegistered(msg.sender)
@@ -178,15 +183,18 @@ contract Enigma {
         require(contracts[scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
         //TODO: verify sig
 
+        //TODO: is this too naive?
         contracts[scAddr].owner = owner;
         contracts[scAddr].codeHash = codeHash;
         contracts[scAddr].status = SecretContractStatus.Deployed;
+        scAddresses.push(scAddr);
 
-        emit SecretContractDeployed(scAddr);
+        emit SecretContractDeployed(scAddr, codeHash);
     }
 
     function isDeployed(address scAddr)
     public
+    view
     returns (bool)
     {
        if (contracts[scAddr].status == SecretContractStatus.Deployed) {
@@ -198,14 +206,43 @@ contract Enigma {
 
     function getCodeHash(address scAddr)
     public
+    view
     contractDeployed(scAddr)
     returns (bytes32)
     {
        return contracts[scAddr].codeHash;
     }
 
+    function countSecretContracts()
+    public
+    view
+    returns (uint)
+    {
+        return scAddresses.length;
+    }
+
+    /**
+    * Selects address from start up to, but not including, the stop number
+    **/
+    function getSecretContractAddresses(uint start, uint stop)
+    public
+    view
+    returns (address[])
+    {
+        if (stop == 0) {
+            stop = scAddresses.length;
+        }
+        address[] memory addresses = new address[](stop.sub(start));
+        uint pos = 0;
+        for (uint i = start; i < stop; i++) {
+           addresses[pos] = scAddresses[i];
+        }
+        return addresses;
+    }
+
     function countStateDeltas(address scAddr)
     public
+    view
     contractDeployed(scAddr)
     returns (uint)
     {
@@ -214,14 +251,36 @@ contract Enigma {
 
     function getStateDeltaHash(address scAddr, uint index)
     public
+    view
     contractDeployed(scAddr)
     returns (bytes32)
     {
         return contracts[scAddr].stateDeltaHashes[index];
     }
 
+    /**
+    * Selects state deltas from start up to, but not including, the stop number
+    **/
+    function getStateDeltaHashes(address scAddr, uint start, uint stop)
+    public
+    view
+    contractDeployed(scAddr)
+    returns (bytes32[])
+    {
+        if (stop == 0) {
+            stop = contracts[scAddr].stateDeltaHashes.length;
+        }
+        bytes32[] memory deltas = new bytes32[](stop.sub(start));
+        uint pos = 0;
+        for (uint i = start; i < stop; i++) {
+            deltas[pos] = contracts[scAddr].stateDeltaHashes[i];
+        }
+        return deltas;
+    }
+
     function isValidDeltaHash(address scAddr, bytes32 stateDeltaHash)
     public
+    view
     contractDeployed(scAddr)
     returns (bool)
     {
@@ -477,6 +536,7 @@ contract Enigma {
 
     function getWorkerGroup(uint blockNumber, address scAddr)
     public
+    view
     {
         // Compile a list of selected workers for the block number and
         // secret contract.
@@ -518,6 +578,7 @@ contract Enigma {
     view
     returns (uint, uint, address[], address[])
     {
+        // TODO: finalize implementation
         uint firstBlockNumber = 0;
         uint seed = 0;
         address[] memory activeWorkers;
