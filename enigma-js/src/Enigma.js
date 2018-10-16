@@ -243,15 +243,30 @@ export default class Enigma {
   /**
    *
    * @param blockNumber
-   * @return {Promise<any | never>}
+   * @return {Promise}
    */
   getWorkerParams(blockNumber) {
     return this.enigmaContract.methods.getWorkerParams(blockNumber).call().then((result) => {
       console.log('the worker params', result);
-      return result;
+      const params = {
+        firstBlockNumber: parseInt(result[0]),
+        seed: parseInt(result[1]),
+        workers: result[2],
+        balances: result[3].map((x) => parseInt(x)),
+      };
+      return params;
     });
   }
 
+  /**
+   * Select the worker group
+   *
+   * @param {number} blockNumber
+   * @param {string} scAddr
+   */
+  selectWorkerGroup(blockNumber, scAddr) {
+
+  }
 
   /**
    * Return the version number of the library

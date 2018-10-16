@@ -6,10 +6,15 @@ import "openzeppelin-solidity/contracts/ECRecovery.sol";
 
 contract ERC20 {
     function allowance(address owner, address spender) public view returns (uint256);
+
     function transferFrom(address from, address to, uint256 value) public returns (bool);
+
     function approve(address spender, uint256 value) public returns (bool);
+
     function totalSupply() public view returns (uint256);
+
     function balanceOf(address who) public view returns (uint256);
+
     function transfer(address to, uint256 value) public returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -112,7 +117,7 @@ contract Enigma {
         engToken = ERC20(_tokenAddress);
         principal = _principal;
         stakingThreshold = 1;
-        workerGroupSize = 10;
+        workerGroupSize = 5;
     }
 
     //TODO: break down these methods into services for upgradability
@@ -166,8 +171,8 @@ contract Enigma {
     public
     workerRegistered(custodian)
     {
-//        require(engToken.allowance(custodian, to) >= amount, "Not enough tokens allowed for transfer");
-//        engToken.transferFrom(custodian, this, amount);
+        //        require(engToken.allowance(custodian, to) >= amount, "Not enough tokens allowed for transfer");
+        //        engToken.transferFrom(custodian, this, amount);
 
         workers[custodian].balance = workers[custodian].balance.add(amount);
 
@@ -197,11 +202,11 @@ contract Enigma {
     view
     returns (bool)
     {
-       if (contracts[scAddr].status == SecretContractStatus.Deployed) {
-           return true;
-       } else {
-           return false;
-       }
+        if (contracts[scAddr].status == SecretContractStatus.Deployed) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function getCodeHash(address scAddr)
@@ -210,7 +215,7 @@ contract Enigma {
     contractDeployed(scAddr)
     returns (bytes32)
     {
-       return contracts[scAddr].codeHash;
+        return contracts[scAddr].codeHash;
     }
 
     function countSecretContracts()
@@ -235,7 +240,7 @@ contract Enigma {
         address[] memory addresses = new address[](stop.sub(start));
         uint pos = 0;
         for (uint i = start; i < stop; i++) {
-           addresses[pos] = scAddresses[i];
+            addresses[pos] = scAddresses[i];
         }
         return addresses;
     }
@@ -286,10 +291,10 @@ contract Enigma {
     {
         bool valid = false;
         for (uint i = 0; i < contracts[scAddr].stateDeltaHashes.length; i++) {
-           if (contracts[scAddr].stateDeltaHashes[i] == stateDeltaHash) {
-               valid = true;
-               break;
-           }
+            if (contracts[scAddr].stateDeltaHashes[i] == stateDeltaHash) {
+                valid = true;
+                break;
+            }
         }
         return valid;
     }
@@ -471,7 +476,7 @@ contract Enigma {
         // Copy the current worker list
         uint workerIndex = 0;
         for (uint wi = 0; wi < workerAddresses.length; wi++) {
-            if (workers[workerAddresses[wi]].balance > stakingThreshold) {
+            if (workers[workerAddresses[wi]].balance >= stakingThreshold) {
                 workersParams[paramIndex].workers.length++;
                 workersParams[paramIndex].workers[workerIndex] = workerAddresses[wi];
 
@@ -537,6 +542,7 @@ contract Enigma {
     function getWorkerGroup(uint blockNumber, address scAddr)
     public
     view
+    returns (address[])
     {
         // Compile a list of selected workers for the block number and
         // secret contract.
@@ -545,14 +551,14 @@ contract Enigma {
         WorkersParams memory params = workersParams[paramIndex];
 
         address[] memory selectedWorkers = new address[](workerGroupSize);
-        for (uint it; it < selectedWorkers.length; it++) {
+        uint nonce = 0;
+        for (uint it = 0; it < workerGroupSize; it++) {
             do {
-                uint nonce = 0;
                 bytes32 hash = keccak256(abi.encodePacked(nonce, params.seed, blockNumber, scAddr));
                 uint index = uint256(hash) % tokens.length;
                 address worker = tokens[index];
                 bool dup = false;
-                for (uint id; id < selectedWorkers.length; id++) {
+                for (uint id = 0; id < selectedWorkers.length; id++) {
                     if (worker == selectedWorkers[id]) {
                         dup = true;
                         break;
@@ -560,12 +566,12 @@ contract Enigma {
                 }
                 if (dup == false) {
                     selectedWorkers[it] = worker;
-                } else {
-                    nonce = nonce.add(1);
                 }
+                nonce++;
             }
             while (selectedWorkers[it] == 0x0);
         }
+        return selectedWorkers;
     }
 
     /**

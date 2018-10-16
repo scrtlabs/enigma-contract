@@ -45,11 +45,12 @@ describe('Enigma tests', () => {
   it('should distribute ENG tokens', () => {
     const tokenContract = enigma.tokenContract;
     let promises = [];
+    const allowance = 1000;
     for (let i = 1; i < accounts.length; i++) {
-      let promise = tokenContract.methods.approve(accounts[i], 100).send(enigma.txDefaults).
+      let promise = tokenContract.methods.approve(accounts[i], allowance).send(enigma.txDefaults).
         then((result) => {
           console.log('approved tokens', result);
-          return tokenContract.methods.transfer(accounts[i], 100).send(enigma.txDefaults);
+          return tokenContract.methods.transfer(accounts[i], allowance).send(enigma.txDefaults);
         });
       promises.push(promise);
     }
@@ -97,13 +98,14 @@ describe('Enigma tests', () => {
   });
 
   it('should deposits tokens in worker banks', () => {
+    const deposits = [900, 100, 10, 20, 100, 200, 40, 100, 50];
     let promises = [];
     for (let i = 0; i < accounts.length; i++) {
       if (i === 9) {
         continue;
       }
       let promise = new Promise((resolve, reject) => {
-        enigma.admin.deposit(accounts[i], 1).
+        enigma.admin.deposit(accounts[i], deposits[i]).
           on('depositSuccessful', (result) => resolve(result)).
           on('error', (err) => {
             reject(err);
@@ -368,7 +370,14 @@ describe('Enigma tests', () => {
   });
 
   it('should get the selected workers for the contract / epoch', () => {
-    todo();
+    const enigmaContract = enigma.enigmaContract;
+    return web3.eth.getBlockNumber().
+      then((blockNumber) => {
+        return enigmaContract.methods.getWorkerGroup(blockNumber, scAddr).call();
+      }).
+      then((group) => {
+        expect(group).not.to.be.empty;
+      });
   });
 
   it('should encrypt task inputs', () => {
