@@ -113,7 +113,7 @@ export default class Enigma {
           event.transactionHash,
           receipt,
         );
-        emitter.emit('mined', taskRecord);
+        emitter.emit('taskRecordReceipt', taskRecord);
       }).
       on('confirmation', (confirmationNumber, receipt) => {
         console.log('got confirmation', confirmationNumber, receipt);
