@@ -554,7 +554,7 @@ contract Enigma {
         uint nonce = 0;
         for (uint it = 0; it < workerGroupSize; it++) {
             do {
-                bytes32 hash = keccak256(abi.encodePacked(nonce, params.seed, blockNumber, scAddr));
+                bytes32 hash = keccak256(abi.encodePacked(nonce, params.seed, params.firstBlockNumber, scAddr));
                 uint index = uint256(hash) % tokens.length;
                 address worker = tokens[index];
                 bool dup = false;

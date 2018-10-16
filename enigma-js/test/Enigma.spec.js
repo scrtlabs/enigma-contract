@@ -371,12 +371,20 @@ describe('Enigma tests', () => {
 
   it('should get the selected workers for the contract / epoch', () => {
     const enigmaContract = enigma.enigmaContract;
+    let blockNumber;
+    let contractSelectWorkers;
     return web3.eth.getBlockNumber().
-      then((blockNumber) => {
+      then((bn) => {
+        blockNumber = bn;
         return enigmaContract.methods.getWorkerGroup(blockNumber, scAddr).call();
       }).
       then((group) => {
-        expect(group).not.to.be.empty;
+        contractSelectWorkers = group;
+        return enigma.getWorkerParams(blockNumber);
+      }).
+      then((params) => {
+        const group = enigma.selectWorkerGroup(scAddr, params, 5);
+        expect(group).to.be.equal(contractSelectWorkers);
       });
   });
 

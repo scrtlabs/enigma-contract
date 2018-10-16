@@ -3,6 +3,7 @@ import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import EventEmitter from 'eventemitter3';
 import Admin from './Admin';
+import web3Utils from 'web3-utils';
 
 /**
  * Encapsulates a task record
@@ -261,11 +262,40 @@ export default class Enigma {
   /**
    * Select the worker group
    *
-   * @param {number} blockNumber
-   * @param {string} scAddr
    */
-  selectWorkerGroup(blockNumber, scAddr) {
-
+  selectWorkerGroup(scAddr, params, workerGroupSize = 5) {
+    let tokens = [];
+    for (let i = 0; i < params.workers.length; i++) {
+      for (let ib = 0; ib < params.balances[i]; ib++) {
+        tokens.push(params.workers[i]);
+      }
+    }
+    let nonce = 0;
+    let selectedWorkers = [];
+    for (let i = 0; i < workerGroupSize; i++) {
+      do {
+        const hash = web3Utils.soliditySha3(
+          {t: 'uint256', v: nonce},
+          {t: 'uint256', v: params.seed},
+          {t: 'uint256', v: params.firstBlockNumber},
+          {t: 'address', v: scAddr},
+        );
+        console.log('the hash', hash, 'the length', tokens.length);
+        const index = web3Utils.toBN(hash).mod(web3Utils.toBN(tokens.length));
+        const worker = tokens[index];
+        let dup = false;
+        selectedWorkers.forEach((item) => {
+          if (item === worker) {
+            dup = true;
+          }
+        });
+        if (dup === false) {
+          selectedWorkers[i] = worker;
+        }
+        nonce++;
+      } while (typeof selectedWorkers[i] === 'undefined');
+    }
+    return selectedWorkers;
   }
 
   /**
