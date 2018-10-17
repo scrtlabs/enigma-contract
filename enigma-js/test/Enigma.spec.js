@@ -372,7 +372,9 @@ describe('Enigma tests', () => {
       }).
       then((params) => {
         const group = enigma.selectWorkerGroup(scAddr, params, 5);
-        expect(group).to.be.equal(contractSelectWorkers);
+        for (let i = 0; i < group.length; i++) {
+          expect(group[i]).to.be.equal(contractSelectWorkers[i]);
+        }
       });
   });
 
