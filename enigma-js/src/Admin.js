@@ -95,6 +95,18 @@ export default class Admin {
   }
 
   /**
+   * Fetch state delta hash range
+   *
+   * @param {string} scAddr
+   * @param {number} start
+   * @param {number} stop
+   * @return {Promise}
+   */
+  getStateDeltaHashes(scAddr, start, stop) {
+    return this.enigmaContract.methods.getStateDeltaHashes(scAddr, start, stop).call();
+  }
+
+  /**
    * Check that the specified state delta hash is valid.
    *
    * @param {string} scAddr

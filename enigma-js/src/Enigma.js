@@ -126,7 +126,7 @@ export default class Enigma {
           event.transactionHash,
           receipt,
         );
-        emitter.emit('confirmed', taskRecord);
+        emitter.emit('taskRecordConfirmation', taskRecord);
       }).
       on('error', console.error);
     return emitter;
