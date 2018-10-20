@@ -97,7 +97,7 @@ describe('Enigma tests', () => {
     });
   });
 
-  it('should deposits tokens in worker banks', () => {
+  it('should deposit tokens in worker banks', () => {
     const deposits = [900, 100, 10, 20, 100, 200, 40, 100, 50];
     let promises = [];
     for (let i = 0; i < accounts.length; i++) {

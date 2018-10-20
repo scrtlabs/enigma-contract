@@ -126,14 +126,14 @@ export default class Admin {
         });
         return;
       }
-      return this.tokenContract.methods.approve(this.enigmaContract.address, amount).send(options).
+      return this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send(options).
         on('transactionHash', (hash) => {
           // console.log('got tx hash', hash);
           emitter.emit('approveTransactionHash', hash);
         }).
         on('confirmation', (confirmationNumber, receipt) => {
           // console.log('got approval receipt', receipt);
-          this.tokenContract.methods.allowance(account, this.enigmaContract.address).call().then((allowance) => {
+          this.tokenContract.methods.allowance(account, this.enigmaContract.options.address).call().then((allowance) => {
             if (allowance < amount) {
               const msg = 'Not enough tokens approved: ' + allowance + '<' + amount;
               emitter.emit('error', {

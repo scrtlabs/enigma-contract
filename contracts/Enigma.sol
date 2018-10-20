@@ -171,8 +171,8 @@ contract Enigma {
     public
     workerRegistered(custodian)
     {
-        //        require(engToken.allowance(custodian, to) >= amount, "Not enough tokens allowed for transfer");
-        //        engToken.transferFrom(custodian, this, amount);
+        require(engToken.allowance(custodian, this) >= amount, "Not enough tokens allowed for transfer");
+        require(engToken.transferFrom(custodian, this, amount));
 
         workers[custodian].balance = workers[custodian].balance.add(amount);
 
