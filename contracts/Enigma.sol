@@ -109,7 +109,7 @@ contract Enigma {
     event TaskRecordCreated(bytes32 taskId, uint fee, address token, uint tokenValue, address sender);
     event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address[] tokens, uint[] tokenValues, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes[] ethCalls, bytes[] sigs);
+    event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes ethCall, bytes sig);
     event DepositSuccessful(address from, uint value);
     event SecretContractDeployed(address scAddr, bytes32 codeHash);
 
@@ -279,6 +279,7 @@ contract Enigma {
         uint pos = 0;
         for (uint i = start; i < stop; i++) {
             deltas[pos] = contracts[scAddr].stateDeltaHashes[i];
+            pos++;
         }
         return deltas;
     }
@@ -368,8 +369,7 @@ contract Enigma {
         } else {
             require(inStateDeltaHash == contracts[scAddr].stateDeltaHashes[index.sub(1)], 'Invalid input state delta hash');
         }
-        contracts[scAddr].stateDeltaHashes.length++;
-        contracts[scAddr].stateDeltaHashes[index] = outStateDeltaHash;
+        contracts[scAddr].stateDeltaHashes.push(outStateDeltaHash);
 
         // TODO: execute the Ethereum calls
 
@@ -410,43 +410,34 @@ contract Enigma {
         bytes32[] taskIds,
         bytes32[] inStateDeltaHashes,
         bytes32[] outStateDeltaHashes,
-        bytes ethCalls,
+        bytes ethCall,
         bytes sig
     )
     internal
     {
         // First, we verify the state delta hashes ordering
-//        uint index = contracts[scAddr].stateDeltaHashes.length;
-//        if (index == 0) {
-//            require(inStateDeltaHashes[0] == 0x0, 'Invalid input state delta hash for empty state');
-//        } else {
-//            require(inStateDeltaHashes[0] == contracts[scAddr].stateDeltaHashes[index.sub(1)], 'Invalid input state delta hash');
-//        }
-//        for (uint i = 0; i < taskIds.length; i++) {
-//            require(tasks[taskIds[i]].status == TaskStatus.RecordCreated, 'Invalid task status');
-//            if (_stateDeltaHashes.length > 0) {
-//                require(inStateDeltaHashes[i] == outStateDeltaHashes[i - 1], 'Invalid state delta hashes ordering');
-//            }
-//        }
-//        // Then, we store the outStateDeltaHashes
-//        for (uint i = 0; i < taskIds.length; i++) {
-//            contracts[scAddr].stateDeltaHashes.push(outStateDeltaHashes[i]);
-//
-//            tasks[taskIds[i]].proof = sigs[i];
-//            tasks[taskIds[i]].status = TaskStatus.ReceiptVerified;
-//        }
-//        contracts[scAddr].stateDeltaHashes.length++;
-//        contracts[scAddr].stateDeltaHashes[index] = outStateDeltaHash;
-
+        uint index = contracts[scAddr].stateDeltaHashes.length;
+        if (index == 0) {
+            require(inStateDeltaHashes[0] == 0x0, 'Invalid input state delta hash for empty state');
+        } else {
+            require(inStateDeltaHashes[0] == contracts[scAddr].stateDeltaHashes[index.sub(1)], 'Invalid input state delta hash');
+        }
+        for (uint i = 0; i < taskIds.length; i++) {
+            require(tasks[taskIds[i]].status == TaskStatus.RecordCreated, 'Invalid task status');
+            if (i > 0) {
+                require(inStateDeltaHashes[i] == outStateDeltaHashes[i - 1], 'Invalid state delta hashes ordering');
+            }
+        }
+        // TODO: verify signature
+        // Then, we store the outStateDeltaHashes
+        for (uint ic = 0; ic < taskIds.length; ic++) {
+            contracts[scAddr].stateDeltaHashes.push(outStateDeltaHashes[ic]);
+            if (ic == taskIds.length.sub(1)) {
+                tasks[taskIds[ic]].proof = sig;
+            }
+            tasks[taskIds[ic]].status = TaskStatus.ReceiptVerified;
+        }
         // TODO: execute the Ethereum calls
-
-        // Build a hash to validate that the I/Os are matching
-//        bytes32 hash = keccak256(abi.encodePacked(taskId, inStateDeltaHash, outStateDeltaHash, ethCall));
-//
-//        // The worker address is not a real Ethereum wallet address but
-//        // one generated from its signing key
-//        address workerAddr = hash.recover(sig);
-//        require(workerAddr == workers[msg.sender].signer, "Invalid signature.");
     }
 
     function commitReceipts(
@@ -454,22 +445,15 @@ contract Enigma {
         bytes32[] taskIds,
         bytes32[] inStateDeltaHashes,
         bytes32[] outStateDeltaHashes,
-        bytes ethCalls,
+        bytes ethCall,
         bytes sig
     )
     public
     workerRegistered(msg.sender)
     contractDeployed(scAddr)
     {
-//        for (uint i = 0; i < taskIds.length; i++) {
-//            // TODO: consider aggregate signature
-//            require(tasks[taskIds[i]].status == TaskStatus.RecordCreated, 'Invalid task status');
-//            verifyReceipt(scAddr, taskIds[i], inStateDeltaHashes[i], outStateDeltaHashes[i], ethCalls, sig);
-//
-//            tasks[taskIds[i]].proof = sigs[i];
-//            tasks[taskIds[i]].status = TaskStatus.ReceiptVerified;
-//        }
-//        emit ReceiptsVerified(taskIds, inStateDeltaHashes, outStateDeltaHashes, ethCalls, sigs);
+        verifyReceipts(scAddr, taskIds, inStateDeltaHashes, outStateDeltaHashes, ethCall, sig);
+        emit ReceiptsVerified(taskIds, inStateDeltaHashes, outStateDeltaHashes, ethCall, sig);
     }
 
     // Verify the signature submitted while reparameterizing workers

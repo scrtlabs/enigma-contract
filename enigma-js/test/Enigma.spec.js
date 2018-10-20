@@ -180,7 +180,7 @@ describe('Enigma tests', () => {
         const fee = 300;
         return new Promise((resolve, reject) => {
           enigma.createTaskRecord(taskId, fee).
-            on('mined', (receipt) => resolve(receipt)).
+            on('taskRecordReceipt', (receipt) => resolve(receipt)).
             on('error', (error) => reject(error));
         });
       }).
@@ -228,16 +228,6 @@ describe('Enigma tests', () => {
     });
   });
 
-  /**
-   *  getContractsNum(): number
-   *  getDeltasNum(contractAddr):number
-   *  isSecretContract(addr): bool
-   *  isValidDelta(addr, deltaHash): bool
-   *  isValidDeltaRange(addr, deltaHashesList): bool
-   *  getSecretContractCodeHash(addr) : WASM_CODE_HASH
-   *  getDeltaAt(addr,deltaIndex) : deltaHash
-   *  getDeltasRange(addr, indexRange) : [] deltasHashes
-   */
   it('should count state deltas', () => {
     return enigma.admin.countStateDeltas(scAddr).then((count) => {
       expect(count).to.be.equal(1);
@@ -256,14 +246,6 @@ describe('Enigma tests', () => {
     return enigma.admin.isValidDeltaHash(scAddr, stateDeltaHash).then((isValid) => {
       expect(isValid).to.be.equal(true);
     });
-  });
-
-  it('should verify state delta range', () => {
-    todo();
-  });
-
-  it('should get state delta hash range', () => {
-    todo();
   });
 
   let taskRecords;
@@ -309,6 +291,7 @@ describe('Enigma tests', () => {
     });
   });
 
+  let outStateDeltas;
   it('should simulate multiple task receipts', () => {
     const enigmaContract = enigma.enigmaContract;
     const inStateDelta1 = outStateDelta;
@@ -317,26 +300,21 @@ describe('Enigma tests', () => {
     const outStateDelta2 = web3.utils.soliditySha3('test3');
     const ethCall = web3.utils.soliditySha3('test');
     const taskIds = taskRecords.map((t) => t.taskId);
-    const proof1 = web3.utils.soliditySha3(
+    const proof = web3.utils.soliditySha3(
       {t: 'bytes32', v: taskIds[0]},
       {t: 'bytes32', v: inStateDelta1},
       {t: 'bytes32', v: outStateDelta1},
       {t: 'bytes', v: ethCall},
-    );
-    const sig1 = utils.sign(data.worker[4], proof1);
-    const proof2 = web3.utils.soliditySha3(
       {t: 'bytes32', v: taskIds[1]},
       {t: 'bytes32', v: inStateDelta2},
       {t: 'bytes32', v: outStateDelta2},
       {t: 'bytes', v: ethCall},
     );
-    const sig2 = utils.sign(data.worker[4], proof2);
+    const sig = utils.sign(data.worker[4], proof);
     const inStateDeltas = [inStateDelta1, inStateDelta2];
-    const outStateDeltas = [outStateDelta1, outStateDelta2];
-    const ethCalls = [ethCall, ethCall];
-    const sigs = [sig1, sig2];
+    outStateDeltas = [outStateDelta1, outStateDelta2];
     return new Promise((resolve, reject) => {
-      enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, ethCalls, sigs).
+      enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, ethCall, sig).
         send({
           gas: 4712388,
           gasPrice: 100000000000,
@@ -350,10 +328,20 @@ describe('Enigma tests', () => {
   });
 
   it('should get the confirmed tasks', () => {
-    return enigma.getTask(taskRecords.map((t) => t.taskId)).then((tasks) => {
+    let promises = [];
+    taskRecords.map((t) => t.taskId).forEach((taskId) => {
+      promises.push(enigma.getTask(taskId));
+    });
+    Promise.all(promises).then((tasks) => {
       tasks.forEach((task) => {
         expect(task.status).to.be.equal(1);
       });
+    });
+  });
+
+  it('should get state delta hash range', () => {
+    enigma.admin.getStateDeltaHashes(scAddr, 0, 3).then((hashes) => {
+      expect(hashes).to.be.equal([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
     });
   });
 
@@ -384,7 +372,9 @@ describe('Enigma tests', () => {
       }).
       then((params) => {
         const group = enigma.selectWorkerGroup(scAddr, params, 5);
-        expect(group).to.be.equal(contractSelectWorkers);
+        for (let i = 0; i < group.length; i++) {
+          expect(group[i]).to.be.equal(contractSelectWorkers[i]);
+        }
       });
   });
 
