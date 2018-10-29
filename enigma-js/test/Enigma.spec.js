@@ -45,7 +45,7 @@ describe('Enigma tests', () => {
   it('should distribute ENG tokens', () => {
     const tokenContract = enigma.tokenContract;
     let promises = [];
-    const allowance = 1000;
+    const allowance = utils.toGrains(1000);
     for (let i = 1; i < accounts.length; i++) {
       let promise = tokenContract.methods.approve(accounts[i], allowance).send(enigma.txDefaults).
         then((result) => {
@@ -105,7 +105,7 @@ describe('Enigma tests', () => {
         continue;
       }
       let promise = new Promise((resolve, reject) => {
-        enigma.admin.deposit(accounts[i], deposits[i]).
+        enigma.admin.deposit(accounts[i], utils.toGrains(deposits[i])).
           on('depositSuccessful', (result) => resolve(result)).
           on('error', (err) => {
             reject(err);
@@ -134,7 +134,10 @@ describe('Enigma tests', () => {
           from: accounts[9],
         }).
         on('receipt', (receipt) => resolve(receipt)).
-        on('error', (error) => reject(error));
+        on('error', (error) => {
+          console.log("errored");
+          reject(error);
+        });
     }).then((receipt) => {
       expect(receipt).not.to.be.empty;
     });

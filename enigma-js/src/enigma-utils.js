@@ -344,6 +344,26 @@ function encryptMessage(keyHex, msg, iv = forge.random.getBytesSync(12)) {
   return result.toHex();
 }
 
+/**
+ * Converts ENG value to grains format.
+ *
+ * @param {int} engValue
+ * @return {int}
+ */
+function toGrains(engValue) {
+  return engValue * 10**8;
+}
+
+/**
+ * Converts grains format to ENG value.
+ *
+ * @param {int} grains
+ * @return {int}
+ */
+function fromGrains(grains) {
+  return grains / 10**8;
+}
+
 let utils = {};
 
 utils.readCert = readCert;
@@ -358,5 +378,7 @@ utils.sign = sign;
 utils.getDerivedKey = getDerivedKey;
 utils.encryptMessage = encryptMessage;
 utils.decryptMessage = decryptMessage;
+utils.toGrains = toGrains;
+utils.fromGrains = fromGrains;
 
 export default utils;

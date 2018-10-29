@@ -145,7 +145,8 @@ export default class Admin {
         }).
         on('confirmation', (confirmationNumber, receipt) => {
           // console.log('got approval receipt', receipt);
-          this.tokenContract.methods.allowance(account, this.enigmaContract.options.address).call().then((allowance) => {
+          this.tokenContract.methods.allowance(account, this.enigmaContract.options.address).call()
+            .then((allowance) => {
             if (allowance < amount) {
               const msg = 'Not enough tokens approved: ' + allowance + '<' + amount;
               emitter.emit('error', {
@@ -154,6 +155,7 @@ export default class Admin {
               });
               return;
             }
+            console.log('allowance = ', allowance);
             emitter.emit('approved', receipt);
             // console.log('allowance confirmed:', allowance);
             this.enigmaContract.methods.deposit(account, amount).send(options).
