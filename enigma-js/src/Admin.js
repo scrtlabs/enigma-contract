@@ -129,48 +129,50 @@ export default class Admin {
     options = Object.assign({}, this.txDefaults, options);
     options.from = account;
     let emitter = new EventEmitter();
-    this.tokenContract.methods.balanceOf(account).call().then((balance) => {
-      if (balance < amount) {
-        const msg = 'Not enough tokens in wallet';
-        emitter.emit('error', {
-          name: 'NotEnoughTokens',
-          message: msg,
-        });
-        return;
-      }
-      return this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send(options).
-        on('transactionHash', (hash) => {
-          // console.log('got tx hash', hash);
-          emitter.emit('approveTransactionHash', hash);
-        }).
-        on('confirmation', (confirmationNumber, receipt) => {
-          // console.log('got approval receipt', receipt);
-          this.tokenContract.methods.allowance(account, this.enigmaContract.options.address).call()
-            .then((allowance) => {
-            if (allowance < amount) {
-              const msg = 'Not enough tokens approved: ' + allowance + '<' + amount;
-              emitter.emit('error', {
-                name: 'NotEnoughApprovedTokens',
-                message: msg,
-              });
-              return;
-            }
-            console.log('allowance = ', allowance);
-            emitter.emit('approved', receipt);
-            // console.log('allowance confirmed:', allowance);
-            this.enigmaContract.methods.deposit(account, amount).send(options).
-              on('transactionHash', (hash) => {
-                // console.log('got tx hash', hash);
-                emitter.emit('depositTransactionHash', hash);
-              }).
-              on('receipt', (receipt) => {
-                // console.log('got deposit receipt', receipt);
-                emitter.emit('depositSuccessful', receipt);
-              }).
-              on('error', (err) => emitter.emit('error', err));
-          }).catch((err) => emitter.emit('error', err));
-        }).on('error', (err) => emitter.emit('error', err));
-    }).catch((err) => emitter.emit('error', err));
+    this.tokenContract.methods.balanceOf(account).call()
+      .then((balance) => {
+        if (balance < amount) {
+          const msg = 'Not enough tokens in wallet';
+          emitter.emit('error', {
+            name: 'NotEnoughTokens',
+            message: msg,
+          });
+          return;
+        }
+        return this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send(options)
+          .on('transactionHash', (hash) => {
+              emitter.emit('approveTransactionHash', hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit('approveConfirmation', confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit('approveReceipt', receipt);
+          });
+      })
+      .then((receipt) => {
+        return this.tokenContract.methods.allowance(account, this.enigmaContract.options.address).call();
+      })
+      .then((allowance) => {
+        if (allowance < amount) {
+          const msg = 'Not enough tokens approved: ' + allowance + '<' + amount;
+          emitter.emit('error', {
+            name: 'NotEnoughApprovedTokens',
+            message: msg,
+          });
+          return;
+        }
+        return this.enigmaContract.methods.deposit(account, amount).send(options)
+          .on('transactionHash', (hash) => {
+            emitter.emit('depositTransactionHash', hash);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit('depositReceipt', receipt);
+          });
+      })
+      .catch((err) => {
+        emitter.emit('error', err);
+      });
     return emitter;
   }
 }

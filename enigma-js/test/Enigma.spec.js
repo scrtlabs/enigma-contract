@@ -106,7 +106,7 @@ describe('Enigma tests', () => {
       }
       let promise = new Promise((resolve, reject) => {
         enigma.admin.deposit(accounts[i], utils.toGrains(deposits[i])).
-          on('depositSuccessful', (result) => resolve(result)).
+          on('depositReceipt', (result) => resolve(result)).
           on('error', (err) => {
             reject(err);
           });
@@ -271,7 +271,7 @@ describe('Enigma tests', () => {
         console.log('creating task records', taskRecords);
         return new Promise((resolve, reject) => {
           enigma.createTaskRecords(taskRecords).
-            on('mined', (receipt) => resolve(receipt)).
+            on('taskRecordsReceipt', (receipt) => resolve(receipt)).
             on('error', (error) => reject(error));
         });
       }).
