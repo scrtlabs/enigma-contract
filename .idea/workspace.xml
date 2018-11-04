@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="0687da14-747a-4d43-894e-6e0f27b31f66" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/contracts/Enigma.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/contracts/Enigma.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/contracts/EnigmaToken.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/contracts/EnigmaToken.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/enigma-js/src/Admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/Admin.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/enigma-js/src/enigma-utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/enigma-utils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/enigma-js/test/Enigma.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/test/Enigma.spec.js" afterDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FUSProjectUsageTrigger">
+    <session id="-1766076868">
+      <usages-collector id="statistics.lifecycle.project">
+        <counts>
+          <entry key="project.closed" value="6" />
+          <entry key="project.open.time.10" value="2" />
+          <entry key="project.open.time.11" value="1" />
+          <entry key="project.open.time.6" value="1" />
+          <entry key="project.open.time.7" value="1" />
+          <entry key="project.open.time.8" value="1" />
+          <entry key="project.open.time.9" value="3" />
+          <entry key="project.opened" value="9" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.open">
+        <counts>
+          <entry key="js" value="16" />
+          <entry key="sol" value="2" />
+          <entry key="vmoptions" value="3" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.open">
+        <counts>
+          <entry key="JavaScript" value="16" />
+          <entry key="PLAIN_TEXT" value="4" />
+          <entry key="Solidity file" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.edit">
+        <counts>
+          <entry key="JavaScript Console" value="314" />
+          <entry key="js" value="1344" />
+          <entry key="sol" value="301" />
+          <entry key="vmoptions" value="3" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.edit">
+        <counts>
+          <entry key="JavaScript" value="1658" />
+          <entry key="PLAIN_TEXT" value="3" />
+          <entry key="Solidity file" value="301" />
+        </counts>
+      </usages-collector>
+    </session>
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/contracts/Enigma.sol">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2970">
+              <caret line="198" selection-start-line="198" selection-end-line="198" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/enigma-js/test/Enigma.spec.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="87">
+              <caret line="99" column="5" selection-start-line="99" selection-start-column="5" selection-end-line="99" selection-end-column="5" />
+              <folding>
+                <element signature="n#!!doc" expanded="true" />
+                <element signature="e#35#59#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/enigma-js/src/Admin.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="295">
+              <caret line="157" column="23" selection-start-line="157" selection-start-column="12" selection-end-line="157" selection-end-column="23" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/contracts/EnigmaToken.sol">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="345">
+              <caret line="23" selection-start-line="23" selection-end-line="23" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/enigma-js/src/enigma-utils.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="5325">
+              <caret line="360" column="16" selection-start-line="360" selection-start-column="16" selection-end-line="360" selection-end-column="16" />
+              <folding>
+                <element signature="e#0#35#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>balance</find>
+      <find>tokenContract</find>
+      <find>assert</find>
+      <find>should</find>
+      <find>equal</find>
+      <find>i ===</find>
+      <find>Account Balance</find>
+      <find>console.log</find>
+      <find>suppl</find>
+      <find>balanceOf</find>
+      <find>allowance</find>
+      <find>this.enigmaContract</find>
+      <find>balance =</find>
+      <find>this.enigmaContract.address</find>
+      <find>function depos</find>
+      <find>DepositSucces</find>
+      <find>setWorkerPar</find>
+      <find>stakingThreshold</find>
+      <find>NotEnoughApp</find>
+      <find>workerRegistered</find>
+      <find>struct Wor</find>
+      <find>address</find>
+      <find>createTaskRecord</find>
+      <find>deposit</find>
+      <find>function depo</find>
+      <find>return {</find>
+      <find>return {i</find>
+      <find>utils.</find>
+      <find>Admin</find>
+      <find>utils</find>
+    </findStrings>
+    <dirStrings>
+      <dir>$PROJECT_DIR$</dir>
+    </dirStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/contracts/Enigma.sol" />
+        <option value="$APPLICATION_CONFIG_DIR$/idea.vmoptions" />
+        <option value="$PROJECT_DIR$/enigma-js/src/enigma-utils.js" />
+        <option value="$PROJECT_DIR$/enigma-js/src/Admin.js" />
+        <option value="$PROJECT_DIR$/enigma-js/test/Enigma.spec.js" />
+      </list>
+    </option>
+  </component>
+  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+    <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="NodeModulesDirectoryManager">
+    <handled-path value="$PROJECT_DIR$/enigma-js/node_modules" />
+    <handled-path value="$PROJECT_DIR$/node_modules" />
+  </component>
+  <component name="NodePackageJsonFileManager">
+    <packageJsonPaths>
+      <path value="$PROJECT_DIR$/enigma-js/package.json" />
+      <path value="$PROJECT_DIR$/package.json" />
+    </packageJsonPaths>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="y" value="23" />
+    <option name="width" value="1440" />
+    <option name="height" value="813" />
+  </component>
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="enigma-contract-internal" type="b2602c69:ProjectViewProjectNode" />
+              <item name="enigma-contract-internal" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="enigma-contract-internal" type="b2602c69:ProjectViewProjectNode" />
+              <item name="enigma-contract-internal" type="462c0819:PsiDirectoryNode" />
+              <item name="contracts" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="enigma-contract-internal" type="b2602c69:ProjectViewProjectNode" />
+              <item name="enigma-contract-internal" type="462c0819:PsiDirectoryNode" />
+              <item name="enigma-js" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="enigma-contract-internal" type="b2602c69:ProjectViewProjectNode" />
+              <item name="enigma-contract-internal" type="462c0819:PsiDirectoryNode" />
+              <item name="enigma-js" type="462c0819:PsiDirectoryNode" />
+              <item name="lib" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="enigma-contract-internal" type="b2602c69:ProjectViewProjectNode" />
+              <item name="enigma-contract-internal" type="462c0819:PsiDirectoryNode" />
+              <item name="enigma-js" type="462c0819:PsiDirectoryNode" />
+              <item name="lib" type="462c0819:PsiDirectoryNode" />
+              <item name="enigma-js.js" type="620a8d5e:NestingTreeNode" />
+            </path>
+            <path>
+              <item name="enigma-contract-internal" type="b2602c69:ProjectViewProjectNode" />
+              <item name="enigma-contract-internal" type="462c0819:PsiDirectoryNode" />
+              <item name="enigma-js" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="PackagesPane" />
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1540848777349" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs.mocha.mocha_node_package_dir" value="$PROJECT_DIR$/enigma-js/node_modules/mocha" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="Mocha.enigma-js/test/Enigma.spec.js">
+    <configuration name="Enigma tests.initializes" type="mocha-javascript-test-runner" factoryName="Mocha" temporary="true" nameIsGenerated="true">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <working-directory>$PROJECT_DIR$</working-directory>
+      <pass-parent-env>true</pass-parent-env>
+      <ui>bdd</ui>
+      <extra-mocha-options>-r jsdom-global/register --require babel-register</extra-mocha-options>
+      <test-kind>TEST</test-kind>
+      <test-file>$PROJECT_DIR$/enigma-js/test/Enigma.spec.js</test-file>
+      <test-names>
+        <name value="Enigma tests" />
+        <name value="initializes" />
+      </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="enigma-js/test/Enigma.spec.js" type="mocha-javascript-test-runner" factoryName="Mocha" temporary="true" nameIsGenerated="true">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <working-directory>$PROJECT_DIR$</working-directory>
+      <pass-parent-env>true</pass-parent-env>
+      <ui>bdd</ui>
+      <extra-mocha-options>-r jsdom-global/register --require babel-register</extra-mocha-options>
+      <test-kind>TEST_FILE</test-kind>
+      <test-file>$PROJECT_DIR$/enigma-js/test/Enigma.spec.js</test-file>
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Mocha.Enigma tests.initializes" />
+      <item itemvalue="Mocha.enigma-js/test/Enigma.spec.js" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Mocha.enigma-js/test/Enigma.spec.js" />
+        <item itemvalue="Mocha.Enigma tests.initializes" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="0687da14-747a-4d43-894e-6e0f27b31f66" name="Default Changelist" comment="" />
+      <created>1539787047352</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1539787047352</updated>
+      <workItem from="1539787051303" duration="260000" />
+      <workItem from="1539787350515" duration="2197000" />
+      <workItem from="1539805374852" duration="4821000" />
+      <workItem from="1539988662447" duration="777000" />
+      <workItem from="1539989767314" duration="7307000" />
+      <workItem from="1540054243521" duration="3610000" />
+      <workItem from="1540563000431" duration="2051000" />
+      <workItem from="1540838788801" duration="3601000" />
+      <workItem from="1540848832715" duration="514000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TestHistory">
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.20 at 12h 53m 39s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.20 at 12h 56m 23s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.21 at 15h 24m 41s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.21 at 15h 25m 43s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.26 at 10h 15m 31s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.29 at 14h 50m 09s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.29 at 14h 54m 43s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.29 at 17h 21m 19s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.29 at 17h 33m 16s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.10.29 at 17h 34m 41s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="25138000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="0" y="23" width="1440" height="813" extended-state="0" />
+    <editor active="true" />
+    <layout>
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.27825466" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="Image Layers" order="2" />
+      <window_info id="Designer" order="3" />
+      <window_info id="UI Designer" order="4" />
+      <window_info id="Capture Tool" order="5" />
+      <window_info id="Favorites" order="6" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.42024964" />
+      <window_info active="true" anchor="bottom" id="Debug" order="3" visible="true" weight="0.36615813" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Database Changes" order="7" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Terminal" order="8" />
+      <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
+      <window_info anchor="bottom" id="Version Control" order="10" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="Palette" order="3" />
+      <window_info anchor="right" id="Capture Analysis" order="4" />
+      <window_info anchor="right" id="Theme Preview" order="5" />
+      <window_info anchor="right" id="Palette&#9;" order="6" />
+      <window_info anchor="right" id="Database" order="7" />
+      <window_info anchor="right" id="Maven Projects" order="8" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/enigma-js/webpack.config.js">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/test/enigma-utils.spec.js">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/node_modules/mocha/lib/runnable.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="345" column="6" selection-start-line="345" selection-start-column="6" selection-end-line="345" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_CONFIG_DIR$/idea.vmoptions">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="7" selection-start-line="1" selection-start-column="7" selection-end-line="1" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/contracts/Enigma.sol">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2970">
+          <caret line="198" selection-start-line="198" selection-end-line="198" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/src/Enigma.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="945">
+          <caret line="67" column="25" selection-start-line="67" selection-start-column="20" selection-end-line="67" selection-end-column="25" />
+          <folding>
+            <element signature="n#!!doc" expanded="true" />
+            <element signature="e#66#124#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/contracts/EnigmaToken.sol">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="345">
+          <caret line="23" selection-start-line="23" selection-end-line="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/src/enigma-utils.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5325">
+          <caret line="360" column="16" selection-start-line="360" selection-start-column="16" selection-end-line="360" selection-end-column="16" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/lib/enigma-js.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="353">
+          <caret line="74827" column="2" selection-start-line="74827" selection-start-column="2" selection-end-line="74827" selection-end-column="2" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/test/Enigma.spec.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="87">
+          <caret line="99" column="5" selection-start-line="99" selection-start-column="5" selection-end-line="99" selection-end-column="5" />
+          <folding>
+            <element signature="n#!!doc" expanded="true" />
+            <element signature="e#35#59#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/src/Admin.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="295">
+          <caret line="157" column="23" selection-start-line="157" selection-start-column="12" selection-end-line="157" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

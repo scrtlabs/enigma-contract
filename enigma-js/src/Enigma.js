@@ -92,43 +92,54 @@ export default class Enigma {
    * @param {string} token
    * @param {number} tokenValue
    */
-  createTaskRecord(taskId, fee, token = '0x0', tokenValue = 0) {
+  createTaskRecord(taskId, fee, token = this.tokenContract.options.address, tokenValue = 0) {
     console.log('creating task record', taskId, fee);
     // TODO: approve the fee
     let emitter = new EventEmitter();
-    this.enigmaContract.methods.createTaskRecord(taskId, fee, token, tokenValue).
-      send(this.txDefaults).
-      on('transactionHash', (hash) => {
-        console.log('got tx hash', hash);
-        emitter.emit('transactionHash', hash);
-      }).
-      on('receipt', (receipt) => {
-        console.log('got task record receipt', receipt);
-        const event = receipt.events.TaskRecordCreated;
-        const taskRecord = new TaskRecord(
-          event.returnValues.taskId,
-          event.returnValues.fee,
-          event.returnValues.token,
-          event.returnValues.tokenValue,
-          event.transactionHash,
-          receipt,
-        );
-        emitter.emit('taskRecordReceipt', taskRecord);
-      }).
-      on('confirmation', (confirmationNumber, receipt) => {
-        console.log('got confirmation', confirmationNumber, receipt);
-        const event = receipt.events.TaskRecordCreated;
-        const taskRecord = new TaskRecord(
-          event.returnValues.taskId,
-          event.returnValues.fee,
-          event.returnValues.token,
-          event.returnValues.tokenValue,
-          event.transactionHash,
-          receipt,
-        );
-        emitter.emit('taskRecordConfirmation', taskRecord);
-      }).
-      on('error', console.error);
+    this.tokenContract.methods.balanceOf(this.txDefaults.from).call()
+      .then((balance) => {
+        if (balance < fee) {
+          emitter.emit('error', {
+            name: 'NotEnoughTokens',
+            message: 'Not enough tokens to pay the fee',
+          });
+          return;
+        }
+        return this.tokenContract.methods.approve(this.enigmaContract.options.address, fee).send(this.txDefaults)
+          .on('transactionHash', (hash) => {
+            emitter.emit('approveTransactionHash', hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit('approveConfirmation', confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit('approveReceipt', receipt);
+          });
+      })
+      .then((receipt) => {
+        return this.enigmaContract.methods.createTaskRecord(taskId, fee, token, tokenValue).send(this.txDefaults)
+          .on('transactionHash', (hash) => {
+            emitter.emit('taskRecordTransactionHash', hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit('taskRecordConfirmation', confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            const event = receipt.events.TaskRecordCreated;
+            const taskRecord = new TaskRecord(
+              event.returnValues.taskId,
+              event.returnValues.fee,
+              event.returnValues.token,
+              event.returnValues.tokenValue,
+              event.transactionHash,
+              receipt,
+            );
+            emitter.emit('taskRecordReceipt', taskRecord);
+          });
+      })
+      .catch((err) => {
+        emitter.emit('error', err);
+      });
     return emitter;
   }
 
@@ -144,52 +155,60 @@ export default class Enigma {
     taskRecords.forEach((taskRecord) => {
       taskIds.push(taskRecord.taskId);
       fees.push(taskRecord.fee);
-      tokens.push(taskRecord.token || '0x0');
+      tokens.push(taskRecord.token || this.tokenContract.options.address);
       tokenValues.push(taskRecord.tokenValue || 0);
     });
     let emitter = new EventEmitter();
     console.log('creating task records', taskIds, fees, tokens, tokenValues);
-    this.enigmaContract.methods.createTaskRecords(taskIds, fees, tokens, tokenValues).
-      send(options).
-      on('transactionHash', (hash) => {
-        console.log('got tx hash', hash);
-        emitter.emit('transactionHash', hash);
-      }).
-      on('receipt', (receipt) => {
-        console.log('got task record receipt', receipt.events);
-        const event = receipt.events.TaskRecordsCreated;
-        let taskRecords = [];
-        for (let i = 0; i < event.returnValues.taskIds.length; i++) {
-          const taskRecord = new TaskRecord(
-            event.returnValues.taskIds[i],
-            event.returnValues.fees[i],
-            event.returnValues.tokens[i],
-            event.returnValues.tokenValues[i],
-            event.transactionHash,
-            receipt,
-          );
-          taskRecords.push(taskRecord);
+    this.tokenContract.methods.balanceOf(this.txDefaults.from).call()
+      .then((balance) => {
+        let totalFees = fees.reduce((a, b) => a + b, 0);
+        if (balance < totalFees) {
+          emitter.emit('error', {
+            name: 'NotEnoughTokens',
+            message: 'Not enough tokens to pay the fee',
+          });
+          return;
         }
-        emitter.emit('mined', taskRecords);
-      }).
-      on('confirmation', (confirmationNumber, receipt) => {
-        console.log('got confirmation', confirmationNumber, receipt);
-        const event = receipt.events.TaskRecordsCreated;
-        let taskRecords = [];
-        for (let i = 0; i < event.returnValues.taskIds.length; i++) {
-          const taskRecord = new TaskRecord(
-            event.returnValues.taskIds[i],
-            event.returnValues.fees[i],
-            event.returnValues.tokens[i],
-            event.returnValues.tokenValues[i],
-            event.transactionHash,
-            receipt,
-          );
-          taskRecords.push(taskRecord);
-        }
-        emitter.emit('confirmed', taskRecords);
-      }).
-      on('error', console.error);
+        return this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send(this.txDefaults)
+          .on('transactionHash', (hash) => {
+            emitter.emit('approveTransactionHash', hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit('approveConfirmation', confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit('approveReceipt', receipt);
+          });
+      })
+      .then((receipt) => {
+        return this.enigmaContract.methods.createTaskRecords(taskIds, fees, tokens, tokenValues).send(this.txDefaults)
+          .on('transactionHash', (hash) => {
+            emitter.emit('taskRecordsTransactionHash', hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit('taskRecordsConfirmation', confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            const event = receipt.events.TaskRecordsCreated;
+            let taskRecords = [];
+            for (let i = 0; i < event.returnValues.taskIds.length; i++) {
+              const taskRecord = new TaskRecord(
+                event.returnValues.taskIds[i],
+                event.returnValues.fees[i],
+                event.returnValues.tokens[i],
+                event.returnValues.tokenValues[i],
+                event.transactionHash,
+                receipt,
+              );
+              taskRecords.push(taskRecord);
+            }
+            emitter.emit('taskRecordsReceipt', taskRecords);
+          });
+      })
+      .catch((err) => {
+        emitter.emit('error', err);
+      });
     return emitter;
   }
 
