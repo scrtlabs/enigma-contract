@@ -241,6 +241,7 @@ contract Enigma {
         uint pos = 0;
         for (uint i = _start; i < _stop; i++) {
             addresses[pos] = scAddresses[i];
+            pos++;
         }
         return addresses;
     }
