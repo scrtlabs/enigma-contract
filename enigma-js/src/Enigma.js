@@ -1,49 +1,16 @@
 /* eslint-disable prefer-spread,prefer-rest-params,valid-jsdoc */
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
-import EventEmitter from 'eventemitter3';
 import Admin from './Admin';
+import TaskRecord from './models/TaskRecord';
+// import TaskReceipt from './models/TaskReceipt';
+import TaskResult from './models/TaskResult';
+import TaskInput from './models/TaskInput';
+import EventEmitter from 'eventemitter3';
 import web3Utils from 'web3-utils';
-
-/**
- * Encapsulates a task record
- */
-export class TaskRecord {
-  /**
-   * Instantiate a task record
-   *
-   */
-  constructor(taskId, fee, token, tokenValue, transactionHash, receipt) {
-    this.taskId = taskId;
-    this.fee = parseInt(fee);
-    this.token = token;
-    this.tokenValue = parseInt(tokenValue);
-    this.transactionHash = transactionHash;
-    this.receipt = receipt;
-  }
-}
-
-/**
- * Encapsulates the task receipt
- */
-export class Task {
-  /**
-   * Instantiate a task
-   *
-   */
-  constructor(taskId, fee, token, tokenValue, inStateDeltaHash, outStateDeltaHash, ethCall, sig, sender, status) {
-    this.taskId = taskId;
-    this.fee = parseInt(fee);
-    this.token = token;
-    this.tokenValue = parseInt(tokenValue);
-    this.inStateDeltaHash = inStateDeltaHash;
-    this.outStateDeltaHash = outStateDeltaHash;
-    this.ethCall = ethCall;
-    this.sig = sig;
-    this.sender = sender;
-    this.status = parseInt(status);
-  }
-}
+import jaysonBrowserClient from 'jayson/lib/client/browser';
+import axios from 'axios';
+import utils from 'enigma-utils';
 
 /**
  * Class encapsulation the Enigma operations.
@@ -60,7 +27,25 @@ export default class Enigma {
   constructor(web3, enigmaContractAddr, tokenContractAddr, txDefaults = {}) {
     this.web3 = web3;
     this.txDefaults = txDefaults;
-
+    let callServer = function(request, callback) {
+      let config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'credentials': 'include',
+        },
+      };
+      axios.post('http://localhost:3000', JSON.parse(request), config)
+        .then((response) => {
+          return JSON.stringify(response.data.result);
+        })
+        .then((text) => {
+          callback(null, text);
+        })
+        .catch(function(err) {
+          callback(err);
+        });
+    };
+    this.client = jaysonBrowserClient(callServer, {});
     this.createContracts(enigmaContractAddr, tokenContractAddr);
   }
 
@@ -68,7 +53,7 @@ export default class Enigma {
    * Initialize the admin features
    */
   admin() {
-    this.admin = new Admin(this.web3, this.enigmaContract, this.tokenContract, this.txDefaults);
+    this.admin = new Admin(this.web3, this.enigmaContract, this.tokenContract, this.txDefaults, this);
   }
 
   /**
@@ -220,16 +205,11 @@ export default class Enigma {
   getTask(taskId) {
     return this.enigmaContract.methods.tasks(taskId).call().then((result) => {
       console.log('the task', result);
-      return new Task(
+      return new TaskResult(
         taskId,
-        result.fee,
-        result.token,
-        result.tokenValue,
-        result.inStateDeltaHash,
-        result.outStateDeltaHash,
-        result.ethCall,
+        // encryptedInputs??
+        [],
         result.sig,
-        result.sender,
         result.status,
       );
     });
@@ -282,39 +262,104 @@ export default class Enigma {
    * Select the worker group
    *
    */
-  selectWorkerGroup(scAddr, params, workerGroupSize = 5) {
-    let tokens = [];
-    for (let i = 0; i < params.workers.length; i++) {
-      for (let ib = 0; ib < params.balances[i]; ib++) {
-        tokens.push(params.workers[i]);
-      }
-    }
+  selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
+    let tokenCpt = params.balances.reduce((a, b) => a + b, 0);
     let nonce = 0;
     let selectedWorkers = [];
-    for (let i = 0; i < workerGroupSize; i++) {
-      do {
-        const hash = web3Utils.soliditySha3(
-          {t: 'uint256', v: nonce},
-          {t: 'uint256', v: params.seed},
-          {t: 'uint256', v: params.firstBlockNumber},
-          {t: 'address', v: scAddr},
-        );
-        console.log('the hash', hash, 'the length', tokens.length);
-        const index = web3Utils.toBN(hash).mod(web3Utils.toBN(tokens.length));
-        const worker = tokens[index];
-        let dup = false;
-        selectedWorkers.forEach((item) => {
-          if (item === worker) {
-            dup = true;
-          }
-        });
-        if (dup === false) {
-          selectedWorkers[i] = worker;
+    do {
+      const hash = web3Utils.soliditySha3(
+        {t: 'uint256', v: blockNumber},
+        {t: 'uint256', v: params.seed},
+        {t: 'uint256', v: params.firstBlockNumber},
+        {t: 'address', v: scAddr},
+        {t: 'uint256', v: tokenCpt},
+        {t: 'uint256', v: nonce},
+      );
+      let randVal = (web3Utils.toBN(hash).mod(web3Utils.toBN(tokenCpt))).toNumber();
+      let selectedWorker = params.workers[params.workers.length - 1];
+      for (let i = 0; i < params.workers.length; i++) {
+        randVal -= params.balances[i];
+        if (randVal <= 0) {
+          selectedWorker = params.workers[i];
+          break;
         }
-        nonce++;
-      } while (typeof selectedWorkers[i] === 'undefined');
+      }
+      if (!selectedWorkers.includes(selectedWorker)) {
+        selectedWorkers.push(selectedWorker);
+      }
+      nonce++;
     }
+    while (selectedWorkers.length < workerGroupSize);
     return selectedWorkers;
+  }
+
+  /**
+   * Store a task record on chain
+   *
+   * @param {string} taskId
+   * @param {string} fn
+   * @param {Array} args
+   * @param {string} scAddr
+   * @param {string} userPubKey
+   */
+  createTaskInput(taskId, fn, args, scAddr, userPubKey) {
+    console.log('creating task input', taskId);
+    // TODO: approve the fee
+    let emitter = new EventEmitter();
+    let blockNumber;
+    let contractSelectedWorker;
+    let clientPrivateKey;
+    let encryptedInputs;
+
+    this.web3.eth.getBlockNumber()
+      .then((bn) => {
+        blockNumber = bn;
+        return this.getWorkerParams(blockNumber);
+      })
+      .then((params) => {
+        contractSelectedWorker = this.selectWorkerGroup(blockNumber, scAddr, params, 5)[0];
+        return contractSelectedWorker;
+      })
+      .then((contractSelectedWorker) => {
+        console.log('1. Selected worker:', contractSelectedWorker);
+        return new Promise((resolve, reject) => {
+          this.client.request('getWorkerEncryptionKey', [contractSelectedWorker], (err, error, result) => {
+            if (err) {
+              reject(err);
+            }
+            resolve(result);
+          });
+        });
+      })
+      .then((getWorkerEncryptionKeyResult) => {
+        let enclavePublicKey = getWorkerEncryptionKeyResult[0];
+        // let enclaveSig = getWorkerEncryptionKeyResult[1];
+        // TODO: verify signature
+        // this.web3.eth.accounts.recover(enclavePublicKey, enclaveSig) === contractSelectedWorker
+        return enclavePublicKey;
+      })
+      .then((enclavePublicKey) => {
+        console.log('2. Got worker encryption key:', enclavePublicKey);
+        // TODO: generate client key pair
+        clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
+        let derivedKey = utils.getDerivedKey(enclavePublicKey, clientPrivateKey);
+        encryptedInputs = args.map((arg) => utils.encryptMessage(derivedKey, arg));
+      })
+      .then(() => {
+        console.log('3. Encrypted inputs:', encryptedInputs);
+        const msg = this.web3.utils.soliditySha3(
+          {t: 'bytes', v: utils.encodeArguments(encryptedInputs)},
+        );
+        const sig = utils.sign(clientPrivateKey, msg);
+        console.log('4. Signed RLP-encoded encrypted inputs:', sig);
+        return sig;
+      })
+      .then((sig) => {
+        let task = new TaskInput(taskId, blockNumber, this.txDefaults.from, scAddr, fn,
+          utils.encodeArguments(encryptedInputs), sig, userPubKey);
+        emitter.emit('createTaskInput', task);
+      });
+    return emitter;
   }
 
   /**

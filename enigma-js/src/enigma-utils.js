@@ -369,6 +369,7 @@ let utils = {};
 utils.readCert = readCert;
 utils.encodeReport = encodeReport;
 utils.test = () => 'hello2';
+utils.encodeArguments = encodeArguments;
 utils.generateTaskId = generateTaskId;
 utils.verifyWorker = verifyWorker;
 utils.selectWorker = selectWorker;

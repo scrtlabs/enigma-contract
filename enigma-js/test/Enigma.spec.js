@@ -38,7 +38,7 @@ describe('Enigma tests', () => {
         },
       );
       enigma.admin();
-      expect(enigma.version()).to.be.equal('0.0.1');
+      expect(enigma.version()).to.equal('0.0.1');
     });
   });
 
@@ -55,7 +55,7 @@ describe('Enigma tests', () => {
       promises.push(promise);
     }
     return Promise.all(promises, (results) => {
-      expect(results.length).to.be.equal(accounts.length - 1);
+      expect(results.length).to.equal(accounts.length - 1);
     });
   });
 
@@ -87,13 +87,31 @@ describe('Enigma tests', () => {
     }
     // Using the account as the signer for testing purposes
     return Promise.all(promises).then((receipts) => {
-      expect(receipts.length).to.be.equal(10);
+      expect(receipts.length).to.equal(10);
     });
   });
 
   it('should get the worker report', () => {
     return enigma.getReport(accounts[0]).then((report) => {
       expect(report).not.to.be.empty;
+    });
+  });
+
+  it('should check workers have been registered', () => {
+    let promises = [];
+    for (let i = 0; i < accounts.length; i++) {
+      let promise = new Promise((resolve, reject) => {
+        enigma.admin.getWorkerStatus(accounts[0])
+          .on('workerStatus', (result) => {
+            resolve(result);
+          });
+      });
+      promises.push(promise);
+    }
+    return Promise.all(promises).then((workerStatuses) => {
+      for (let workerStatus of workerStatuses) {
+        expect(workerStatus).to.equal("1");
+      }
     });
   });
 
@@ -114,9 +132,43 @@ describe('Enigma tests', () => {
       promises.push(promise);
     }
     return Promise.all(promises).then((results) => {
-      expect(results.length).to.be.equal(9);
+      expect(results.length).to.equal(9);
     }).catch((err) => {
       console.error(err);
+    });
+  });
+
+  it('should login all the workers', () => {
+    let promises = [];
+    for (let i = 0; i < accounts.length; i++) {
+      let promise = new Promise((resolve, reject) => {
+        enigma.admin.login({from: accounts[i]})
+          .on('loginReceipt', (result) => {
+            resolve(result);
+          });
+      });
+      promises.push(promise);
+    }
+    return Promise.all(promises).then((loginReceipts) => {
+      expect(loginReceipts.length).to.equal(10);
+    });
+  });
+
+  it('should check workers have been logged in', () => {
+    let promises = [];
+    for (let i = 0; i < accounts.length-1; i++) {
+      let promise = new Promise((resolve, reject) => {
+        enigma.admin.getWorkerStatus(accounts[0])
+          .on('workerStatus', (result) => {
+            resolve(result);
+          });
+      });
+      promises.push(promise);
+    }
+    return Promise.all(promises).then((workerStatuses) => {
+      for (let workerStatus of workerStatuses) {
+        expect(workerStatus).to.equal("2");
+      }
     });
   });
 
@@ -143,31 +195,41 @@ describe('Enigma tests', () => {
     });
   });
 
-  const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
+  let scAddr; // = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
   let codeHash;
   it('should deploy contract', () => {
+    // Pre-deployed bytecode hash
     codeHash = web3.utils.soliditySha3('9d075ae');
     const proof = web3.utils.soliditySha3(
       {t: 'bytes', v: codeHash},
     );
+    let account = accounts[0];
+    let inputs = ['first_sc', 1];
     const sig = utils.sign(data.worker[4], proof);
     return new Promise((resolve, reject) => {
-      enigma.admin.deploySecretContract(scAddr, codeHash, accounts[0], sig).
-        on('deployed', (result) => resolve(result));
+      enigma.admin.deploySecretContract(codeHash, account, inputs, sig)
+        .on('deployETHReceipt', (result) => {
+          console.log('ETH deployment complete', result);
+          scAddr = result.events.SecretContractDeployed.returnValues['scAddr'];
+        })
+        .on('deployENGReceipt', (result) => {
+          console.log('ENG deployment complete', result);
+          resolve(result);
+        })
     }).then((result) => {
-      expect(result).not.to.be.empty;
+      expect(result[0]).to.equal('successfully deployed');
     });
   });
 
   it('should verify deployed contract', () => {
     return enigma.admin.isDeployed(scAddr).then((result) => {
-      expect(result).to.be.equal(true);
+      expect(result).to.equal(true);
     });
   });
 
   it('should get contract bytecode hash', () => {
     return enigma.admin.getCodeHash(scAddr).then((result) => {
-      expect(result).to.be.equal(codeHash);
+      expect(result).to.equal(codeHash);
     });
   });
 
@@ -194,7 +256,7 @@ describe('Enigma tests', () => {
 
   it('should get the pending task', () => {
     return enigma.getTask(taskId).then((task) => {
-      expect(task.status).to.be.equal(0);
+      expect(task.status).to.equal(0);
     });
   });
 
@@ -227,13 +289,13 @@ describe('Enigma tests', () => {
 
   it('should get the confirmed task', () => {
     return enigma.getTask(taskId).then((task) => {
-      expect(task.status).to.be.equal(1);
+      expect(task.status).to.equal(1);
     });
   });
 
   it('should count state deltas', () => {
     return enigma.admin.countStateDeltas(scAddr).then((count) => {
-      expect(count).to.be.equal(1);
+      expect(count).to.equal(1);
     });
   });
 
@@ -247,7 +309,7 @@ describe('Enigma tests', () => {
 
   it('should verify state delta', () => {
     return enigma.admin.isValidDeltaHash(scAddr, stateDeltaHash).then((isValid) => {
-      expect(isValid).to.be.equal(true);
+      expect(isValid).to.equal(true);
     });
   });
 
@@ -277,7 +339,7 @@ describe('Enigma tests', () => {
       }).
       then((results) => {
         for (let i = 0; i < taskRecords.length; i++) {
-          expect(results[i].taskId).to.be.equal(taskRecords[i].taskId);
+          expect(results[i].taskId).to.equal(taskRecords[i].taskId);
         }
       });
   });
@@ -289,7 +351,7 @@ describe('Enigma tests', () => {
     });
     return Promise.all(promises).then((tasks) => {
       tasks.forEach((task) => {
-        expect(task.status).to.be.equal(0);
+        expect(task.status).to.equal(0);
       });
     });
   });
@@ -337,14 +399,14 @@ describe('Enigma tests', () => {
     });
     Promise.all(promises).then((tasks) => {
       tasks.forEach((task) => {
-        expect(task.status).to.be.equal(1);
+        expect(task.status).to.equal(1);
       });
     });
   });
 
   it('should get state delta hash range', () => {
     enigma.admin.getStateDeltaHashes(scAddr, 0, 3).then((hashes) => {
-      expect(hashes).to.be.equal([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
+      expect(hashes).to.equal([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
     });
   });
 
@@ -374,19 +436,45 @@ describe('Enigma tests', () => {
         return enigma.getWorkerParams(blockNumber);
       }).
       then((params) => {
-        const group = enigma.selectWorkerGroup(scAddr, params, 5);
+        const group = enigma.selectWorkerGroup(blockNumber, scAddr, params, 5);
         for (let i = 0; i < group.length; i++) {
-          expect(group[i]).to.be.equal(contractSelectWorkers[i]);
+          expect(group[i]).to.equal(contractSelectWorkers[i]);
         }
       });
   });
 
+  let task;
   it('should encrypt task inputs', () => {
-    todo();
+    const fn = 'medianWealth(int32,int32)';
+    const args = [200000, 300000];
+    const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
+      'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
+    return new Promise((resolve, reject) => {
+      enigma.createTaskInput(taskId, fn, args, scAddr, userPubKey)
+        .on('createTaskInput', (result) => {
+          resolve(result);
+        })
+    })
+      .then((result) => {
+        task = result;
+        console.log('TaskInput creation', task);
+        expect(task.encodedInputs).not.to.be.empty;
+      })
+
   });
 
   it('should send task inputs to the network', () => {
-    todo();
+    return new Promise((resolve, reject) => {
+      enigma.client.request('sendTaskInputs', task.serialize(), (err, error, result) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(result);
+      });
+    })
+      .then((result) => {
+        expect(result[0]).to.equal('successfully sent task inputs');
+      });
   });
 
   it('should poll the network for unconfirmed task', () => {
