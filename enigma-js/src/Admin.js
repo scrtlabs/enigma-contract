@@ -52,7 +52,7 @@ export default class Admin {
    * @param {Object} options
    * @return {EventEmitter}
    */
-  deploySecretContract(scAddr, codeHash, owner, inputs, sig, options = {}) {
+  deploySecretContract(codeHash, owner, inputs, sig, options = {}) {
     options = Object.assign({}, this.txDefaults, options);
     let emitter = new EventEmitter();
     let blockNumber;
@@ -60,6 +60,7 @@ export default class Admin {
     let clientPrivateKey;
     let encryptedInputs;
     let nonce;
+    let scAddr;
     // Deploy to ETH
     this.enigmaContract.methods.userSCDeployments(owner).call()
       .then((userNonce) => {
@@ -67,6 +68,12 @@ export default class Admin {
         nonce = userNonce;
       })
       .then(() => {
+        scAddr = this.web3.utils.toChecksumAddress('0x' + this.web3.utils.soliditySha3(
+          {t: 'bytes32', v: codeHash},
+          {t: 'address', v: owner},
+          {t: 'uint', v: nonce},
+        ).slice(-40));
+        emitter.emit('scAddr', scAddr);
         return this.enigmaContract.methods.deploySecretContract(scAddr, codeHash, owner, sig).send(options)
           .on('transactionHash', (hash) => {
             console.log('got tx hash', hash);

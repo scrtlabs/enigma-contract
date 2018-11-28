@@ -207,7 +207,7 @@ contract Enigma {
     workerRegistered(msg.sender)
     {
         address scAddr = address(keccak256(abi.encodePacked(_codeHash, _owner, userSCDeployments[_owner])));
-        // require(scAddr == _scAddr);
+        require(scAddr == _scAddr);
         require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
         //TODO: verify sig
 
@@ -217,7 +217,7 @@ contract Enigma {
         contracts[_scAddr].status = SecretContractStatus.Deployed;
         scAddresses.push(_scAddr);
         userSCDeployments[_owner]++;
-        emit SecretContractDeployed(_scAddr, _codeHash);
+        emit SecretContractDeployed(scAddr, _codeHash);
     }
 
     function isDeployed(address _scAddr)

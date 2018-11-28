@@ -202,16 +202,13 @@ describe('Enigma tests', () => {
       {t: 'bytes', v: codeHash},
     );
     let account = accounts[0];
-    scAddr = '0x' + web3.utils.soliditySha3(
-      {t: 'bytes32', v: codeHash},
-      {t: 'address', v: account},
-      {t: 'uint', v: 0},
-    ).slice(-40);
-    console.log(`Deploying secret contract at address ${scAddr}`);
     let inputs = ['first_sc', 1];
     const sig = utils.sign(data.worker[4], proof);
     return new Promise((resolve, reject) => {
-      enigma.admin.deploySecretContract(scAddr, codeHash, account, inputs, sig)
+      enigma.admin.deploySecretContract(codeHash, account, inputs, sig)
+        .on('scAddr', (result) => {
+          scAddr = result;
+        })
         .on('deployETHReceipt', (result) => {
           console.log('ETH deployment complete', result);
         })
