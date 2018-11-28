@@ -28,15 +28,13 @@ contract Enigma {
     // The interface of the deployed ENG ERC20 token contract
     ERC20 public engToken;
 
-    struct Task {
+    struct TaskRecord {
         uint fee;
-        address token;
-        uint tokenValue;
         bytes proof; // Signature of (taskId, inStateDeltaHash, outStateDeltaHash, ethCall)
         address sender;
         TaskStatus status;
     }
-    enum TaskStatus {RecordCreated, ReceiptVerified}
+    enum TaskStatus {RecordUndefined, RecordCreated, ReceiptVerified}
 
     /**
     * The signer address of the principal node
@@ -97,7 +95,7 @@ contract Enigma {
 
     // A registry of all registered workers with their attributes
     mapping(address => Worker) public workers;
-    mapping(bytes32 => Task) public tasks;
+    mapping(bytes32 => TaskRecord) public tasks;
     mapping(address => SecretContract) public contracts;
 
     // A mapping of number of secret contract deployments for each address
@@ -111,8 +109,8 @@ contract Enigma {
     event Registered(address custodian, address signer);
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);
     event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances);
-    event TaskRecordCreated(bytes32 taskId, uint fee, address token, uint tokenValue, address sender);
-    event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address[] tokens, uint[] tokenValues, address sender);
+    event TaskRecordCreated(bytes32 taskId, uint fee, address sender);
+    event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes ethCall, bytes sig);
     event DepositSuccessful(address from, uint value);
@@ -202,6 +200,8 @@ contract Enigma {
     public
     workerRegistered(msg.sender)
     {
+        address scAddr = address(keccak256(abi.encodePacked(_codeHash, _owner, userSCDeployments[_owner])));
+        // require(scAddr == _scAddr);
         require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
         //TODO: verify sig
 
@@ -323,28 +323,22 @@ contract Enigma {
     */
     function createTaskRecord(
         bytes32 _taskId,
-        uint _fee,
-        address _token,
-        uint _tokenValue
+        uint _fee
     )
     public
     {
         require(tasks[_taskId].sender == 0x0, "Task already exist.");
 
         tasks[_taskId].fee = _fee;
-        tasks[_taskId].token = _token;
-        tasks[_taskId].tokenValue = _tokenValue;
         tasks[_taskId].sender = msg.sender;
         tasks[_taskId].status = TaskStatus.RecordCreated;
 
-        emit TaskRecordCreated(_taskId, _fee, _token, _tokenValue, msg.sender);
+        emit TaskRecordCreated(_taskId, _fee, msg.sender);
     }
 
     function createTaskRecords(
         bytes32[] _taskIds,
-        uint[] _fees,
-        address[] _tokens,
-        uint[] _tokenValues
+        uint[] _fees
     )
     public
     {
@@ -352,12 +346,10 @@ contract Enigma {
             require(tasks[_taskIds[i]].sender == 0x0, "Task already exist.");
 
             tasks[_taskIds[i]].fee = _fees[i];
-            tasks[_taskIds[i]].token = _tokens[i];
-            tasks[_taskIds[i]].tokenValue = _tokenValues[i];
             tasks[_taskIds[i]].sender = msg.sender;
             tasks[_taskIds[i]].status = TaskStatus.RecordCreated;
         }
-        emit TaskRecordsCreated(_taskIds, _fees, _tokens, _tokenValues, msg.sender);
+        emit TaskRecordsCreated(_taskIds, _fees, msg.sender);
     }
 
     // Execute the encoded function in the specified contract

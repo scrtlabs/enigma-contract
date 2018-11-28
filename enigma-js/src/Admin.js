@@ -1,5 +1,6 @@
 import EventEmitter from 'eventemitter3';
 import utils from 'enigma-utils';
+import web3Utils from "web3-utils";
 
 /**
  * Encapsulates the admin operations
@@ -43,6 +44,7 @@ export default class Admin {
   /**
    * Deploy a secret contract to Ethereum
    *
+   * @param {string} scAddr
    * @param {string} codeHash
    * @param {string} owner
    * @param {Array} inputs
@@ -50,11 +52,9 @@ export default class Admin {
    * @param {Object} options
    * @return {EventEmitter}
    */
-  deploySecretContract(codeHash, owner, inputs, sig, options = {}) {
+  deploySecretContract(scAddr, codeHash, owner, inputs, sig, options = {}) {
     options = Object.assign({}, this.txDefaults, options);
     let emitter = new EventEmitter();
-    let scAddr = '0x' + this.web3.utils.soliditySha3(utils.encodeArguments([codeHash, owner, 0])).slice(-40);
-    console.log(`Deploying secret contract at address ${scAddr}`);
     let blockNumber;
     let contractSelectedWorker;
     let clientPrivateKey;
@@ -76,7 +76,6 @@ export default class Admin {
             emitter.emit('deployETHConfirmation', confirmationNumber, receipt);
           })
           .on('receipt', (receipt) => {
-            console.log('got task record receipt', receipt);
             emitter.emit('deployETHReceipt', receipt);
           })
           .on('error', (err) => emitter.emit('error', err));

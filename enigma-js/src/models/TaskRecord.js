@@ -7,17 +7,13 @@ export default class TaskRecord {
    *
    * @param {string} taskId
    * @param {string} fee
-   * @param {string} token
-   * @param {string} tokenValue
-   * @param {string} transactionHash
-   * @param {string} receipt
    */
-  constructor(taskId, fee, token, tokenValue, transactionHash, receipt) {
+  constructor(taskId, fee) {
     this.taskId = taskId;
     this.fee = parseInt(fee);
-    this.token = token;
-    this.tokenValue = parseInt(tokenValue);
-    this.transactionHash = transactionHash;
-    this.receipt = receipt;
+    this.transactionHash = '';
+    this.receipt = {};
+    this.status = 0;
+    this.proof = '';
   }
 }
