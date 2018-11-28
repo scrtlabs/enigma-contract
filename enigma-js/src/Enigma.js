@@ -47,6 +47,8 @@ export default class Enigma {
         });
     };
     this.client = jaysonBrowserClient(callServer, {});
+    this.workerParamsCache = {}
+    this.selectedWorkerGroupCache = {}
     this.createContracts(enigmaContractAddr, tokenContractAddr);
   }
 
@@ -221,24 +223,28 @@ export default class Enigma {
    * @param blockNumber
    * @return {Promise}
    */
-  getWorkerParams(blockNumber) {
-    return this.enigmaContract.methods.getWorkerParams(blockNumber).call().then((result) => {
-      console.log('the worker params', result);
-      const params = {
-        firstBlockNumber: parseInt(result[0]),
-        seed: parseInt(result[1]),
-        workers: result[2],
-        balances: result[3].map((x) => parseInt(x)),
+  async getWorkerParams(blockNumber) {
+    let epochSize = await this.enigmaContract.methods.epochSize().call();
+    if ((Object.keys(this.workerParamsCache).length === 0) || (blockNumber - this.workerParamsCache.firstBlockNumber >= epochSize)) {
+      const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
+      this.workerParamsCache = {
+        firstBlockNumber: parseInt(getWorkerParamsResult[0]),
+        seed: parseInt(getWorkerParamsResult[1]),
+        workers: getWorkerParamsResult[2],
+        balances: getWorkerParamsResult[3].map((x) => parseInt(x)),
       };
-      return params;
-    });
+      console.log('updating worker params cache');
+    }
+    console.log('worker params', this.workerParamsCache);
+    return this.workerParamsCache;
   }
 
   /**
    * Select the worker group
    *
    */
-  selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
+  async selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
+    let epochSize = await this.enigmaContract.methods.epochSize().call();
     let tokenCpt = params.balances.reduce((a, b) => a + b, 0);
     let nonce = 0;
     let selectedWorkers = [];
@@ -289,6 +295,7 @@ export default class Enigma {
     this.web3.eth.getBlockNumber()
       .then((bn) => {
         blockNumber = bn;
+        console.log('Block number =', blockNumber);
         taskInput = new TaskInput(blockNumber, owner, scAddr, fn, args, userPubKey, fee);
         return this.getWorkerParams(blockNumber);
       })

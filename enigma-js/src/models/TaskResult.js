@@ -6,13 +6,13 @@ export default class TaskResult {
    * Task record constructor
    *
    * @param {string} taskId
-   * @param {Array} encryptedInputs
+   * @param {string} encryptedEncodedOutputs
    * @param {string} sig
    * @param {Number} status
    */
-  constructor(taskId, encryptedInputs, sig, status) {
+  constructor(taskId, encryptedEncodedOutputs, sig, status) {
     this.taskId = taskId;
-    this.encryptedInputs = encryptedInputs;
+    this.encryptedEncodedOutputs = encryptedEncodedOutputs;
     this.sig = sig;
     this.status = parseInt(status);
   }

@@ -27,15 +27,4 @@ export default class TaskInput {
     this.userPubKey = userPubKey;
     this.fee = fee;
   }
-  //
-  // /**
-  //  * Task input serializer for p2p network
-  //  *
-  //  * @param {string} userPubKey
-  //  * @return {Array}
-  //  */
-  // serialize() {
-  //   return [this.taskId, this.creationBlockNumber, this.sender, this.scAddr, [encrypted(this.fnSig), encrypted(this.encodedInputs)],
-  //     this.sig, this.userPubKey];
-  // }
 }

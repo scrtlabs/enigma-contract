@@ -28,6 +28,8 @@ contract Enigma {
     // The interface of the deployed ENG ERC20 token contract
     ERC20 public engToken;
 
+    uint public epochSize = 100;
+
     struct TaskRecord {
         uint fee;
         bytes proof; // Signature of (taskId, inStateDeltaHash, outStateDeltaHash, ethCall)
@@ -192,6 +194,10 @@ contract Enigma {
 
     function login() public workerRegistered(msg.sender) {
         workers[msg.sender].status = WorkerStatus.LoggedIn;
+    }
+
+    function logout() public workerLoggedIn(msg.sender) {
+        workers[msg.sender].status = WorkerStatus.LoggedOut;
     }
 
     // TODO: should the scAddr be computed on-chain from the codeHash + some randomness

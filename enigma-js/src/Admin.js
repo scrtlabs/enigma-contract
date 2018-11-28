@@ -35,7 +35,7 @@ export default class Admin {
     let emitter = new EventEmitter();
     this.enigmaContract.methods.workers(account).call()
       .then((worker) => {
-        let workerStatus = worker.status;
+        let workerStatus = parseInt(worker.status);
         emitter.emit('workerStatus', workerStatus);
       });
     return emitter;
@@ -225,6 +225,31 @@ export default class Admin {
       })
       .on('receipt', (receipt) => {
         emitter.emit('loginReceipt', receipt);
+      })
+      .on('error', (err) => {
+        emitter.emit('error', err);
+      });
+    return emitter;
+  }
+
+  /**
+   * Logout workers.
+   *
+   * @param {Object} options
+   * @return {Promise}
+   */
+  logout(options = {}) {
+    options = Object.assign({}, this.txDefaults, options);
+    let emitter = new EventEmitter();
+    this.enigmaContract.methods.logout().send(options)
+      .on('transactionHash', (hash) => {
+        emitter.emit('logoutTransactionHash', hash);
+      })
+      .on('confirmation', (confirmationNumber, receipt) => {
+        emitter.emit('logoutConfirmation', confirmationNumber, receipt);
+      })
+      .on('receipt', (receipt) => {
+        emitter.emit('logoutReceipt', receipt);
       })
       .on('error', (err) => {
         emitter.emit('error', err);

@@ -22,6 +22,7 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
+  let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
@@ -49,19 +50,19 @@ describe('Enigma tests', () => {
     let promises = [];
     const allowance = utils.toGrains(1000);
     for (let i = 1; i < accounts.length; i++) {
-      let promise = tokenContract.methods.approve(accounts[i], allowance).send(enigma.txDefaults).
-        then((result) => {
-          console.log('approved tokens', result);
-          return tokenContract.methods.transfer(accounts[i], allowance).send(enigma.txDefaults);
-        });
+      let promise = new Promise(async (resolve, reject) => {
+        const approveResult = await tokenContract.methods.approve(accounts[i], allowance).send(enigma.txDefaults);
+        const transferResult = await tokenContract.methods.transfer(accounts[i], allowance).send(enigma.txDefaults);
+        resolve(transferResult);
+      });
       promises.push(promise);
     }
-    return Promise.all(promises, (results) => {
-      expect(results.length).to.equal(accounts.length - 1);
-    });
+    const results = await Promise.all(promises);
+    console.log('Distribution results', results);
+    expect(results.length).to.equal(accounts.length - 1);
   });
 
-  it('should simulate worker registration', () => {
+  it('should simulate worker registration', async () => {
     const enigmaContract = enigma.enigmaContract;
     let promises = [];
     for (let i = 0; i < accounts.length; i++) {
@@ -88,18 +89,17 @@ describe('Enigma tests', () => {
       promises.push(promise);
     }
     // Using the account as the signer for testing purposes
-    return Promise.all(promises).then((receipts) => {
-      expect(receipts.length).to.equal(10);
-    });
+    const registerWorkersResults = await Promise.all(promises);
+    expect(registerWorkersResults.length).to.equal(10);
   });
 
-  it('should get the worker report', () => {
-    return enigma.getReport(accounts[0]).then((report) => {
-      expect(report).not.to.be.empty;
-    });
+  it('should get the worker report', async () => {
+    const report = await enigma.getReport(accounts[0]);
+    console.log('Worker report', report);
+    expect(report).not.to.be.empty;
   });
 
-  it('should check workers have been registered', () => {
+  it('should check workers have been registered', async () => {
     let promises = [];
     for (let i = 0; i < accounts.length; i++) {
       let promise = new Promise((resolve, reject) => {
@@ -110,21 +110,21 @@ describe('Enigma tests', () => {
       });
       promises.push(promise);
     }
-    return Promise.all(promises).then((workerStatuses) => {
-      for (let workerStatus of workerStatuses) {
-        expect(workerStatus).to.equal("1");
-      }
-    });
+    const workerStatuses = await Promise.all(promises);
+    console.log('Worker status results', workerStatuses);
+    for (let workerStatus of workerStatuses) {
+      expect(workerStatus).to.equal(1);
+    }
   });
 
-  it('should deposit tokens in worker banks', () => {
+  it('should deposit tokens in worker banks', async () => {
     const deposits = [900, 100, 10, 20, 100, 200, 40, 100, 50];
     let promises = [];
     for (let i = 0; i < accounts.length; i++) {
       if (i === 9) {
         continue;
       }
-      let promise = new Promise((resolve, reject) => {
+      let promise = await new Promise((resolve, reject) => {
         enigma.admin.deposit(accounts[i], utils.toGrains(deposits[i])).
           on('depositReceipt', (result) => resolve(result)).
           on('error', (err) => {
@@ -133,14 +133,12 @@ describe('Enigma tests', () => {
       });
       promises.push(promise);
     }
-    return Promise.all(promises).then((results) => {
-      expect(results.length).to.equal(9);
-    }).catch((err) => {
-      console.error(err);
-    });
+    const results = await Promise.all(promises);
+    console.log('results', results);
+    expect(results.length).to.equal(9);
   });
 
-  it('should login all the workers', () => {
+  it('should login all the workers', async () => {
     let promises = [];
     for (let i = 0; i < accounts.length; i++) {
       let promise = new Promise((resolve, reject) => {
@@ -151,12 +149,11 @@ describe('Enigma tests', () => {
       });
       promises.push(promise);
     }
-    return Promise.all(promises).then((loginReceipts) => {
-      expect(loginReceipts.length).to.equal(10);
-    });
+    const loginReceipts = await Promise.all(promises);
+    expect(loginReceipts.length).to.equal(10);
   });
 
-  it('should check workers have been logged in', () => {
+  it('should check workers have been logged in', async () => {
     let promises = [];
     for (let i = 0; i < accounts.length-1; i++) {
       let promise = new Promise((resolve, reject) => {
@@ -167,11 +164,10 @@ describe('Enigma tests', () => {
       });
       promises.push(promise);
     }
-    return Promise.all(promises).then((workerStatuses) => {
-      for (let workerStatus of workerStatuses) {
-        expect(workerStatus).to.equal('2');
-      }
-    });
+    const workerStatuses = await Promise.all(promises);
+    for (let workerStatus of workerStatuses) {
+      expect(workerStatus).to.equal(2);
+    }
   });
 
   it('should set the worker parameters (principal only)', () => {
@@ -197,7 +193,7 @@ describe('Enigma tests', () => {
     });
   });
 
-  let scAddr; // = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
+  let scAddr;
   let codeHash;
   it('should deploy contract', () => {
     // Pre-deployed bytecode hash
@@ -262,6 +258,7 @@ describe('Enigma tests', () => {
   it('should create task record', () => {
     return web3.eth.getBlockNumber().
       then((blockNumber) => {
+        console.log('Block number =', blockNumber);
         return new Promise((resolve, reject) => {
           enigma.createTaskRecord(taskInput)
             .on('taskRecordReceipt', (receipt) => resolve(receipt))
@@ -344,6 +341,7 @@ describe('Enigma tests', () => {
     let taskInputB;
     return web3.eth.getBlockNumber()
       .then((blockNumber) => {
+        console.log('Block number =', blockNumber);
         return new Promise((resolve, reject) => {
           enigma.createTaskInput(fn, argsA, scAddr, accounts[0], userPubKey, fee)
             .on('createTaskInputReceipt', (receipt) => resolve(receipt))
@@ -448,11 +446,12 @@ describe('Enigma tests', () => {
 
   let params;
   it('should get the worker parameters for the current block', () => {
-    return web3.eth.getBlockNumber().
-      then((blockNumber) => {
+    return web3.eth.getBlockNumber()
+      .then((blockNumber) => {
+        console.log('Block number =', blockNumber);
         return enigma.getWorkerParams(blockNumber);
-      }).
-      then((result) => {
+      })
+      .then((result) => {
         params = result;
         expect(params).not.to.be.empty;
       });
@@ -465,6 +464,7 @@ describe('Enigma tests', () => {
     return web3.eth.getBlockNumber().
       then((bn) => {
         blockNumber = bn;
+        console.log('Block number =', blockNumber);
         return enigmaContract.methods.getWorkerGroup(blockNumber, scAddr).call();
       }).
       then((group) => {
@@ -479,22 +479,6 @@ describe('Enigma tests', () => {
       });
   });
 
-  // let task;
-  // it('should encrypt task inputs', () => {
-  //   return new Promise((resolve, reject) => {
-  //     enigma.createTaskInput(taskId, fn, args, scAddr, userPubKey)
-  //       .on('createTaskInput', (result) => {
-  //         resolve(result);
-  //       })
-  //   })
-  //     .then((result) => {
-  //       task = result;
-  //       console.log('TaskInput creation', task);
-  //       expect(task.encodedInputs).not.to.be.empty;
-  //     })
-  //
-  // });
-
   it('should send task inputs to the network', () => {
     return new Promise((resolve, reject) => {
       enigma.client.request('sendTaskInputs', enigma.serializeTaskInput(taskInput), (err, error, result) => {
@@ -506,11 +490,13 @@ describe('Enigma tests', () => {
     })
       .then((result) => {
         expect(result[0]).to.equal('successfully sent task inputs');
+        // Create TaskResult handle
       });
   });
 
   it('should poll the network for unconfirmed task', () => {
     todo();
+    // Request update to TaskResult
   });
 
   it('should poll the network for confirmed task', () => {
