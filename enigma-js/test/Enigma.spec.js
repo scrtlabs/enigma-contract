@@ -7,6 +7,7 @@ import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import data from './data';
 import TaskInput from "../src/models/TaskInput";
+import TaskRecord from "../src/models/TaskRecord";
 
 forge.options.usePureJavaScript = true;
 chai.expect();
@@ -43,7 +44,7 @@ describe('Enigma tests', () => {
     });
   });
 
-  it('should distribute ENG tokens', () => {
+  it('should distribute ENG tokens', async () => {
     const tokenContract = enigma.tokenContract;
     let promises = [];
     const allowance = utils.toGrains(1000);
@@ -240,43 +241,43 @@ describe('Enigma tests', () => {
   });
 
   const fn = 'medianWealth(int32,int32)';
-  const args1 = [200000, 300000];
+  const args = [200000, 300000];
   const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
     'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
   const fee = 300;
-  let taskInput1;
+  let taskInput;
   it('should create TaskInput', () => {
     return new Promise((resolve, reject) => {
-      enigma.createTaskInput(fn, args1, scAddr, accounts[0], userPubKey, fee)
+      enigma.createTaskInput(fn, args, scAddr, accounts[0], userPubKey, fee)
         .on('createTaskInputReceipt', (receipt) => resolve(receipt))
         .on('error', (error) => reject(error));
     })
-      .then((taskInput) => {
-        taskInput1 = taskInput;
+      .then((tInput) => {
+        taskInput = tInput;
         expect(taskInput).not.to.be.empty;
       });
   });
 
-  let taskRecord1;
+  let taskRecord;
   it('should create task record', () => {
     return web3.eth.getBlockNumber().
       then((blockNumber) => {
         return new Promise((resolve, reject) => {
-          enigma.createTaskRecord(taskInput1)
+          enigma.createTaskRecord(taskInput)
             .on('taskRecordReceipt', (receipt) => resolve(receipt))
             .on('error', (error) => reject(error));
         });
       }).
-      then((taskRecord) => {
-        taskRecord1 = taskRecord;
+      then((tRecord) => {
+        taskRecord = tRecord;
         expect(taskRecord.receipt).not.to.be.empty;
       });
   });
 
   it('should get the pending task', () => {
-    return enigma.getTaskRecordStatus(taskRecord1).then((taskRecord) => {
-      console.log('Task Record:', taskRecord);
-      expect(taskRecord.status).to.equal(1);
+    return enigma.getTaskRecordStatus(taskRecord).then((tRecord) => {
+      console.log('Task Record:', tRecord);
+      expect(tRecord.status).to.equal(1);
     });
   });
 
@@ -287,14 +288,14 @@ describe('Enigma tests', () => {
     outStateDelta = web3.utils.soliditySha3('test');
     const ethCall = web3.utils.soliditySha3('test');
     const proof = web3.utils.soliditySha3(
-      {t: 'bytes32', v: taskRecord1.taskId},
+      {t: 'bytes32', v: taskRecord.taskId},
       {t: 'bytes32', v: inStateDelta},
       {t: 'bytes32', v: outStateDelta},
       {t: 'bytes', v: ethCall},
     );
     const sig = utils.sign(data.worker[4], proof);
     return new Promise((resolve, reject) => {
-      enigmaContract.methods.commitReceipt(scAddr, taskRecord1.taskId, inStateDelta, outStateDelta, ethCall, sig)
+      enigmaContract.methods.commitReceipt(scAddr, taskRecord.taskId, inStateDelta, outStateDelta, ethCall, sig)
         .send({
           gas: 4712388,
           gasPrice: 100000000000,
@@ -309,9 +310,9 @@ describe('Enigma tests', () => {
   });
 
   it('should get the confirmed task', () => {
-    return enigma.getTaskRecordStatus(taskRecord1).then((taskRecord) => {
-      console.log('Task Record:', taskRecord);
-      expect(taskRecord.status).to.equal(2);
+    return enigma.getTaskRecordStatus(taskRecord).then((tRecord) => {
+      console.log('Task Record:', tRecord);
+      expect(tRecord.status).to.equal(2);
     });
   });
 
@@ -337,77 +338,40 @@ describe('Enigma tests', () => {
 
   let taskRecords;
   it('should create multiple task records', () => {
-    return web3.eth.getBlockNumber().
-      then((blockNumber) => {
-        let taskInputA;
-        let taskInputB;
-        const argsA = [200000, 300000];
-        const argsB = [300000, 400000];
+    const argsA = [200000, 300000];
+    const argsB = [300000, 400000];
+    let taskInputA;
+    let taskInputB;
+    return web3.eth.getBlockNumber()
+      .then((blockNumber) => {
         return new Promise((resolve, reject) => {
-          enigma.createTaskInput(fn, args2, scAddr, accounts[0], userPubKey, fee)
+          enigma.createTaskInput(fn, argsA, scAddr, accounts[0], userPubKey, fee)
             .on('createTaskInputReceipt', (receipt) => resolve(receipt))
             .on('error', (error) => reject(error));
-        })
-          .then((taskInput) => {
-            taskInputA = taskInput;
-            return new Promise((resolve, reject) => {
-              enigma.createTaskInput(fn, args2, scAddr, accounts[0], userPubKey, fee)
-                .on('createTaskInputReceipt', (receipt) => resolve(receipt))
-                .on('error', (error) => reject(error));
-            });
-          })
-          .then((taskInput) => {
-            taskInputB = taskInput;
-            return [taskInputA, taskInputB];
-          })
-          .then((taskInputs) => {
-            console.log('creating task records for inputs', taskInputs);
-            return new Promise((resolve, reject) => {
-              enigma.createTaskRecords(taskInputs)
-                .on('taskRecordsReceipt', (receipt) => resolve(receipt))
-                .on('error', (error) => reject(error));
-            });
-          })
-          .then((results) => {
-            for (let i = 0; i < taskRecords.length; i++) {
-              expect(results[i].taskId).to.equal(taskRecords[i].taskId);
-            }
-          });
-
-        let taskInput1;
-        it('should create TaskInput', () => {
-          return new Promise((resolve, reject) => {
-            enigma.createTaskInput(fn, args1, scAddr, accounts[0], userPubKey, fee)
-              .on('createTaskInputReceipt', (receipt) => resolve(receipt))
-              .on('error', (error) => reject(error));
-          })
-            .then((taskInput) => {
-              taskInput1 = taskInput;
-              expect(taskInput).not.to.be.empty;
-            });
         });
-
-        const fn = 'medianWealth(int32,int32)';
-        const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
-        const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
-          'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
-        const fee = 300;
-        const args1 = [200000, 300000];
-        const taskId1 = utils.generateTaskId(fn, args1, scAddr, blockNumber, userPubKey);
-        const taskRecord1 = {taskId: taskId1, fee: fee};
-        const args2 = [300000, 400000];
-        const taskId2 = utils.generateTaskId(fn, args2, scAddr, blockNumber, userPubKey);
-        const taskRecord2 = {taskId: taskId2, fee: fee};
-        taskRecords = [taskRecord1, taskRecord2];
-
-        console.log('creating task records', taskRecords);
+      })
+      .then((taskInput) => {
+        taskInputA = taskInput;
         return new Promise((resolve, reject) => {
-          enigma.createTaskRecords(taskRecords).
-            on('taskRecordsReceipt', (receipt) => resolve(receipt)).
-            on('error', (error) => reject(error));
+          enigma.createTaskInput(fn, argsB, scAddr, accounts[0], userPubKey, fee)
+            .on('createTaskInputReceipt', (receipt) => resolve(receipt))
+            .on('error', (error) => reject(error));
         });
-      }).
-      then((results) => {
+      })
+      .then((taskInput) => {
+        taskInputB = taskInput;
+        return [taskInputA, taskInputB];
+      })
+      .then((taskInputs) => {
+        console.log('creating task records for inputs', taskInputs);
+        return new Promise((resolve, reject) => {
+          enigma.createTaskRecords(taskInputs)
+            .on('taskRecordsReceipt', (receipt) => resolve(receipt))
+            .on('error', (error) => reject(error));
+        });
+      })
+      .then((results) => {
+        taskRecords = results;
         for (let i = 0; i < taskRecords.length; i++) {
           expect(results[i].taskId).to.equal(taskRecords[i].taskId);
         }
@@ -417,11 +381,12 @@ describe('Enigma tests', () => {
   it('should get the pending tasks', () => {
     let promises = [];
     taskRecords.forEach((taskRecord) => {
-      promises.push(enigma.getTask(taskRecord.taskId));
+      promises.push(enigma.getTaskRecordStatus(taskRecord));
     });
-    return Promise.all(promises).then((tasks) => {
-      tasks.forEach((task) => {
-        expect(task.status).to.equal(0);
+    return Promise.all(promises).then((taskRecords) => {
+      taskRecords.forEach((taskRecord) => {
+        console.log('Task Record:', taskRecord);
+        expect(taskRecord.status).to.equal(1);
       });
     });
   });
@@ -449,14 +414,14 @@ describe('Enigma tests', () => {
     const inStateDeltas = [inStateDelta1, inStateDelta2];
     outStateDeltas = [outStateDelta1, outStateDelta2];
     return new Promise((resolve, reject) => {
-      enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, ethCall, sig).
-        send({
+      enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, ethCall, sig)
+        .send({
           gas: 4712388,
           gasPrice: 100000000000,
           from: accounts[0],
-        }).
-        on('receipt', (receipt) => resolve(receipt)).
-        on('error', (error) => reject(error));
+        })
+        .on('receipt', (receipt) => resolve(receipt))
+        .on('error', (error) => reject(error));
     }).then((result) => {
       expect(result.events.ReceiptsVerified).not.to.be.empty;
     });
@@ -464,12 +429,13 @@ describe('Enigma tests', () => {
 
   it('should get the confirmed tasks', () => {
     let promises = [];
-    taskRecords.map((t) => t.taskId).forEach((taskId) => {
-      promises.push(enigma.getTask(taskId));
+    taskRecords.forEach((taskRecord) => {
+      promises.push(enigma.getTaskRecordStatus(taskRecord));
     });
-    Promise.all(promises).then((tasks) => {
-      tasks.forEach((task) => {
-        expect(task.status).to.equal(1);
+    return Promise.all(promises).then((taskRecords) => {
+      taskRecords.forEach((taskRecord) => {
+        console.log('Task Record:', taskRecord);
+        expect(taskRecord.status).to.equal(2);
       });
     });
   });
@@ -513,29 +479,25 @@ describe('Enigma tests', () => {
       });
   });
 
-  let task;
-  it('should encrypt task inputs', () => {
-    const fn = 'medianWealth(int32,int32)';
-    const args = [200000, 300000];
-    const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
-      'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
-    return new Promise((resolve, reject) => {
-      enigma.createTaskInput(taskId, fn, args, scAddr, userPubKey)
-        .on('createTaskInput', (result) => {
-          resolve(result);
-        })
-    })
-      .then((result) => {
-        task = result;
-        console.log('TaskInput creation', task);
-        expect(task.encodedInputs).not.to.be.empty;
-      })
-
-  });
+  // let task;
+  // it('should encrypt task inputs', () => {
+  //   return new Promise((resolve, reject) => {
+  //     enigma.createTaskInput(taskId, fn, args, scAddr, userPubKey)
+  //       .on('createTaskInput', (result) => {
+  //         resolve(result);
+  //       })
+  //   })
+  //     .then((result) => {
+  //       task = result;
+  //       console.log('TaskInput creation', task);
+  //       expect(task.encodedInputs).not.to.be.empty;
+  //     })
+  //
+  // });
 
   it('should send task inputs to the network', () => {
     return new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInputs', task.serialize(), (err, error, result) => {
+      enigma.client.request('sendTaskInputs', enigma.serializeTaskInput(taskInput), (err, error, result) => {
         if (err) {
           reject(err);
         }

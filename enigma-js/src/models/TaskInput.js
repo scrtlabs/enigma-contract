@@ -21,9 +21,9 @@ export default class TaskInput {
     this.creationBlockNumber = creationBlockNumber;
     this.sender = sender;
     this.scAddr = scAddr;
-    // this.encryptedFn;
-    // this.encryptedEncodedArgs;
-    // this.sig = sig;
+    this.encryptedFn = '';
+    this.encryptedEncodedArgs = '';
+    this.sig = '';
     this.userPubKey = userPubKey;
     this.fee = fee;
   }

@@ -109,7 +109,6 @@ export default class Enigma {
             emitter.emit('taskRecordConfirmation', confirmationNumber, receipt);
           })
           .on('receipt', (receipt) => {
-            const event = receipt.events.TaskRecordCreated;
             taskRecord.receipt = receipt;
             emitter.emit('taskRecordReceipt', taskRecord);
           });
@@ -126,10 +125,12 @@ export default class Enigma {
   createTaskRecords(taskInputs) {
     let taskIds = [];
     let fees = [];
-    for (let taskInput of taskInputs) {
+    let taskRecords = [];
+    taskInputs.forEach((taskInput) => {
       taskIds.push(taskInput.taskId);
       fees.push(taskInput.fee);
-    }
+      taskRecords.push(new TaskRecord(taskInput.taskId, taskInput.fee));
+    });
     let emitter = new EventEmitter();
     console.log('creating task records', taskIds, fees);
     this.tokenContract.methods.balanceOf(this.txDefaults.from).call()
@@ -156,22 +157,17 @@ export default class Enigma {
       .then((receipt) => {
         return this.enigmaContract.methods.createTaskRecords(taskIds, fees).send(this.txDefaults)
           .on('transactionHash', (hash) => {
+            for (let i = 0; i < taskRecords.length; i++) {
+              taskRecords[i].transactionHash = hash;
+            }
             emitter.emit('taskRecordsTransactionHash', hash);
           })
           .on('confirmation', (confirmationNumber, receipt) => {
             emitter.emit('taskRecordsConfirmation', confirmationNumber, receipt);
           })
           .on('receipt', (receipt) => {
-            const event = receipt.events.TaskRecordsCreated;
-            let taskRecords = [];
-            for (let i = 0; i < event.returnValues.taskIds.length; i++) {
-              const taskRecord = new TaskRecord(
-                event.returnValues.taskIds[i],
-                event.returnValues.fees[i],
-                event.transactionHash,
-                receipt,
-              );
-              taskRecords.push(taskRecord);
+            for (let i = 0; i < taskRecords.length; i++) {
+              taskRecords[i].receipt = receipt;
             }
             emitter.emit('taskRecordsReceipt', taskRecords);
           });
@@ -274,13 +270,14 @@ export default class Enigma {
   }
 
   /**
-   * Store a task record on chain
+   * Create TaskInput
    *
-   * @param {string} taskId
    * @param {string} fn
    * @param {Array} args
    * @param {string} scAddr
+   * @param {string} owner
    * @param {string} userPubKey
+   * @param {Number} fee
    */
   createTaskInput(fn, args, scAddr, owner, userPubKey, fee) {
     let emitter = new EventEmitter();
@@ -343,74 +340,16 @@ export default class Enigma {
     return emitter;
   }
 
-  // /**
-  //  * Store a task record on chain
-  //  *
-  //  * @param {string} taskId
-  //  * @param {string} fn
-  //  * @param {Array} args
-  //  * @param {string} scAddr
-  //  * @param {string} userPubKey
-  //  */
-  // createTaskInput(taskId, fn, args, scAddr, userPubKey) {
-  //   console.log('creating task input', taskId);
-  //   // TODO: approve the fee
-  //   let emitter = new EventEmitter();
-  //   let blockNumber;
-  //   let contractSelectedWorker;
-  //   let clientPrivateKey;
-  //   let encryptedInputs;
-  //
-  //   this.web3.eth.getBlockNumber()
-  //     .then((bn) => {
-  //       blockNumber = bn;
-  //       return this.getWorkerParams(blockNumber);
-  //     })
-  //     .then((params) => {
-  //       contractSelectedWorker = this.selectWorkerGroup(blockNumber, scAddr, params, 5)[0];
-  //       return contractSelectedWorker;
-  //     })
-  //     .then((contractSelectedWorker) => {
-  //       console.log('1. Selected worker:', contractSelectedWorker);
-  //       return new Promise((resolve, reject) => {
-  //         this.client.request('getWorkerEncryptionKey', [contractSelectedWorker], (err, error, result) => {
-  //           if (err) {
-  //             reject(err);
-  //           }
-  //           resolve(result);
-  //         });
-  //       });
-  //     })
-  //     .then((getWorkerEncryptionKeyResult) => {
-  //       let enclavePublicKey = getWorkerEncryptionKeyResult[0];
-  //       // let enclaveSig = getWorkerEncryptionKeyResult[1];
-  //       // TODO: verify signature
-  //       // this.web3.eth.accounts.recover(enclavePublicKey, enclaveSig) === contractSelectedWorker
-  //       return enclavePublicKey;
-  //     })
-  //     .then((enclavePublicKey) => {
-  //       console.log('2. Got worker encryption key:', enclavePublicKey);
-  //       // TODO: generate client key pair
-  //       clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
-  //       let derivedKey = utils.getDerivedKey(enclavePublicKey, clientPrivateKey);
-  //       encryptedInputs = args.map((arg) => utils.encryptMessage(derivedKey, arg));
-  //     })
-  //     .then(() => {
-  //       console.log('3. Encrypted inputs:', encryptedInputs);
-  //       const msg = this.web3.utils.soliditySha3(
-  //         {t: 'bytes', v: utils.encodeArguments(encryptedInputs)},
-  //       );
-  //       const sig = utils.sign(clientPrivateKey, msg);
-  //       console.log('4. Signed RLP-encoded encrypted inputs:', sig);
-  //       return sig;
-  //     })
-  //     .then((sig) => {
-  //       let task = new TaskInput(taskId, blockNumber, this.txDefaults.from, scAddr, fn,
-  //         utils.encodeArguments(encryptedInputs), sig, userPubKey);
-  //       emitter.emit('createTaskInput', task);
-  //     });
-  //   return emitter;
-  // }
+  /**
+   * Serialize task input for p2p network
+   *
+   * @param {Object} taskInput
+   * @return {Array}
+   */
+  serializeTaskInput(taskInput) {
+    return [taskInput.taskId, taskInput.creationBlockNumber, taskInput.sender, taskInput.scAddr, taskInput.encryptedFn,
+      taskInput.encryptedEncodedArgs, taskInput.sig, taskInput.userPubKey, taskInput.fee];
+  }
 
   /**
    * Return the version number of the library
