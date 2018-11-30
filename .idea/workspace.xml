@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0687da14-747a-4d43-894e-6e0f27b31f66" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js.map" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/src/Admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/Admin.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/src/Enigma.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/Enigma.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/src/models/TaskInput.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/models/TaskInput.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -60,7 +56,7 @@
         <counts>
           <entry key="JavaScript Console" value="314" />
           <entry key="babelrc" value="1" />
-          <entry key="js" value="26711" />
+          <entry key="js" value="26745" />
           <entry key="json" value="28" />
           <entry key="sol" value="2927" />
           <entry key="vmoptions" value="3" />
@@ -69,7 +65,7 @@
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="JSON" value="29" />
-          <entry key="JavaScript" value="27025" />
+          <entry key="JavaScript" value="27059" />
           <entry key="PLAIN_TEXT" value="3" />
           <entry key="Solidity file" value="2927" />
         </counts>
@@ -156,8 +152,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/enigma-js/src/Admin.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="30">
-              <caret line="2" lean-forward="true" selection-start-line="2" selection-end-line="2" />
+            <state relative-caret-position="229">
+              <caret line="107" column="10" selection-start-line="107" selection-start-column="10" selection-end-line="107" selection-end-column="10" />
               <folding>
                 <element signature="e#0#41#0" expanded="true" />
               </folding>
@@ -305,7 +301,7 @@
     <property name="SearchEverywhereHistoryKey" value="admin.js&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/Admin.js" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1543590511956" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1543590610016" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs.mocha.mocha_node_package_dir" value="$PROJECT_DIR$/enigma-js/node_modules/mocha" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
@@ -432,14 +428,11 @@
       <workItem from="1543511475254" duration="2697000" />
       <workItem from="1543514494787" duration="9089000" />
       <workItem from="1543529993925" duration="9296000" />
-      <workItem from="1543589384153" duration="1067000" />
+      <workItem from="1543589384153" duration="1470000" />
     </task>
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.11.30 at 09h 12m 43s.xml">
-      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
-    </history-entry>
     <history-entry file="enigma-js_test_Enigma_spec_js - 2018.11.30 at 09h 34m 40s.xml">
       <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
@@ -467,15 +460,17 @@
     <history-entry file="enigma-js_test_Enigma_spec_js - 2018.11.30 at 09h 58m 54s.xml">
       <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
     </history-entry>
+    <history-entry file="enigma-js_test_Enigma_spec_js - 2018.11.30 at 10h 08m 55s.xml">
+      <configuration name="enigma-js/test/Enigma.spec.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="264105000" />
+    <option name="totallyTimeSpent" value="264485000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1440" height="825" extended-state="0" />
-    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24606581" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24606581" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Image Layers" order="2" />
       <window_info id="Designer" order="3" />
@@ -485,7 +480,7 @@
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3287858" />
       <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49928468" weight="0.41882673" />
-      <window_info anchor="bottom" id="Debug" order="3" sideWeight="0.49928468" weight="0.39699864" />
+      <window_info active="true" anchor="bottom" id="Debug" order="3" sideWeight="0.49928468" visible="true" weight="0.39699864" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -787,8 +782,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/enigma-js/src/Admin.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="92">
-          <caret line="93" column="95" selection-start-line="93" selection-start-column="95" selection-end-line="93" selection-end-column="95" />
+        <state relative-caret-position="229">
+          <caret line="107" column="10" selection-start-line="107" selection-start-column="10" selection-end-line="107" selection-end-column="10" />
           <folding>
             <element signature="e#0#41#0" expanded="true" />
           </folding>
