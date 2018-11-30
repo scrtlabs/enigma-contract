@@ -23,7 +23,7 @@ export default class TaskInput {
     this.scAddr = scAddr;
     this.encryptedFn = '';
     this.encryptedEncodedArgs = '';
-    this.sig = '';
+    this.userTaskSig = '';
     this.userPubKey = userPubKey;
     this.fee = fee;
   }

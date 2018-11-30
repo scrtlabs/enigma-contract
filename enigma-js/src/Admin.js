@@ -33,118 +33,87 @@ export default class Admin {
     options = Object.assign({}, this.txDefaults, options);
     options.from = account;
     let emitter = new EventEmitter();
-    this.enigmaContract.methods.workers(account).call()
-      .then((worker) => {
-        let workerStatus = parseInt(worker.status);
-        emitter.emit('workerStatus', workerStatus);
-      });
+    (async () => {
+      const worker = await this.enigmaContract.methods.workers(account).call();
+      const workerStatus = parseInt(worker.status);
+      emitter.emit('workerStatus', workerStatus);
+    })();
     return emitter;
   }
 
   /**
    * Deploy a secret contract to Ethereum
    *
-   * @param {string} scAddr
-   * @param {string} codeHash
+   * @param {string} compiledBytecodeHash
    * @param {string} owner
-   * @param {Array} inputs
+   * @param {Array} args
    * @param {string} sig
    * @param {Object} options
    * @return {EventEmitter}
    */
-  deploySecretContract(codeHash, owner, inputs, sig, options = {}) {
+  deploySecretContract(compiledBytecodeHash, owner, args, sig, options = {}) {
     options = Object.assign({}, this.txDefaults, options);
     let emitter = new EventEmitter();
-    let blockNumber;
-    let contractSelectedWorker;
-    let clientPrivateKey;
-    let encryptedInputs;
-    let nonce;
-    let scAddr;
     // Deploy to ETH
-    this.enigmaContract.methods.userSCDeployments(owner).call()
-      .then((userNonce) => {
-        console.log('1. Obtained nonce for user:', userNonce);
-        nonce = userNonce;
-      })
-      .then(() => {
-        scAddr = this.web3.utils.toChecksumAddress('0x' + this.web3.utils.soliditySha3(
-          {t: 'bytes32', v: codeHash},
-          {t: 'address', v: owner},
-          {t: 'uint', v: nonce},
-        ).slice(-40));
-        emitter.emit('scAddr', scAddr);
-        return this.enigmaContract.methods.deploySecretContract(scAddr, codeHash, owner, sig).send(options)
-          .on('transactionHash', (hash) => {
-            console.log('got tx hash', hash);
-            emitter.emit('deployETHTransactionHash', hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit('deployETHConfirmation', confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
-            emitter.emit('deployETHReceipt', receipt);
-          })
-          .on('error', (err) => emitter.emit('error', err));
-      });
+    (async () => {
+      const nonce = await this.enigmaContract.methods.userSCDeployments(owner).call();
+      console.log('1. Obtained nonce for user:', nonce);
+      const scAddr = this.web3.utils.toChecksumAddress('0x' + this.web3.utils.soliditySha3(
+        {t: 'bytes32', v: compiledBytecodeHash},
+        {t: 'address', v: owner},
+        {t: 'uint', v: nonce},
+      ).slice(-40));
+      emitter.emit('scAddrComputed', scAddr);
+      this.enigmaContract.methods.deploySecretContract(scAddr, compiledBytecodeHash, owner, sig).send(options)
+        .on('transactionHash', (hash) => {
+          console.log('got tx hash', hash);
+          emitter.emit('deployETHTransactionHash', hash);
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit('deployETHConfirmation', confirmationNumber, receipt);
+        })
+        .on('receipt', (receipt) => {
+          emitter.emit('deployETHReceipt', receipt);
+        })
+        .on('error', (err) => emitter.emit('error', err));
 
-    // Deploy to ENG network
-    this.web3.eth.getBlockNumber()
-      .then((bn) => {
-        blockNumber = bn;
-        return this.enigma.getWorkerParams(blockNumber);
-      })
-      .then((params) => {
-        contractSelectedWorker = this.enigma.selectWorkerGroup(blockNumber, scAddr, params, 5)[0];
-        return contractSelectedWorker;
-      })
-      .then((contractSelectedWorker) => {
-        console.log('1. Selected worker:', contractSelectedWorker);
-        return new Promise((resolve, reject) => {
-          this.enigma.client.request('getWorkerEncryptionKey', [contractSelectedWorker], (err, error, result) => {
-            if (err) {
-              reject(err);
-            }
-            resolve(result);
-          });
+      // Deploy to ENG network
+      const blockNumber = await this.web3.eth.getBlockNumber();
+      const workerParams = await this.enigma.getWorkerParams(blockNumber);
+      const workerAddress = await this.enigma.selectWorkerGroup(blockNumber, scAddr, workerParams, 5)[0];
+      console.log('1. Selected worker:', workerAddress);
+      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
+        this.enigma.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
         });
-      })
-      .then((getWorkerEncryptionKeyResult) => {
-        let enclavePublicKey = getWorkerEncryptionKeyResult[0];
-        let enclaveSig = getWorkerEncryptionKeyResult[1];
-        // TODO: verify signature
-        return enclavePublicKey;
-      })
-      .then((enclavePublicKey) => {
-        console.log('2. Got worker encryption key:', enclavePublicKey);
-        // TODO: generate client key pair
-        clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
-        let derivedKey = utils.getDerivedKey(enclavePublicKey, clientPrivateKey);
-        encryptedInputs = inputs.map((input) => utils.encryptMessage(derivedKey, input));
-      })
-      .then(() => {
-        console.log('3. Encrypted inputs:', encryptedInputs);
-        const msg = this.web3.utils.soliditySha3(
-          {t: 'bytes', v: codeHash},
-          {t: 'bytes', v: utils.encodeArguments(encryptedInputs)},
-        );
-        const sig = utils.sign(clientPrivateKey, msg);
-        console.log('4. Signed bytecode hash and RLP-encoded encrypted inputs:', sig);
-        return sig;
-      })
-      .then((sig) => {
-        return new Promise((resolve, reject) => {
-          this.enigma.client.request('deploySecretContract', [encryptedInputs, sig], (err, error, result) => {
-            if (err) {
-              reject(err);
-            }
-            resolve(result);
-          });
-        });
-      })
-      .then((deploySecretContractResult) => {
-        emitter.emit('deployENGReceipt', deploySecretContractResult);
       });
+      const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
+      // TODO: verify signature
+      console.log('2. Got worker encryption key:', workerEncryptionKey);
+      // TODO: generate client key pair
+      const clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
+      const derivedKey = utils.getDerivedKey(workerEncryptionKey, clientPrivateKey);
+      const encodedArgs = utils.encodeArguments(args);
+      const encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
+      const msg = this.web3.utils.soliditySha3(
+        {t: 'bytes', v: compiledBytecodeHash},
+        {t: 'bytes', v: encryptedEncodedArgs},
+      );
+      const userDeploySig = utils.sign(clientPrivateKey, msg);
+      console.log('4. Signed bytecode hash and encrypted RLP-encoded args:', userDeploySig);
+      const deploySecretContractResult = await new Promise((resolve, reject) => {
+        this.enigma.client.request('deploySecretContract', {compiledBytecodeHash, encryptedEncodedArgs, userDeploySig}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
+      });
+      emitter.emit('deployENGReceipt', deploySecretContractResult);
+    })();
     return emitter;
   }
 

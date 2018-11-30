@@ -43,12 +43,12 @@ export default class Enigma {
           callback(null, text);
         })
         .catch(function(err) {
-          callback(err);
+          callback(err, null);
         });
     };
     this.client = jaysonBrowserClient(callServer, {});
-    this.workerParamsCache = {}
-    this.selectedWorkerGroupCache = {}
+    this.workerParamsCache = {};
+    this.selectedWorkerGroupCache = {};
     this.createContracts(enigmaContractAddr, tokenContractAddr);
   }
 
@@ -80,44 +80,40 @@ export default class Enigma {
   createTaskRecord(taskInput) {
     console.log('creating task record', taskInput.taskId, taskInput.fee);
     let emitter = new EventEmitter();
-    let taskRecord = new TaskRecord(taskInput.taskId, taskInput.fee);
-    this.tokenContract.methods.balanceOf(this.txDefaults.from).call()
-      .then((balance) => {
-        if (balance < taskInput.fee) {
-          emitter.emit('error', {
-            name: 'NotEnoughTokens',
-            message: 'Not enough tokens to pay the fee',
-          });
-          return;
-        }
-        return this.tokenContract.methods.approve(this.enigmaContract.options.address, taskInput.fee).send(this.txDefaults)
-          .on('transactionHash', (hash) => {
-            emitter.emit('approveTransactionHash', hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit('approveConfirmation', confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
-            emitter.emit('approveReceipt', receipt);
-          });
-      })
-      .then((receipt) => {
-        return this.enigmaContract.methods.createTaskRecord(taskInput.taskId, taskInput.fee).send(this.txDefaults)
-          .on('transactionHash', (hash) => {
-            taskRecord.transactionHash = hash;
-            emitter.emit('taskRecordTransactionHash', hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit('taskRecordConfirmation', confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
-            taskRecord.receipt = receipt;
-            emitter.emit('taskRecordReceipt', taskRecord);
-          });
-      })
-      .catch((err) => {
-        emitter.emit('error', err);
-      });
+    (async () => {
+      let taskRecord = new TaskRecord(taskInput.taskId, taskInput.fee);
+      const balance = await this.tokenContract.methods.balanceOf(this.txDefaults.from).call();
+      if (balance < taskInput.fee) {
+        emitter.emit('error', {
+          name: 'NotEnoughTokens',
+          message: 'Not enough tokens to pay the fee',
+        });
+        return;
+      }
+      await this.tokenContract.methods.approve(this.enigmaContract.options.address, taskInput.fee).send(this.txDefaults)
+        .on('transactionHash', (hash) => {
+          emitter.emit('approveTransactionHash', hash);
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit('approveConfirmation', confirmationNumber, receipt);
+        })
+        .on('receipt', (receipt) => {
+          emitter.emit('approveReceipt', receipt);
+        });
+      await this.enigmaContract.methods.createTaskRecord(taskInput.taskId, taskInput.fee).send(this.txDefaults)
+        .on('transactionHash', (hash) => {
+          taskRecord.transactionHash = hash;
+          emitter.emit('taskRecordTransactionHash', hash);
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit('taskRecordConfirmation', confirmationNumber, receipt);
+        })
+        .on('receipt', (receipt) => {
+          taskRecord.receipt = receipt;
+          taskRecord.status = 1;
+          emitter.emit('taskRecordReceipt', taskRecord);
+        });
+    })();
     return emitter;
   }
 
@@ -125,58 +121,53 @@ export default class Enigma {
    * Store multiple task records
    */
   createTaskRecords(taskInputs) {
-    let taskIds = [];
-    let fees = [];
-    let taskRecords = [];
-    taskInputs.forEach((taskInput) => {
-      taskIds.push(taskInput.taskId);
-      fees.push(taskInput.fee);
-      taskRecords.push(new TaskRecord(taskInput.taskId, taskInput.fee));
-    });
     let emitter = new EventEmitter();
-    console.log('creating task records', taskIds, fees);
-    this.tokenContract.methods.balanceOf(this.txDefaults.from).call()
-      .then((balance) => {
-        let totalFees = fees.reduce((a, b) => a + b, 0);
-        if (balance < totalFees) {
-          emitter.emit('error', {
-            name: 'NotEnoughTokens',
-            message: 'Not enough tokens to pay the fee',
-          });
-          return;
-        }
-        return this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send(this.txDefaults)
-          .on('transactionHash', (hash) => {
-            emitter.emit('approveTransactionHash', hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit('approveConfirmation', confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
-            emitter.emit('approveReceipt', receipt);
-          });
-      })
-      .then((receipt) => {
-        return this.enigmaContract.methods.createTaskRecords(taskIds, fees).send(this.txDefaults)
-          .on('transactionHash', (hash) => {
-            for (let i = 0; i < taskRecords.length; i++) {
-              taskRecords[i].transactionHash = hash;
-            }
-            emitter.emit('taskRecordsTransactionHash', hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit('taskRecordsConfirmation', confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
-            for (let i = 0; i < taskRecords.length; i++) {
-              taskRecords[i].receipt = receipt;
-            }
-            emitter.emit('taskRecordsReceipt', taskRecords);
-          });
-      })
-      .catch((err) => {
-        emitter.emit('error', err);
+    (async () => {
+      let taskIds = [];
+      let fees = [];
+      let taskRecords = [];
+      taskInputs.forEach((taskInput) => {
+        taskIds.push(taskInput.taskId);
+        fees.push(taskInput.fee);
+        taskRecords.push(new TaskRecord(taskInput.taskId, taskInput.fee));
       });
+      const balance = await this.tokenContract.methods.balanceOf(this.txDefaults.from).call();
+      const totalFees = fees.reduce((a, b) => a + b, 0);
+      if (balance < totalFees) {
+        emitter.emit('error', {
+          name: 'NotEnoughTokens',
+          message: 'Not enough tokens to pay the fee',
+        });
+        return;
+      }
+      await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send(this.txDefaults)
+        .on('transactionHash', (hash) => {
+          emitter.emit('approveTransactionHash', hash);
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit('approveConfirmation', confirmationNumber, receipt);
+        })
+        .on('receipt', (receipt) => {
+          emitter.emit('approveReceipt', receipt);
+        });
+      await this.enigmaContract.methods.createTaskRecords(taskIds, fees).send(this.txDefaults)
+        .on('transactionHash', (hash) => {
+          for (let i = 0; i < taskRecords.length; i++) {
+            taskRecords[i].transactionHash = hash;
+          }
+          emitter.emit('taskRecordsTransactionHash', hash);
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit('taskRecordsConfirmation', confirmationNumber, receipt);
+        })
+        .on('receipt', (receipt) => {
+          for (let i = 0; i < taskRecords.length; i++) {
+            taskRecords[i].receipt = receipt;
+            taskRecords[i].status = 1;
+          }
+          emitter.emit('taskRecordsReceipt', taskRecords);
+        });
+    })();
     return emitter;
   }
 
@@ -185,12 +176,11 @@ export default class Enigma {
    *
    * @param {Object} taskRecord
    */
-  getTaskRecordStatus(taskRecord) {
-    return this.enigmaContract.methods.tasks(taskRecord.taskId).call().then((result) => {
-      taskRecord.status = parseInt(result.status);
-      taskRecord.proof = result.proof;
-      return taskRecord;
-    });
+  async getTaskRecordStatus(taskRecord) {
+    const result = await this.enigmaContract.methods.tasks(taskRecord.taskId).call()
+    taskRecord.status = parseInt(result.status);
+    taskRecord.proof = result.proof;
+    return taskRecord;
   }
 
   /**
@@ -211,11 +201,10 @@ export default class Enigma {
    * Find SGX report
    * @param {string} custodian
    */
-  getReport(custodian) {
-    return this.enigmaContract.methods.getReport(custodian).call().then((result) => {
-      console.log('the task', result);
-      return result;
-    });
+  async getReport(custodian) {
+    const result = await this.enigmaContract.methods.getReport(custodian).call();
+    console.log('the task', result);
+    return result;
   }
 
   /**
@@ -243,8 +232,7 @@ export default class Enigma {
    * Select the worker group
    *
    */
-  async selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
-    let epochSize = await this.enigmaContract.methods.epochSize().call();
+  selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
     let tokenCpt = params.balances.reduce((a, b) => a + b, 0);
     let nonce = 0;
     let selectedWorkers = [];
@@ -287,75 +275,73 @@ export default class Enigma {
    */
   createTaskInput(fn, args, scAddr, owner, userPubKey, fee) {
     let emitter = new EventEmitter();
-    let blockNumber;
-    let contractSelectedWorker;
     let clientPrivateKey;
-    let taskInput;
-
-    this.web3.eth.getBlockNumber()
-      .then((bn) => {
-        blockNumber = bn;
-        console.log('Block number =', blockNumber);
-        taskInput = new TaskInput(blockNumber, owner, scAddr, fn, args, userPubKey, fee);
-        return this.getWorkerParams(blockNumber);
-      })
-      .then((params) => {
-        contractSelectedWorker = this.selectWorkerGroup(blockNumber, scAddr, params, 5)[0];
-        return contractSelectedWorker;
-      })
-      .then((contractSelectedWorker) => {
-        console.log('1. Selected worker:', contractSelectedWorker);
-        return new Promise((resolve, reject) => {
-          this.client.request('getWorkerEncryptionKey', [contractSelectedWorker], (err, error, result) => {
-            if (err) {
-              reject(err);
-            }
-            resolve(result);
-          });
+    (async () => {
+      const creationBlockNumber = await this.web3.eth.getBlockNumber();
+      let taskInput = new TaskInput(creationBlockNumber, owner, scAddr, fn, args, userPubKey, fee);
+      const workerParams = await this.getWorkerParams(creationBlockNumber);
+      const workerAddress = await this.selectWorkerGroup(creationBlockNumber, scAddr, workerParams, 5)[0];
+      console.log('1. Selected worker:', workerAddress);
+      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
+        this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
         });
-      })
-      .then((getWorkerEncryptionKeyResult) => {
-        let enclavePublicKey = getWorkerEncryptionKeyResult[0];
-        // let enclaveSig = getWorkerEncryptionKeyResult[1];
-        // TODO: verify signature
-        // this.web3.eth.accounts.recover(enclavePublicKey, enclaveSig) === contractSelectedWorker
-        return enclavePublicKey;
-      })
-      .then((enclavePublicKey) => {
-        console.log('2. Got worker encryption key:', enclavePublicKey);
-        // TODO: generate client key pair
-        clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
-        return utils.getDerivedKey(enclavePublicKey, clientPrivateKey);;
-      })
-      .then((derivedKey) => {
-        console.log('3. Got derived key:', derivedKey);
-        let encodedArgs = utils.encodeArguments(args);
-        taskInput.encryptedFn = utils.encryptMessage(derivedKey, fn);
-        taskInput.encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
-        const msg = this.web3.utils.soliditySha3(
-          {t: 'bytes', v: taskInput.encryptedFn},
-          {t: 'bytes', v: taskInput.encryptedEncodedArgs},
-        );
-        const sig = utils.sign(clientPrivateKey, msg);
-        console.log('3. Got signature:', sig);
-        return (sig);
-      })
-      .then((sig) => {
-        taskInput.sig = sig;
-        emitter.emit('createTaskInputReceipt', taskInput);
       });
+      const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
+      // TODO: verify signature
+      console.log('2. Got worker encryption key:', workerEncryptionKey);
+      // TODO: generate client key pair
+      const clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
+      const derivedKey = utils.getDerivedKey(workerEncryptionKey, clientPrivateKey);
+      const encodedArgs = utils.encodeArguments(args);
+      taskInput.encryptedFn = utils.encryptMessage(derivedKey, fn);
+      taskInput.encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
+      const msg = this.web3.utils.soliditySha3(
+        {t: 'bytes', v: taskInput.encryptedFn},
+        {t: 'bytes', v: taskInput.encryptedEncodedArgs},
+      );
+      const userTaskSig = utils.sign(clientPrivateKey, msg);
+      console.log('3. Got signature:', userTaskSig);
+      taskInput.userTaskSig = userTaskSig;
+      emitter.emit('createTaskInputReceipt', taskInput);
+    })();
     return emitter;
   }
 
   /**
-   * Serialize task input for p2p network
+   * Send TaskInput to p2p network
    *
    * @param {Object} taskInput
-   * @return {Array}
+   */
+  sendTaskInput(taskInput) {
+    let emitter = new EventEmitter();
+    (async () => {
+      const sendTaskInputResult = await new Promise((resolve, reject) => {
+        this.client.request('sendTaskInput', this.serializeTaskInput(taskInput), (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
+      });
+      emitter.emit('sendTaskInputReceipt', sendTaskInputResult);
+    })();
+    return emitter;
+  }
+
+  /**
+   * Serialize task input
+   *
+   * @param {Object} taskInput
    */
   serializeTaskInput(taskInput) {
-    return [taskInput.taskId, taskInput.creationBlockNumber, taskInput.sender, taskInput.scAddr, taskInput.encryptedFn,
-      taskInput.encryptedEncodedArgs, taskInput.sig, taskInput.userPubKey, taskInput.fee];
+    return {taskId: taskInput.taskId, creationBlockNumber: taskInput.creationBlockNumber, sender: taskInput.sender,
+      scAddr: taskInput.scAddr, encryptedFn: taskInput.encryptedFn,
+      encryptedEncodedArgs: taskInput.encryptedEncodedArgs, userTaskSig: taskInput.userTaskSig,
+      userPubKey: taskInput.userPubKey, fee: taskInput.fee};
   }
 
   /**
