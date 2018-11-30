@@ -1,5 +1,4 @@
-import web3Utils from "web3-utils";
-import utils from '../enigma-utils'
+import utils from '../enigma-utils';
 
 /**
  * Encapsulates the task input

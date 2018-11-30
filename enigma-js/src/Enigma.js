@@ -4,14 +4,13 @@ import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import Admin from './Admin';
 import TaskRecord from './models/TaskRecord';
 // import TaskReceipt from './models/TaskReceipt';
-import TaskResult from './models/TaskResult';
+// import TaskResult from './models/TaskResult';
 import TaskInput from './models/TaskInput';
 import EventEmitter from 'eventemitter3';
 import web3Utils from 'web3-utils';
 import jaysonBrowserClient from 'jayson/lib/client/browser';
 import axios from 'axios';
 import utils from 'enigma-utils';
-import Task from "./models/Task";
 
 /**
  * Class encapsulation the Enigma operations.
@@ -177,7 +176,7 @@ export default class Enigma {
    * @param {Object} taskRecord
    */
   async getTaskRecordStatus(taskRecord) {
-    const result = await this.enigmaContract.methods.tasks(taskRecord.taskId).call()
+    const result = await this.enigmaContract.methods.tasks(taskRecord.taskId).call();
     taskRecord.status = parseInt(result.status);
     taskRecord.proof = result.proof;
     return taskRecord;
@@ -214,7 +213,8 @@ export default class Enigma {
    */
   async getWorkerParams(blockNumber) {
     let epochSize = await this.enigmaContract.methods.epochSize().call();
-    if ((Object.keys(this.workerParamsCache).length === 0) || (blockNumber - this.workerParamsCache.firstBlockNumber >= epochSize)) {
+    if ((Object.keys(this.workerParamsCache).length === 0) ||
+      (blockNumber - this.workerParamsCache.firstBlockNumber >= epochSize)) {
       const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
       this.workerParamsCache = {
         firstBlockNumber: parseInt(getWorkerParamsResult[0]),
@@ -275,7 +275,6 @@ export default class Enigma {
    */
   createTaskInput(fn, args, scAddr, owner, userPubKey, fee) {
     let emitter = new EventEmitter();
-    let clientPrivateKey;
     (async () => {
       const creationBlockNumber = await this.web3.eth.getBlockNumber();
       let taskInput = new TaskInput(creationBlockNumber, owner, scAddr, fn, args, userPubKey, fee);
@@ -292,7 +291,7 @@ export default class Enigma {
       });
       const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
       // TODO: verify signature
-      console.log('2. Got worker encryption key:', workerEncryptionKey);
+      console.log('2. Got worker encryption key:', workerEncryptionKey, 'worker sig', workerSig);
       // TODO: generate client key pair
       const clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
       const derivedKey = utils.getDerivedKey(workerEncryptionKey, clientPrivateKey);

@@ -1,6 +1,5 @@
 import EventEmitter from 'eventemitter3';
 import utils from 'enigma-utils';
-import web3Utils from "web3-utils";
 
 /**
  * Encapsulates the admin operations
@@ -92,7 +91,7 @@ export default class Admin {
       });
       const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
       // TODO: verify signature
-      console.log('2. Got worker encryption key:', workerEncryptionKey);
+      console.log('2. Got worker encryption key:', workerEncryptionKey, 'worker sig', workerSig);
       // TODO: generate client key pair
       const clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
       const derivedKey = utils.getDerivedKey(workerEncryptionKey, clientPrivateKey);
@@ -105,7 +104,8 @@ export default class Admin {
       const userDeploySig = utils.sign(clientPrivateKey, msg);
       console.log('4. Signed bytecode hash and encrypted RLP-encoded args:', userDeploySig);
       const deploySecretContractResult = await new Promise((resolve, reject) => {
-        this.enigma.client.request('deploySecretContract', {compiledBytecodeHash, encryptedEncodedArgs, userDeploySig}, (err, response) => {
+        this.enigma.client.request('deploySecretContract', {compiledBytecodeHash, encryptedEncodedArgs, userDeploySig},
+          (err, response) => {
           if (err) {
             reject(err);
           }
