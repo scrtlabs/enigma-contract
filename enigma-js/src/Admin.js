@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3';
+import utils from 'enigma-utils';
 
 /**
  * Encapsulates the admin operations
@@ -10,44 +11,109 @@ export default class Admin {
    * @param {Web3.Contract} enigmaContract
    * @param {Web3.Contract} tokenContract
    * @param {Object} txDefaults
+   * @param {Object} enigma
    */
-  constructor(web3, enigmaContract, tokenContract, txDefaults) {
+  constructor(web3, enigmaContract, tokenContract, txDefaults, enigma) {
     this.web3 = web3;
     this.enigmaContract = enigmaContract;
     this.tokenContract = tokenContract;
     this.txDefaults = txDefaults;
+    this.enigma = enigma;
+  }
+
+  /**
+   * Get worker status
+   *
+   * @param {string} account
+   * @param {Object} options
+   * @return {EventEmitter}
+   */
+  getWorkerStatus(account, options = {}) {
+    options = Object.assign({}, this.txDefaults, options);
+    options.from = account;
+    let emitter = new EventEmitter();
+    (async () => {
+      const worker = await this.enigmaContract.methods.workers(account).call();
+      const workerStatus = parseInt(worker.status);
+      emitter.emit('workerStatus', workerStatus);
+    })();
+    return emitter;
   }
 
   /**
    * Deploy a secret contract to Ethereum
    *
-   * @param {string} scAddr
-   * @param {string} codeHash
+   * @param {string} compiledBytecodeHash
    * @param {string} owner
+   * @param {Array} args
    * @param {string} sig
    * @param {Object} options
    * @return {EventEmitter}
    */
-  deploySecretContract(scAddr, codeHash, owner, sig, options = {}) {
+  deploySecretContract(compiledBytecodeHash, owner, args, sig, options = {}) {
     options = Object.assign({}, this.txDefaults, options);
     let emitter = new EventEmitter();
-    this.enigmaContract.methods.deploySecretContract(scAddr, codeHash, owner, sig).
-      send(options).
-      on('transactionHash', (hash) => {
-        // console.log('got tx hash', hash);
-        emitter.emit('transactionHash', hash);
-      }).
-      on('receipt', (receipt) => {
-        // console.log('got task record receipt', receipt);
-        const event = receipt.events.SecretContractDeployed;
-        emitter.emit('deployed', event);
-      }).
-      on('confirmation', (confirmationNumber, receipt) => {
-        // console.log('got confirmation', confirmationNumber, receipt);
-        const event = receipt.events.SecretContractDeployed;
-        emitter.emit('confirmed', event);
-      }).
-      on('error', (err) => emitter.emit('error', err));
+    // Deploy to ETH
+    (async () => {
+      const nonce = await this.enigmaContract.methods.userSCDeployments(owner).call();
+      console.log('1. Obtained nonce for user:', nonce);
+      const scAddr = this.web3.utils.toChecksumAddress('0x' + this.web3.utils.soliditySha3(
+        {t: 'bytes32', v: compiledBytecodeHash},
+        {t: 'address', v: owner},
+        {t: 'uint', v: nonce},
+      ).slice(-40));
+      emitter.emit('scAddrComputed', scAddr);
+      this.enigmaContract.methods.deploySecretContract(scAddr, compiledBytecodeHash, owner, sig).send(options)
+        .on('transactionHash', (hash) => {
+          console.log('got tx hash', hash);
+          emitter.emit('deployETHTransactionHash', hash);
+        })
+        .on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit('deployETHConfirmation', confirmationNumber, receipt);
+        })
+        .on('receipt', (receipt) => {
+          emitter.emit('deployETHReceipt', receipt);
+        })
+        .on('error', (err) => emitter.emit('error', err));
+
+      // Deploy to ENG network
+      const blockNumber = await this.web3.eth.getBlockNumber();
+      const workerParams = await this.enigma.getWorkerParams(blockNumber);
+      const workerAddress = await this.enigma.selectWorkerGroup(blockNumber, scAddr, workerParams, 5)[0];
+      console.log('1. Selected worker:', workerAddress);
+      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
+        this.enigma.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
+      });
+      const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
+      // TODO: verify signature
+      console.log('2. Got worker encryption key:', workerEncryptionKey, 'worker sig', workerSig);
+      // TODO: generate client key pair
+      const clientPrivateKey = '853ee410aa4e7840ca8948b8a2f67e9a1c2f4988ff5f4ec7794edf57be421ae5';
+      const derivedKey = utils.getDerivedKey(workerEncryptionKey, clientPrivateKey);
+      const encodedArgs = utils.encodeArguments(args);
+      const encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
+      const msg = this.web3.utils.soliditySha3(
+        {t: 'bytes', v: compiledBytecodeHash},
+        {t: 'bytes', v: encryptedEncodedArgs},
+      );
+      const userDeploySig = utils.sign(clientPrivateKey, msg);
+      console.log('4. Signed bytecode hash and encrypted RLP-encoded args:', userDeploySig);
+      const deploySecretContractResult = await new Promise((resolve, reject) => {
+        this.enigma.client.request('deploySecretContract', {compiledBytecodeHash, encryptedEncodedArgs, userDeploySig},
+          (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
+      });
+      emitter.emit('deployENGReceipt', deploySecretContractResult);
+    })();
     return emitter;
   }
 
@@ -118,6 +184,56 @@ export default class Admin {
   }
 
   /**
+   * Login workers.
+   *
+   * @param {Object} options
+   * @return {Promise}
+   */
+  login(options = {}) {
+    options = Object.assign({}, this.txDefaults, options);
+    let emitter = new EventEmitter();
+    this.enigmaContract.methods.login().send(options)
+      .on('transactionHash', (hash) => {
+        emitter.emit('loginTransactionHash', hash);
+      })
+      .on('confirmation', (confirmationNumber, receipt) => {
+        emitter.emit('loginConfirmation', confirmationNumber, receipt);
+      })
+      .on('receipt', (receipt) => {
+        emitter.emit('loginReceipt', receipt);
+      })
+      .on('error', (err) => {
+        emitter.emit('error', err);
+      });
+    return emitter;
+  }
+
+  /**
+   * Logout workers.
+   *
+   * @param {Object} options
+   * @return {Promise}
+   */
+  logout(options = {}) {
+    options = Object.assign({}, this.txDefaults, options);
+    let emitter = new EventEmitter();
+    this.enigmaContract.methods.logout().send(options)
+      .on('transactionHash', (hash) => {
+        emitter.emit('logoutTransactionHash', hash);
+      })
+      .on('confirmation', (confirmationNumber, receipt) => {
+        emitter.emit('logoutConfirmation', confirmationNumber, receipt);
+      })
+      .on('receipt', (receipt) => {
+        emitter.emit('logoutReceipt', receipt);
+      })
+      .on('error', (err) => {
+        emitter.emit('error', err);
+      });
+    return emitter;
+  }
+
+  /**
    * Deposit ENG tokens in the worker's bank
    *
    * @param {string} account
@@ -141,7 +257,7 @@ export default class Admin {
         }
         return this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send(options)
           .on('transactionHash', (hash) => {
-              emitter.emit('approveTransactionHash', hash);
+            emitter.emit('approveTransactionHash', hash);
           })
           .on('confirmation', (confirmationNumber, receipt) => {
             emitter.emit('approveConfirmation', confirmationNumber, receipt);
