@@ -30,12 +30,25 @@ ES6 source files
 ## Getting started
 
 1. Build the library
-  * Run `yarn install` to get the project's dependencies
-  * Run `yarn build` to produce minified version of the library.
+
+    * Run `yarn install` to get the project's dependencies
+    * Run `yarn build` to produce minified version of the library.
+  
 2. Development mode
-  * Having all the dependencies installed run `yarn dev`. This command will generate an non-minified version of the library and will run a watcher so you get the compilation on file change.
+
+    * Having all the dependencies installed run `yarn dev`. This command will generate an non-minified version of the library and will run a watcher so you get the compilation on file change.
+  
 3. Running the tests
-  * Run `yarn test` or use these options with the mocha command (e.g. in IntelliJ): `-r jsdom-global/register --require babel-register`
+
+    * Open one terminal at the root of the parent folder `enigma-contract` run the following:
+    ```
+    $ darq-truffle develop
+    ```
+    * And once Truffle loads, run (in the truffle console):
+    ```
+    truffle(develop)> migrate --reset --network development
+    ```
+    * On a separate terminal run: `yarn test` or use these options with the mocha command (e.g. in IntelliJ): `-r jsdom-global/register --require babel-register`
 
 ## Scripts
 
