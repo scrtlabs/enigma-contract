@@ -269,15 +269,15 @@ export default class Enigma {
    * @param {string} fn
    * @param {Array} args
    * @param {string} scAddr
-   * @param {string} owner
+   * @param {string} sender
    * @param {string} userPubKey
    * @param {Number} fee
    */
-  createTaskInput(fn, args, scAddr, owner, userPubKey, fee) {
+  createTaskInput(fn, args, scAddr, sender, userPubKey, fee) {
     let emitter = new EventEmitter();
     (async () => {
       const creationBlockNumber = await this.web3.eth.getBlockNumber();
-      let taskInput = new TaskInput(creationBlockNumber, owner, scAddr, fn, args, userPubKey, fee);
+      let taskInput = new TaskInput(creationBlockNumber, sender, scAddr, fn, args, userPubKey, fee);
       const workerParams = await this.getWorkerParams(creationBlockNumber);
       const workerAddress = await this.selectWorkerGroup(creationBlockNumber, scAddr, workerParams, 5)[0];
       console.log('1. Selected worker:', workerAddress);
