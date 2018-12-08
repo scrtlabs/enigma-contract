@@ -6,8 +6,8 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "mocha --require babel-register --colors ./test/*.spec.js",
-    "test:watch": "mocha --require babel-register --colors -w ./test/*.spec.js"
+    "test": "mocha --timeout 4000 --require @babel/register --colors ./test/*.spec.js",
+    "test:watch": "mocha --timeout 4000 --require @babel/register --colors -w ./test/*.spec.js"
   },
   "repository": {
     "type": "git",
@@ -56,12 +56,10 @@
   "devDependencies": {
     "@babel/cli": "^7.0.0-beta.51",
     "@babel/core": "^7.0.0-beta.51",
-    "@babel/preset-env": "^7.0.0-beta.51",
-    "babel-eslint": "^8.0.3",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/register": "^7.0.0",
+    "babel-eslint": "^9.0.0",
     "babel-loader": "^8.0.0-beta.4",
-    "babel-plugin-add-module-exports": "^0.2.1",
-    "babel-preset-env": "^7.0.0-beta.3",
-    "babel-register": "^7.0.0-beta.3",
     "chai": "^4.1.2",
     "chai-events": "0.0.1",
     "eslint": "^5.4.0",
