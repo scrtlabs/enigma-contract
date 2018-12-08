@@ -9,6 +9,9 @@ import data from './data';
 import TaskInput from "../src/models/TaskInput";
 import TaskRecord from "../src/models/TaskRecord";
 
+// Launch local mock JSON RPC Server
+require('../src/Server.js')
+
 forge.options.usePureJavaScript = true;
 chai.expect();
 
@@ -234,8 +237,8 @@ describe('Enigma tests', () => {
 
   const fn = 'medianWealth(int32,int32)';
   const args = [200000, 300000];
-  const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
-    'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
+  const userPubKey = '5587fbc96b01bfe6482bf9361a08e84810afcc0b1af72a8e4520f9' +
+       '8771ea1080681e8a2f9546e5924e18c047fa948591dba098bffaced50f97a41b0050bdab99';
   const fee = 300;
   let taskInput;
   it('should create TaskInput', async () => {
@@ -246,6 +249,15 @@ describe('Enigma tests', () => {
     });
     console.log('Task input', taskInput);
     expect(taskInput).not.to.be.empty;
+    expect(taskInput.sender).to.equal(accounts[0]);
+    expect(taskInput.scAddr).to.equal(scAddr);
+    expect(taskInput.userPubKey).to.equal(userPubKey);
+    const msg = web3.utils.soliditySha3(
+        {t: 'bytes', v: taskInput.encryptedFn},
+        {t: 'bytes', v: taskInput.encryptedEncodedArgs},
+      );
+    expect(utils.recover(taskInput.userTaskSig, msg)).to.equal(utils.toAddress(userPubKey));
+    expect(taskInput.fee).to.equal(fee);
   });
 
   let taskRecord;
