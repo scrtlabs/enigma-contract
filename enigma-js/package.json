@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "mocha --timeout 4000 --require @babel/register --colors ./test/*.spec.js",
+    "test": "mocha --timeout 4000 --require @babel/register --colors ./test/*.spec.js --exit",
     "test:watch": "mocha --timeout 4000 --require @babel/register --colors -w ./test/*.spec.js"
   },
   "repository": {

@@ -433,12 +433,12 @@ describe('Enigma tests', () => {
     expect(result.sendTaskResult).to.equal(true);
   });
 
-  it('should poll the network for unconfirmed task', () => {
+  xit('should poll the network for unconfirmed task', () => {
     todo();
     // Request update to TaskResult
   });
 
-  it('should poll the network for confirmed task', () => {
+  xit('should poll the network for confirmed task', () => {
     todo();
   });
 });
