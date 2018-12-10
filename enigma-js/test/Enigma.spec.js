@@ -269,6 +269,12 @@ describe('Enigma tests', () => {
     });
     console.log('Task input', taskInput);
     expect(taskRecord.receipt).not.to.be.empty;
+    expect(taskRecord.taskId).to.equal(taskInput.taskId)
+    expect(taskRecord.fee).to.equal(fee);
+    expect(taskRecord.transactionHash).not.to.be.empty;
+    expect(taskRecord.receipt).not.to.be.empty;
+    expect(taskRecord.status).to.equal(1);
+    expect(taskRecord.proof).to.be.empty;
   });
 
   it('should get the pending task', async () => {
