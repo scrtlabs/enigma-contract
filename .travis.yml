@@ -8,7 +8,7 @@ node_js:
 install:
   - npm install
   - npm install truffle darq-truffle@next
-  - cd enigma-js && yarn install && yarn build
+  - cd enigma-js && yarn install
 
 before_script:
   - darq-truffle develop &
@@ -18,5 +18,5 @@ script:
   - rm -rf build
   - darq-truffle compile
   - darq-truffle migrate --reset --network development
-  - cd enigma-js && yarn test
+  - cd enigma-js && yarn build
 
