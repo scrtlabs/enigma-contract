@@ -6,8 +6,9 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "mocha --timeout 4000 --require @babel/register --colors ./test/*.spec.js --exit",
-    "test:watch": "mocha --timeout 4000 --require @babel/register --colors -w ./test/*.spec.js"
+    "test": "nyc --require @babel/register mocha -R spec --timeout 4000 --colors --exit ./test/*.spec.js",
+    "test:watch": "mocha --timeout 4000 --require @babel/register --colors -w ./test/*.spec.js",
+    "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "repository": {
     "type": "git",
@@ -73,5 +74,10 @@
     "webpack": "^4.12.2",
     "webpack-cli": "^3.0.8",
     "yargs": "^10.0.3"
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.js"
+    ]
   }
 }

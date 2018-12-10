@@ -20,3 +20,6 @@ script:
   - darq-truffle migrate --reset --network development
   - pushd enigma-js && yarn build && popd
 
+after_success:
+  - pushd enigma-js && yarn report-coverage
+
