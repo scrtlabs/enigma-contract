@@ -13,7 +13,7 @@ import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
 import EthCrypto from 'eth-crypto';
-import * as eeConstants from 'emitterConstants';
+import * as eeConstants from './emitterConstants';
 
 
 /**
