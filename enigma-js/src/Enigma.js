@@ -3,17 +3,18 @@ import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import Admin from './Admin';
 import TaskRecord from './models/TaskRecord';
-// import TaskReceipt from './models/TaskReceipt';
+import TaskReceipt from './models/TaskReceipt';
 import TaskResult from './models/TaskResult';
 import TaskInput from './models/TaskInput';
 import EventEmitter from 'eventemitter3';
 import web3Utils from 'web3-utils';
 import jaysonBrowserClient from 'jayson/lib/client/browser';
 import axios from 'axios';
-import utils from 'enigma-utils';
+import utils from './enigma-utils';
 import forge from 'node-forge';
 import EthCrypto from 'eth-crypto';
 import * as eeConstants from 'emitterConstants';
+
 
 /**
  * Class encapsulation the Enigma operations.

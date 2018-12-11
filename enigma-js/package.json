@@ -6,9 +6,9 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "nyc --require @babel/register mocha -R spec --timeout 10000 --require mock-local-storage --colors --exit ./test/*.spec.js",
-    "test:watch": "mocha --timeout 4000 --require @babel/register --colors -w ./test/*.spec.js",
-    "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "report-coverage": "codecov"
   },
   "repository": {
     "type": "git",
@@ -57,10 +57,12 @@
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0-beta.51",
-    "@babel/core": "^7.0.0-beta.51",
+    "@babel/core": "^7.2.0",
     "@babel/preset-env": "^7.0.0",
     "@babel/register": "^7.0.0",
+    "babel-core": "^7.0.0-bridge.0",
     "babel-eslint": "^9.0.0",
+    "babel-jest": "^23.6.0",
     "babel-loader": "^8.0.0-beta.4",
     "chai": "^4.1.2",
     "chai-events": "0.0.1",
@@ -68,20 +70,28 @@
     "eslint": "^5.4.0",
     "eslint-config-google": "^0.9.1",
     "eslint-loader": "^2.0.0",
+    "jest": "^23.6.0",
     "jsdom": "11.11.0",
     "jsdom-global": "3.0.2",
     "mocha": "^4.0.1",
     "mock-local-storage": "^1.1.7",
     "nyc": "^13.1.0",
+    "regenerator-runtime": "^0.13.1",
     "uglifyjs-webpack-plugin": "^1.2.7",
     "web3": "^1.0.0-beta.35",
     "webpack": "^4.12.2",
     "webpack-cli": "^3.0.8",
     "yargs": "^10.0.3"
   },
-  "nyc": {
-    "include": [
-      "src/**/*.js"
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/jest.init.js"
+    ],
+    "collectCoverage": true,
+    "coverageDirectory": "./coverage/",
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!src/index.js"
     ]
   }
 }
