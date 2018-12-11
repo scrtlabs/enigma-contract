@@ -209,7 +209,9 @@ contract Enigma {
         address scAddr = address(keccak256(abi.encodePacked(_codeHash, _owner, userSCDeployments[_owner])));
         require(scAddr == _scAddr);
         require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
-        //TODO: verify sig
+        bytes32 msgHash = keccak256(abi.encodePacked(_codeHash));
+        address verifyAddr = msgHash.toEthSignedMessageHash().recover(_sig);
+        require(verifyAddr == _owner);
 
         //TODO: is this too naive?
         contracts[_scAddr].owner = _owner;
@@ -492,7 +494,7 @@ contract Enigma {
     */
     function setWorkersParams(uint _seed, bytes _sig)
     public
-    workerLoggedIn(msg.sender)
+    workerRegistered(msg.sender)
     {
         // Reparameterizing workers with a new seed
         // This should be called for each epoch by the Principal node

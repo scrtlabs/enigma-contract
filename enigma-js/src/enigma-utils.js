@@ -179,6 +179,7 @@ function generateTaskId(fn, args, scAddr, blockNumber, userPubKey) {
   const taskId = web3Utils.soliditySha3(
     {t: 'string', v: fn},
     {t: 'bytes', v: encodeArguments(args)},
+    {t: 'bytes', v: scAddr},
     {t: 'uint256', v: blockNumber},
     {t: 'bytes', v: userPubKey},
   );
@@ -262,7 +263,7 @@ function sign(privateKey, message) {
 }
 
 /**
- * Returns the address with with which the message was signed
+ * Returns the address with which the message was signed
  *
  * @param {string} signature
  * @param {string} message
@@ -295,7 +296,6 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   if (enclavePublicKey.slice(0, 2) !== '04') {
     enclavePublicKey = '04' + enclavePublicKey;
   }
-  console.log(enclavePublicKey);
 
   let clientKey = ec.keyFromPrivate(clientPrivateKey, 'hex');
   let enclaveKey = ec.keyFromPublic(enclavePublicKey, 'hex');

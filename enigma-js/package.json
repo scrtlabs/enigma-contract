@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "mocha --timeout 4000 --require @babel/register --colors ./test/*.spec.js",
+    "test": "mocha --timeout 10000 --require mock-local-storage --require @babel/register --colors ./test/*.spec.js --exit",
     "test:watch": "mocha --timeout 4000 --require @babel/register --colors -w ./test/*.spec.js"
   },
   "repository": {
@@ -38,6 +38,7 @@
     "elliptic": "6.4.0",
     "eth-crypto": "^1.2.2",
     "ethereumjs-abi": "^0.6.5",
+    "ethereumjs-util": "^6.0.0",
     "eventemitter3": "^3.1.0",
     "filereader": "^0.10.3",
     "jayson": "^2.1.0",
@@ -68,6 +69,7 @@
     "jsdom": "11.11.0",
     "jsdom-global": "3.0.2",
     "mocha": "^4.0.1",
+    "mock-local-storage": "^1.1.7",
     "uglifyjs-webpack-plugin": "^1.2.7",
     "web3": "^1.0.0-beta.35",
     "webpack": "^4.12.2",

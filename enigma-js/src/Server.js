@@ -4,6 +4,7 @@ var connect = require('connect');
 var jsonParser = require('body-parser').json;
 var app = connect();
 
+let counter = 0;
 var server = jayson.server({
   getWorkerEncryptionKey: function(workerAddress, callback) {
     callback(null, {
@@ -11,16 +12,25 @@ var server = jayson.server({
       workerSig: 'mySig'
     });
   },
-  deploySecretContract: function(compiledBytecodeHash, encryptedEncodedArgs, userDeploySig, callback) {
+  deploySecretContract: function(compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig, callback) {
     callback(null, {
       deploySentResult: true,
     });
   },
   sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedEncodedArgs, userTaskSig,
                           userPubKey, fee, callback) {
-    console.log(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedEncodedArgs, userTaskSig, userPubKey, fee);
     callback(null, {
       sendTaskResult: true,
+    });
+  },
+  pollTaskInput: function(taskId, callback) {
+    counter++;
+    let status = (counter < 5) ? 1 : 2;
+    callback(null, {
+      taskId: '0xdd839d251b7b16d0f52bb05b0ab4290abe0e44dd0044b2627ec7e5ce21815667',
+      encryptedEncodedOutputs: 'abcd1234',
+      sig: 'mySig',
+      status: status
     });
   },
 }, {
