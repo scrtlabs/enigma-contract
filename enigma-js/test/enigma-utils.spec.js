@@ -1,5 +1,5 @@
 import chai from 'chai';
-import {utils} from '../lib/enigma-js';
+import utils from '../src/enigma-utils'
 import forge from 'node-forge';
 
 forge.options.usePureJavaScript = true;

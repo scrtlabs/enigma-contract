@@ -1,6 +1,7 @@
 /* eslint-disable require-jsdoc */
 import chai from 'chai';
-import {Enigma, utils} from '../lib/enigma-js';
+import Enigma from '../src/Enigma';
+import utils from '../src/enigma-utils';
 import forge from 'node-forge';
 import { fromRpcSig, ecRecover } from 'ethereumjs-util';
 import Web3 from 'web3';
