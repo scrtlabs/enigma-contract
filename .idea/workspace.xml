@@ -2,26 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0687da14-747a-4d43-894e-6e0f27b31f66" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/enigma-js/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/contracts/CoinMixer.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/contracts/CoinMixer.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/contracts/ERC20.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/contracts/ERC20.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/contracts/Enigma.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/contracts/Enigma.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/contracts/EnigmaToken.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/contracts/EnigmaToken.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/contracts/Enigma.sol" beforeDir="false" afterPath="$PROJECT_DIR$/contracts/Enigma.sol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.travis.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/lib/enigma-js.js.map" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/lib/enigma-js.min.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/lib/enigma-js.min.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/lib/enigma-js.min.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/lib/enigma-js.min.js.map" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/enigma-js/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/src/Admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/Admin.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/src/Enigma.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/Enigma.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/src/Server.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/Server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/enigma-js/src/enigma-utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/src/enigma-utils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/enigma-js/test/Enigma.spec.js" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/test/Enigma.spec.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/enigma-js/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/enigma-js/yarn.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/truffle.js" beforeDir="false" afterPath="$PROJECT_DIR$/truffle.js" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -53,7 +43,7 @@
           <entry key="editorconfig" value="2" />
           <entry key="eslintrc" value="1" />
           <entry key="js" value="178" />
-          <entry key="json" value="55" />
+          <entry key="json" value="59" />
           <entry key="lock" value="2" />
           <entry key="md" value="2" />
           <entry key="mocha" value="1" />
@@ -67,7 +57,7 @@
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="JSON" value="73" />
+          <entry key="JSON" value="77" />
           <entry key="JavaScript" value="180" />
           <entry key="Markdown" value="2" />
           <entry key="PLAIN_TEXT" value="11" />
@@ -81,16 +71,16 @@
         <counts>
           <entry key="JavaScript Console" value="314" />
           <entry key="babelrc" value="1" />
-          <entry key="js" value="35709" />
-          <entry key="json" value="57" />
+          <entry key="js" value="35719" />
+          <entry key="json" value="72" />
           <entry key="sol" value="3210" />
           <entry key="vmoptions" value="3" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="JSON" value="58" />
-          <entry key="JavaScript" value="36023" />
+          <entry key="JSON" value="73" />
+          <entry key="JavaScript" value="36033" />
           <entry key="PLAIN_TEXT" value="3" />
           <entry key="Solidity file" value="3210" />
         </counts>
@@ -107,8 +97,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/enigma-js/test/Enigma.spec.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="7050">
-              <caret line="470" selection-start-line="470" selection-end-line="470" />
+            <state relative-caret-position="32">
+              <caret line="461" selection-start-line="461" selection-end-line="461" />
               <folding>
                 <element signature="n#!!doc" expanded="true" />
                 <element signature="e#35#59#0" expanded="true" />
@@ -152,7 +142,7 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/enigma-js/src/enigma-utils.js">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="241">
@@ -160,6 +150,15 @@
               <folding>
                 <element signature="e#0#35#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/enigma-js/package.json">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1125">
+              <caret line="75" selection-start-line="75" selection-end-line="75" />
             </state>
           </provider>
         </entry>
@@ -204,7 +203,6 @@
       <find>createtaskin</find>
       <find>ethereum</find>
       <find>ecRecover</find>
-      <find>sign</find>
       <find>soliditysha</find>
       <find>taskinput</find>
       <find>should deploy</find>
@@ -212,8 +210,9 @@
       <find>deploySec</find>
       <find>createtaskrec</find>
       <find>deposit</find>
-      <find>deploy s</find>
       <find>confirmation</find>
+      <find>sign</find>
+      <find>deploy s</find>
     </findStrings>
     <dirStrings>
       <dir>$PROJECT_DIR$</dir>
@@ -242,15 +241,15 @@
         <option value="$PROJECT_DIR$/enigma-js/test/crypto_test.js" />
         <option value="$PROJECT_DIR$/enigma-js/.babelrc" />
         <option value="$PROJECT_DIR$/truffle.js" />
-        <option value="$PROJECT_DIR$/package.json" />
-        <option value="$PROJECT_DIR$/enigma-js/package.json" />
         <option value="$PROJECT_DIR$/enigma-js/src/emitterConstants.js" />
         <option value="$PROJECT_DIR$/contracts/Enigma.sol" />
         <option value="$PROJECT_DIR$/enigma-js/src/Server.js" />
         <option value="$PROJECT_DIR$/enigma-js/src/Enigma.js" />
         <option value="$PROJECT_DIR$/enigma-js/src/Admin.js" />
-        <option value="$PROJECT_DIR$/enigma-js/test/Enigma.spec.js" />
         <option value="$PROJECT_DIR$/enigma-js/src/enigma-utils.js" />
+        <option value="$PROJECT_DIR$/package.json" />
+        <option value="$PROJECT_DIR$/enigma-js/test/Enigma.spec.js" />
+        <option value="$PROJECT_DIR$/enigma-js/package.json" />
       </list>
     </option>
   </component>
@@ -304,7 +303,7 @@
     <property name="SearchEverywhereHistoryKey" value="uti&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/enigma-utils.js&#10;enigma-u&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/enigma-utils.js&#10;enigma.so&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/contracts/Enigma.sol&#10;enigma&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/contracts/Enigma.sol&#10;admin.&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/Admin.js&#10;util&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/enigma-utils.js&#10;server.&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/Server.js&#10;enigma.sol&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/contracts/Enigma.sol&#10;utils&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/test/enigma-utils.spec.js&#10;enigma.js&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/Enigma.js&#10;admin.js&#9;FILE&#9;file:///Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/Admin.js" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1544490997717" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1544494145539" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs.mocha.mocha_node_package_dir" value="$PROJECT_DIR$/enigma-js/node_modules/mocha" />
     <property name="nodejs_interpreter_path" value="node" />
@@ -425,7 +424,7 @@
       <workItem from="1543940218523" duration="1523000" />
       <workItem from="1544041164543" duration="6878000" />
       <workItem from="1544130042886" duration="10858000" />
-      <workItem from="1544224181212" duration="67222000" />
+      <workItem from="1544224181212" duration="68413000" />
     </task>
     <servers />
   </component>
@@ -462,7 +461,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="351705000" />
+    <option name="totallyTimeSpent" value="352896000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1440" height="817" extended-state="6" />
@@ -642,13 +641,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/package-lock.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-82">
-          <caret line="533" column="70" selection-start-line="533" selection-start-column="70" selection-end-line="533" selection-end-column="70" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/enigma-js/.editorconfig">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="150">
@@ -761,20 +753,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/enigma-js/package.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="115">
-          <caret line="39" column="13" selection-start-line="39" selection-start-column="5" selection-end-line="39" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/package.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="232">
-          <caret line="31" column="16" selection-start-line="31" selection-start-column="16" selection-end-line="31" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/contracts/Enigma.sol">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="112">
@@ -788,17 +766,6 @@
           <caret line="196" selection-start-line="196" selection-end-line="196" />
           <folding>
             <element signature="e#0#41#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/enigma-js/test/Enigma.spec.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="7050">
-          <caret line="470" selection-start-line="470" selection-end-line="470" />
-          <folding>
-            <element signature="n#!!doc" expanded="true" />
-            <element signature="e#35#59#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -822,6 +789,38 @@
           <folding>
             <element signature="e#0#35#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/package.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="24" selection-start-line="24" selection-end-line="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/package-lock.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7995">
+          <caret line="533" column="70" selection-start-line="533" selection-start-column="70" selection-end-line="533" selection-end-column="70" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/test/Enigma.spec.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="32">
+          <caret line="461" selection-start-line="461" selection-end-line="461" />
+          <folding>
+            <element signature="n#!!doc" expanded="true" />
+            <element signature="e#35#59#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enigma-js/package.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1125">
+          <caret line="75" selection-start-line="75" selection-end-line="75" />
         </state>
       </provider>
     </entry>
