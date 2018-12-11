@@ -269,6 +269,12 @@ describe('Enigma tests', () => {
     });
     console.log('Task input', taskInput);
     expect(taskRecord.receipt).not.to.be.empty;
+    expect(taskRecord.taskId).to.equal(taskInput.taskId)
+    expect(taskRecord.fee).to.equal(fee);
+    expect(taskRecord.transactionHash).not.to.be.empty;
+    expect(taskRecord.receipt).not.to.be.empty;
+    expect(taskRecord.status).to.equal(1);
+    expect(taskRecord.proof).to.be.empty;
   });
 
   it('should get the pending task', async () => {
@@ -433,12 +439,12 @@ describe('Enigma tests', () => {
     expect(result.sendTaskResult).to.equal(true);
   });
 
-  it('should poll the network for unconfirmed task', () => {
+  xit('should poll the network for unconfirmed task', () => {
     todo();
     // Request update to TaskResult
   });
 
-  it('should poll the network for confirmed task', () => {
+  xit('should poll the network for confirmed task', () => {
     todo();
   });
 });
