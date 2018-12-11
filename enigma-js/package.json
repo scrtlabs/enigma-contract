@@ -6,9 +6,9 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "nyc --require @babel/register mocha -R spec --timeout 10000 --require mock-local-storage --colors --exit ./test/*.spec.js",
-    "test:watch": "mocha --timeout 4000 --require @babel/register --colors -w ./test/*.spec.js",
-    "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "report-coverage": "codecov"
   },
   "repository": {
     "type": "git",
