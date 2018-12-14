@@ -3,7 +3,6 @@ import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import Admin from './Admin';
 import TaskRecord from './models/TaskRecord';
-import TaskReceipt from './models/TaskReceipt';
 import TaskResult from './models/TaskResult';
 import TaskInput from './models/TaskInput';
 import EventEmitter from 'eventemitter3';
@@ -125,8 +124,16 @@ export default class Enigma {
         });
       });
       const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
-      // TODO: verify signature
+      if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
+        this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
+        emitter.emit(eeConstants.ERROR, {
+          name: 'InvalidWorker',
+          message: 'Invalid worker encryption key + signature combo',
+        });
+        return;
+      }
       const {publicKey, privateKey} = this.obtainTaskKeyPair();
+      console.log('public key', publicKey);
       const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
       const encodedArgs = utils.encodeArguments(args);
       const encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
@@ -245,20 +252,6 @@ export default class Enigma {
   }
 
   /**
-   * Store a task receipt
-   */
-  commitTaskReceipt() {
-
-  }
-
-  /**
-   * Store multiple task receipts
-   */
-  commitTaskReceipts() {
-
-  }
-
-  /**
    * Find SGX report
    * @param {string} custodian
    */
@@ -348,9 +341,16 @@ export default class Enigma {
         });
       });
       const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
-      // TODO: verify signature
-      // TODO: generate client key pair
+      if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
+        this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
+        emitter.emit(eeConstants.ERROR, {
+          name: 'InvalidWorker',
+          message: 'Invalid worker encryption key + signature combo',
+        });
+        return;
+      }
       const {publicKey, privateKey} = this.obtainTaskKeyPair();
+      console.log('public key', publicKey);
       const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
       const encodedArgs = utils.encodeArguments(args);
       taskInput.encryptedFn = utils.encryptMessage(derivedKey, fn);
