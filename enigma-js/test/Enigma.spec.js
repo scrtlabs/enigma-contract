@@ -11,7 +11,8 @@ import data from './data';
 import * as eeConstants from '../src/emitterConstants'
 
 // Launch local mock JSON RPC Server
-require('../src/Server.js');
+//require('../src/Server.js');
+import RPCServer from '../src/Server';
 
 forge.options.usePureJavaScript = true;
 chai.expect();
@@ -23,6 +24,19 @@ function todo() {
 };
 
 describe('Enigma tests', () => {
+
+  let server;
+
+  beforeAll(() => {
+    server = new RPCServer();
+    server.listen();
+  });
+
+  afterAll(done => {
+    server.close(done);
+  });
+
+
   let accounts;
   let web3;
   let enigma;
