@@ -11,6 +11,7 @@ export default class RPCServer {
 
     var _counter = 0;
     this.app = connect();
+    this.serverInstance = null;
     this.server = jayson.server({
       getWorkerEncryptionKey: function(workerAddress, callback) {
         callback(null, {
@@ -48,10 +49,10 @@ export default class RPCServer {
     this.app.use(cors({methods: ['POST']}));
     this.app.use(bodyParser.json());
     this.app.use(this.server.middleware());
-    this.app.listen(3000);
+    this.serverInstance = this.app.listen(3000);
   }
 
   close(done) {
-    this.server.close(done);
+    this.serverInstance.close(done);
   }
 }
