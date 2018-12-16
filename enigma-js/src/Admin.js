@@ -164,7 +164,7 @@ export default class Admin {
    * @param {Object} options
    * @return {EventEmitter}
    */
-  deposit(account, amount, confirmation=false, options = {}) {
+  deposit(account, amount, options = {}) {
     options = Object.assign({}, this.txDefaults, options);
     options.from = account;
     let emitter = new EventEmitter();

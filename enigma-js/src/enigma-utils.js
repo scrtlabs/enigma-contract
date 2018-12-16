@@ -279,6 +279,22 @@ return signer;
 }
 
 /**
+ * Returns the address with which the message was signed
+ *
+ * @param {string} signature
+ * @param {string} message
+ * @return {string}
+ */
+function recoverPublicKey(signature, message) {
+  const publicKey = EthCrypto.recoverPublicKey(
+    signature,
+    message,
+  );
+
+  return publicKey;
+}
+
+/**
  * This does ECDH key derivation from 2 EC secp256k1 keys.
  * It does so by multiplying the public points by the private point of the over key.
  * This results in a X and Y. it then replaces the Y with 0x02 if Y is even and 0x03 if it's odd.
@@ -393,6 +409,7 @@ utils.checkMethodSignature = checkMethodSignature;
 utils.toAddress = toAddress;
 utils.sign = sign;
 utils.recover = recover;
+utils.recoverPublicKey = recoverPublicKey;
 utils.getDerivedKey = getDerivedKey;
 utils.encryptMessage = encryptMessage;
 utils.decryptMessage = decryptMessage;
