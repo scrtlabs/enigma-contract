@@ -7,11 +7,11 @@ import * as eeConstants from './emitterConstants';
 export default class Admin {
   /**
    * Constructor
-   * @param {Web3} web3
-   * @param {Web3.Contract} enigmaContract
-   * @param {Web3.Contract} tokenContract
+   * @param {Web3} web3 - Web3 provider for the library
+   * @param {Web3.Contract} enigmaContract - Enigma contract deployed to Ethereum
+   * @param {Web3.Contract} tokenContract - Enigma token contract deployed to Ethereum
    * @param {Object} txDefaults
-   * @param {Object} enigma
+   * @param {Enigma} enigma - Enigma wrapper instance
    */
   constructor(web3, enigmaContract, tokenContract, txDefaults, enigma) {
     this.web3 = web3;
@@ -22,95 +22,88 @@ export default class Admin {
   }
 
   /**
-   * Get worker status
+   * Get the worker's status
    *
-   * @param {string} account
+   * @param {string} account - Worker's address
    * @param {Object} options
-   * @return {EventEmitter}
+   * @return {Promise} Resolves to status of worker (0=Unregistered, 1=Registered, 2=LoggedIn, 3=LoggedOut)
    */
-  getWorkerStatus(account, options = {}) {
+  async getWorkerStatus(account, options = {}) {
     options = Object.assign({}, this.txDefaults, options);
     options.from = account;
-    let emitter = new EventEmitter();
-    (async () => {
-      const worker = await this.enigmaContract.methods.workers(account).call();
-      const workerStatus = parseInt(worker.status);
-      emitter.emit(eeConstants.GET_WORKER_STATUS_RESULT, workerStatus);
-    })();
-    return emitter;
+    const worker = await this.enigmaContract.methods.workers(account).call();
+    return parseInt(worker.status);
   }
 
   /**
-   * Checks if a secret contract is deployed.
+   * Checks if a secret contract is deployed
    *
-   * @param {string} scAddr
-   * @return {Promise}
+   * @param {string} scAddr - Secret contract address
+   * @return {Promise} Resolves to a boolean value whether the contract has been deployed or not
    */
-  isDeployed(scAddr) {
-    return this.enigmaContract.methods.isDeployed(scAddr).call();
+  async isDeployed(scAddr) {
+    return await this.enigmaContract.methods.isDeployed(scAddr).call();
   }
 
   /**
-   * Fetches the secret contract code hash.
+   * Fetches the secret contract bytecode hash
    *
-   * @param {string} scAddr
-   * @return {Promise}
+   * @param {string} scAddr - Secret contract address
+   * @return {Promise} - Resolves to the bytecode hash of the deployed secret contract
    */
-  getCodeHash(scAddr) {
-    return this.enigmaContract.methods.getCodeHash(scAddr).call();
+  async getCodeHash(scAddr) {
+    return await this.enigmaContract.methods.getCodeHash(scAddr).call();
   }
 
   /**
    * Count the state deltas for the specified secret contract.
    *
-   * @param {string} scAddr
-   * @return {Promise}
+   * @param {string} scAddr - Secret contract address
+   * @return {Promise} - Resolves to count of state deltas
    */
-  countStateDeltas(scAddr) {
-    return this.enigmaContract.methods.countStateDeltas(scAddr).call().then((result) => {
-      return parseInt(result);
-    });
+  async countStateDeltas(scAddr) {
+    return parseInt(await this.enigmaContract.methods.countStateDeltas(scAddr).call());
   }
 
   /**
-   * Fetch the state delta hash at the specified index position.
+   * Fetch the state delta hash at the specified index position
    *
-   * @param {string} scAddr
-   * @param {number} index
-   * @return {Promise}
+   * @param {string} scAddr - Secret contract address
+   * @param {number} index - Index of state delta hash to retrieve
+   * @return {Promise} - Resolves to state delta hash at the specified position
    */
-  getStateDeltaHash(scAddr, index) {
-    return this.enigmaContract.methods.getStateDeltaHash(scAddr, index).call();
+  async getStateDeltaHash(scAddr, index) {
+    return await this.enigmaContract.methods.getStateDeltaHash(scAddr, index).call();
   }
 
   /**
-   * Fetch state delta hash range
+   * Fetch state delta hashes in the specified range
    *
-   * @param {string} scAddr
-   * @param {number} start
-   * @param {number} stop
-   * @return {Promise}
+   * @param {string} scAddr - Secret contract address
+   * @param {number} start - Start index of state delta hash to retrieve (inclusive)
+   * @param {number} stop - Stop index of state delta hash to retrieve (exclusive)
+   * @return {Promise} - Resolves to the state delta hashes in the specified range
    */
-  getStateDeltaHashes(scAddr, start, stop) {
-    return this.enigmaContract.methods.getStateDeltaHashes(scAddr, start, stop).call();
+  async getStateDeltaHashes(scAddr, start, stop) {
+    return await this.enigmaContract.methods.getStateDeltaHashes(scAddr, start, stop).call();
   }
 
   /**
    * Check that the specified state delta hash is valid.
    *
-   * @param {string} scAddr
+   * @param {string} scAddr - Secret contract address
    * @param {string} stateDeltaHash
-   * @return {Promise}
+   * @return {Promise} Resolves to boolean value for whether the state delta hash is valid
    */
-  isValidDeltaHash(scAddr, stateDeltaHash) {
-    return this.enigmaContract.methods.isValidDeltaHash(scAddr, stateDeltaHash).call();
+  async isValidDeltaHash(scAddr, stateDeltaHash) {
+    return await this.enigmaContract.methods.isValidDeltaHash(scAddr, stateDeltaHash).call();
   }
 
   /**
-   * Login workers.
+   * Login the selected worker
    *
    * @param {Object} options
-   * @return {Promise}
+   * @return {EventEmitter} EventEmitter to be listened to track login transaction
    */
   login(options = {}) {
     options = Object.assign({}, this.txDefaults, options);
@@ -132,10 +125,10 @@ export default class Admin {
   }
 
   /**
-   * Logout workers.
+   * Logout the selected worker
    *
    * @param {Object} options
-   * @return {Promise}
+   * @return {EventEmitter} EventEmitter to be listened to track login transaction
    */
   logout(options = {}) {
     options = Object.assign({}, this.txDefaults, options);
@@ -159,10 +152,10 @@ export default class Admin {
   /**
    * Deposit ENG tokens in the worker's bank
    *
-   * @param {string} account
-   * @param {number} amount
+   * @param {string} account - Worker's address
+   * @param {number} amount - Number of ENG tokens to deposit, in grains (10**8 multiplier) format
    * @param {Object} options
-   * @return {EventEmitter}
+   * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
   deposit(account, amount, options = {}) {
     options = Object.assign({}, this.txDefaults, options);
@@ -204,18 +197,14 @@ export default class Admin {
   }
 
   /**
-   * Logout workers.
+   * Get staked token balance for worker
    *
-   * @param {string} account
+   * @param {string} account - Worker's address
    * @param {Object} options
-   * @return {Promise}
+   * @return {Promise} Resolves to staked ENG token balance in grains (10**8 multiplier) format
    */
-  getStakedBalance(account, options = {}) {
-    let emitter = new EventEmitter();
-    (async () => {
-      const worker = await this.enigmaContract.methods.workers(account).call();
-      emitter.emit(eeConstants.GET_STAKED_BALANCE_RESULT, parseInt(worker.balance));
-    })();
-    return emitter;
+  async getStakedBalance(account, options = {}) {
+    const worker = await this.enigmaContract.methods.workers(account).call();
+    return parseInt(worker.balance);
   }
 }

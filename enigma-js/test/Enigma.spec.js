@@ -52,6 +52,7 @@ describe('Enigma tests', () => {
         web3,
         EnigmaContract.networks['4447'].address,
         EnigmaTokenContract.networks['4447'].address,
+        'http://localhost:3000',
         {
           gas: 4712388,
           gasPrice: 100000000000,
@@ -59,7 +60,7 @@ describe('Enigma tests', () => {
         },
       );
       enigma.admin();
-      expect(enigma.version()).to.equal('0.0.1');
+      expect(Enigma.version()).to.equal('0.0.1');
     });
   });
 
@@ -121,21 +122,14 @@ describe('Enigma tests', () => {
     expect(report).not.to.be.empty;
   });
 
-  it('should check workers have been registered', async () => {
-    let promises = [];
-    for (let i = 0; i < accounts.length; i++) {
-      let promise = new Promise((resolve, reject) => {
-        enigma.admin.getWorkerStatus(accounts[0])
-          .on(eeConstants.GET_WORKER_STATUS_RESULT, (result) => {
-            resolve(result);
-          });
-      });
-      promises.push(promise);
+  it('should check workers have been logged in', async () => {
+    let workerStatuses = [];
+    for (let i = 0; i < accounts.length-1; i++) {
+      workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
     }
-    const workerStatuses = await Promise.all(promises);
-    workerStatuses.forEach((workerStatus) => {
+    for (let workerStatus of workerStatuses) {
       expect(workerStatus).to.equal(1);
-    });
+    }
   });
 
   it('should check workers stake balance is empty', async () => {
@@ -144,13 +138,7 @@ describe('Enigma tests', () => {
       if (i === 9) {
         continue;
       }
-      let balance = await new Promise((resolve, reject) => {
-        enigma.admin.getStakedBalance(accounts[i])
-          .on(eeConstants.GET_STAKED_BALANCE_RESULT, (result) => {
-            resolve(result);
-          });
-      });
-      balances.push(balance);
+      balances.push(await enigma.admin.getStakedBalance(accounts[i]));
     }
     expect(balances).to.deep.equal([0, 0, 0, 0, 0, 0, 0, 0, 0]);
   });
@@ -181,13 +169,7 @@ describe('Enigma tests', () => {
       if (i === 9) {
         continue;
       }
-      let balance = await new Promise((resolve, reject) => {
-        enigma.admin.getStakedBalance(accounts[i])
-          .on(eeConstants.GET_STAKED_BALANCE_RESULT, (result) => {
-            resolve(result);
-          });
-      });
-      balances.push(balance);
+      balances.push(await enigma.admin.getStakedBalance(accounts[i]));
     }
     expect(balances).to.deep.equal([900, 100, 10, 20, 100, 200, 40, 100, 50].map((balance) => balance * 10 ** 8));
   });
@@ -208,20 +190,13 @@ describe('Enigma tests', () => {
   });
 
   it('should check workers have been logged in', async () => {
-    let promises = [];
+    let workerStatuses = [];
     for (let i = 0; i < accounts.length-1; i++) {
-      let promise = new Promise((resolve, reject) => {
-        enigma.admin.getWorkerStatus(accounts[0])
-          .on(eeConstants.GET_WORKER_STATUS_RESULT, (result) => {
-            resolve(result);
-          });
-      });
-      promises.push(promise);
+      workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
     }
-    const workerStatuses = await Promise.all(promises);
-    workerStatuses.forEach((workerStatus) => {
+    for (let workerStatus of workerStatuses) {
       expect(workerStatus).to.equal(2);
-    });
+    }
   });
 
   it('should set the worker parameters (principal only)', async () => {
