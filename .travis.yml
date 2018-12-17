@@ -3,7 +3,7 @@ language: node_js
 sudo: true
 
 node_js:
-  - "10.1"
+  - "10.14"
 
 install:
   - npm install
