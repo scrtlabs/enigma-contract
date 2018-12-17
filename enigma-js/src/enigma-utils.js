@@ -176,36 +176,13 @@ function encodeArguments(args) {
  * @return {string}
  */
 function generateTaskId(fn, args, scAddr, blockNumber, userPubKey) {
-  const taskId = web3Utils.soliditySha3(
+  return web3Utils.soliditySha3(
     {t: 'string', v: fn},
     {t: 'bytes', v: encodeArguments(args)},
     {t: 'bytes', v: scAddr},
     {t: 'uint256', v: blockNumber},
     {t: 'bytes', v: userPubKey},
   );
-
-  return taskId;
-}
-
-/**
- * Running a pseudo-random algo which discovers the worker selected for the task
- *
- * @param {number} seed
- * @param {string} taskId
- * @param {Object[]} workers
- * @return {string}
- */
-function selectWorker(seed, taskId, workers) {
-  const hash = web3Utils.soliditySha3(
-    {t: 'uint256', v: seed},
-    {t: 'bytes32', v: taskId},
-  );
-
-  // The JS % operator does not produce the correct output
-  const index = web3Utils.toBN(hash).mod(web3Utils.toBN(workers.length));
-  const selectedWorker = workers[index];
-
-  return selectedWorker;
 }
 
 /**
@@ -254,12 +231,10 @@ function toAddress(publicKey) {
  * @return {string}
  */
 function sign(privateKey, message) {
-  const signature = EthCrypto.sign(
+  return EthCrypto.sign(
     privateKey,
     message,
   );
-
-  return signature;
 }
 
 /**
@@ -270,28 +245,24 @@ function sign(privateKey, message) {
  * @return {string}
  */
 function recover(signature, message) {
-const signer = EthCrypto.recover(
-  signature,
-  message,
-);
-
-return signer;
-}
-
-/**
- * Returns the address with which the message was signed
- *
- * @param {string} signature
- * @param {string} message
- * @return {string}
- */
-function recoverPublicKey(signature, message) {
-  const publicKey = EthCrypto.recoverPublicKey(
+  return EthCrypto.recover(
     signature,
     message,
   );
+}
 
-  return publicKey;
+/**
+ * Returns the public key associated with the message signature
+ *
+ * @param {string} signature
+ * @param {string} message
+ * @return {string} Public key
+ */
+function recoverPublicKey(signature, message) {
+  return EthCrypto.recoverPublicKey(
+    signature,
+    message,
+  );
 }
 
 /**
@@ -404,7 +375,6 @@ utils.test = () => 'hello2';
 utils.encodeArguments = encodeArguments;
 utils.generateTaskId = generateTaskId;
 utils.verifyWorker = verifyWorker;
-utils.selectWorker = selectWorker;
 utils.checkMethodSignature = checkMethodSignature;
 utils.toAddress = toAddress;
 utils.sign = sign;

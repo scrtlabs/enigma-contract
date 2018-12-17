@@ -20,14 +20,16 @@ import * as eeConstants from './emitterConstants';
  */
 export default class Enigma {
   /**
-   * The Enigma constructor
+   * The Enigma JS library constructor - a wrapper for Ethereum's Web3 library, offering additional services to
+   * leverage the Enigma protocol's unique features.
    *
-   * @param {Web3} web3
-   * @param {string} enigmaContractAddr
-   * @param {string} tokenContractAddr
+   * @param {Web3} web3 - Web3 provider for the library
+   * @param {string} enigmaContractAddr - Address the Enigma contract is deployed to on Ethereum
+   * @param {string} tokenContractAddr - Address the Enigma token contract is deployed to on Ethereum
+   * @param {string} rpcAddr - Enigma p2p network address for RPC calls
    * @param {Object} txDefaults
    */
-  constructor(web3, enigmaContractAddr, tokenContractAddr, txDefaults = {}) {
+  constructor(web3, enigmaContractAddr, tokenContractAddr, rpcAddr, txDefaults = {}) {
     this.web3 = web3;
     this.txDefaults = txDefaults;
     let callServer = function(request, callback) {
@@ -37,7 +39,7 @@ export default class Enigma {
           'credentials': 'include',
         },
       };
-      axios.post('http://localhost:3000', JSON.parse(request), config)
+      axios.post(rpcAddr, JSON.parse(request), config)
         .then((response) => {
           return JSON.stringify(response.data.result);
         })
@@ -55,14 +57,14 @@ export default class Enigma {
   }
 
   /**
-   * Initialize the admin features
+   * Initialize the worker-specific admin features
    */
   admin() {
     this.admin = new Admin(this.web3, this.enigmaContract, this.tokenContract, this.txDefaults, this);
   }
 
   /**
-   * Creating the Enigma contracts.
+   * Initialize the Enigma and Enigma token contracts
    *
    * @param {string} enigmaContractAddr
    * @param {string} tokenContractAddr
@@ -75,11 +77,11 @@ export default class Enigma {
   }
 
   /**
-   * Deploy a secret contract to Ethereum
+   * Deploy a secret contract to both the Ethereum and Enigma networks
    *
-   * @param {string} compiledBytecodeHash
-   * @param {string} owner
-   * @param {Array} args
+   * @param {string} compiledBytecodeHash - Hash of the contract bytecode's compiled down to WASM
+   * @param {string} owner - Owner/deployer of secret contract
+   * @param {Array} args - Constructor args used for secret contract initialization
    * @param {Object} options
    * @return {EventEmitter}
    */
@@ -157,9 +159,12 @@ export default class Enigma {
   }
 
   /**
-   * Store a task record on chain
+   * Create and store a task record on chain. Task records are necessary for collecting the ENG computation fee and
+   * storing the immutable task id. Thus, task records have important implications for task ordering, fee payments,
+   * and verification.
    *
-   * @param {Object} taskInput
+   * @param {Object} taskInput - The task input wrapper from which the record will be created
+   * @returns {EventEmitter} EventEmitter to be listened to track creation of TaskRecord
    */
   createTaskRecord(taskInput) {
     let emitter = new EventEmitter();
@@ -194,7 +199,12 @@ export default class Enigma {
   }
 
   /**
-   * Store multiple task records
+   * Create and store multiple task records on chain. Task records are necessary for collecting the ENG computation fee
+   * and storing the immutable task id. Thus, task records have important implications for task ordering, fee payments,
+   * and verification.
+   *
+   * @param {Array} taskInputs - The task input wrappers from which the record will be created
+   * @returns {EventEmitter} EventEmitter to be listened to track creation of TaskRecords
    */
   createTaskRecords(taskInputs) {
     let emitter = new EventEmitter();
@@ -240,9 +250,10 @@ export default class Enigma {
   }
 
   /**
-   * Get task record status
+   * Get the task record's status from Ethereum
    *
-   * @param {Object} taskRecord
+   * @param {TaskRecord} taskRecord - A task record wrapper stored on Ethereum
+   * @return {Promise} Resolves to TaskRecord wrapper with updated status and proof properties
    */
   async getTaskRecordStatus(taskRecord) {
     const result = await this.enigmaContract.methods.tasks(taskRecord.taskId).call();
@@ -253,17 +264,20 @@ export default class Enigma {
 
   /**
    * Find SGX report
-   * @param {string} custodian
+   * @param {string} custodian - Worker's address
+   * @return {Promise} Resolves to SGX report for the worker
    */
   async getReport(custodian) {
-    const result = await this.enigmaContract.methods.getReport(custodian).call();
-    return result;
+    return await this.enigmaContract.methods.getReport(custodian).call();
   }
 
   /**
-   *
-   * @param blockNumber
-   * @return {Promise}
+   * Given the current block number, obtain the worker parameters. These parameters remain the same for a given secret
+   * contract and epoch (fixed number of blocks). These parameters are cached until the epoch changes.
+   * @param {int} blockNumber
+   * @return {Promise} Resolves to the worker params, which includes a seed (random int generated from the principal
+   * node), first block number for the epoch, list of active work addresses (ordered list of workers that were logged
+   * in at the start of the epoch), and list of active worker balances
    */
   async getWorkerParams(blockNumber) {
     let epochSize = await this.enigmaContract.methods.epochSize().call();
@@ -281,8 +295,13 @@ export default class Enigma {
   }
 
   /**
-   * Select the worker group
-   *
+   * Select the workers weighted-randomly based on the staked token amount that will run the computation task
+   * @param {number} blockNumber - Current block number
+   * @param {string} scAddr - Secret contract address
+   * @param {Object} params - Worker params
+   * @param {number} workerGroupSize - Number of workers to be selected for task
+   * @return {Array} An array of selected workers where each selected worker is chosen with probability equal to
+   * number of staked tokens
    */
   selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
     let tokenCpt = params.balances.reduce((a, b) => a + b, 0);
@@ -316,14 +335,15 @@ export default class Enigma {
   }
 
   /**
-   * Create TaskInput
+   * Create a TaskInput, a collection of attributes, to be submitted to the Enigma network
    *
-   * @param {string} fn
-   * @param {Array} args
-   * @param {string} scAddr
-   * @param {string} sender
-   * @param {string} userPubKey
-   * @param {Number} fee
+   * @param {string} fn - ABI compliant signature of the function
+   * @param {Array} args - Inputs for function
+   * @param {string} scAddr - Address of secret contract
+   * @param {string} sender - Ethereum address of dApp user
+   * @param {string} userPubKey - Associated public key of dApp user used for encryption of task inputs
+   * @param {Number} fee - ENG fee for task computation
+   * @return {EventEmitter} EventEmitter to be listened to track creation of TaskInput
    */
   createTaskInput(fn, args, scAddr, sender, userPubKey, fee) {
     let emitter = new EventEmitter();
@@ -366,15 +386,16 @@ export default class Enigma {
   }
 
   /**
-   * Send TaskInput to p2p network
+   * Send TaskInput to Enigma p2p network for computation
    *
-   * @param {Object} taskInput
+   * @param {TaskInput} taskInput - Task input wrapper
+   * @return {EventEmitter} EventEmitter to be listened to track submission of TaskInput to Enigma p2p network
    */
   sendTaskInput(taskInput) {
     let emitter = new EventEmitter();
     (async () => {
       const sendTaskInputResult = await new Promise((resolve, reject) => {
-        this.client.request('sendTaskInput', this.serializeTaskInput(taskInput), (err, response) => {
+        this.client.request('sendTaskInput', Enigma.serializeTaskInput(taskInput), (err, response) => {
           if (err) {
             reject(err);
           }
@@ -387,9 +408,9 @@ export default class Enigma {
   }
 
   /**
-   * Send TaskInput to p2p network
+   * Generator function for polling the Enigma p2p network for task status
    *
-   * @param {Object} taskInput
+   * @param {TaskInput} taskInput - Task input wrapper
    */
   * pollTaskInputGen(taskInput) {
     while (true) {
@@ -406,21 +427,11 @@ export default class Enigma {
   }
 
   /**
-   * Send TaskInput to p2p network
+   * Inner poll status function that continues to poll the Enigma p2p network until the task has been verified
    *
-   * @param {Object} taskInput
-   */
-  pollTaskInput(taskInput) {
-    let emitter = new EventEmitter();
-    let generator = this.pollTaskInputGen(taskInput);
-    this.innerPollTaskInput(taskInput, generator, emitter);
-    return emitter;
-  }
-
-  /**
-   * Send TaskInput to p2p network
-   *
-   * @param {Object} taskInput
+   * @param {TaskInput} taskInput - Task input wrapper
+   * @param {pollTaskInputGen} generator - A task input wrapper
+   * @param {EventEmitter} emitter - A task input wrapper
    */
   innerPollTaskInput(taskInput, generator, emitter) {
     let p = generator.next();
@@ -433,11 +444,25 @@ export default class Enigma {
   }
 
   /**
-   * Serialize task input
+   * Poll the Enigma p2p network for a TaskInput's status
    *
-   * @param {Object} taskInput
+   * @param {TaskInput} taskInput - A task input wrapper
+   * @return {EventEmitter} EventEmitter to be listened to track polling the Enigma p2p network for a TaskInput status
    */
-  serializeTaskInput(taskInput) {
+  pollTaskInput(taskInput) {
+    let emitter = new EventEmitter();
+    let generator = this.pollTaskInputGen(taskInput);
+    this.innerPollTaskInput(taskInput, generator, emitter);
+    return emitter;
+  }
+
+  /**
+   * Serialize TaskInput for submission to the Enigma p2p network
+   *
+   * @param {TaskInput} taskInput - A task input wrapper
+   * @return {Object} Serialized TaskInput for submission to the Enigma p2p network
+   */
+  static serializeTaskInput(taskInput) {
     return {taskId: taskInput.taskId, creationBlockNumber: taskInput.creationBlockNumber, sender: taskInput.sender,
       scAddr: taskInput.scAddr, encryptedFn: taskInput.encryptedFn,
       encryptedEncodedArgs: taskInput.encryptedEncodedArgs, userTaskSig: taskInput.userTaskSig,
@@ -445,8 +470,10 @@ export default class Enigma {
   }
 
   /**
-   * Serialize task input
+   * Deterministically generate a key-secret pair necessary for deriving a shared encryption key with the selected
+   * worker. This pair will be stored in local storage for quick retrieval.
    *
+   * @return {Object} Public key-private key pair
    */
   obtainTaskKeyPair() {
     let privateKey;
@@ -470,7 +497,7 @@ export default class Enigma {
    *
    * @return {string}
    */
-  version() {
+  static version() {
     return '0.0.1';
   }
 }

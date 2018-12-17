@@ -1,6 +1,4 @@
 export const ERROR = 'error';
-export const GET_WORKER_STATUS_RESULT = 'getWorkerStatusResult';
-export const GET_STAKED_BALANCE_RESULT = 'getStakedBalanceResult';
 export const DEPOSIT_TRANSACTION_HASH = 'depositTransactionHash';
 export const DEPOSIT_CONFIRMATION = 'depositConfirmation';
 export const DEPOSIT_RECEIPT = 'depositReceipt';
