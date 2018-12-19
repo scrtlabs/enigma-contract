@@ -337,6 +337,8 @@ contract Enigma {
     public
     {
         require(tasks[_taskId].sender == 0x0, "Task already exist.");
+        require(engToken.allowance(msg.sender, this) >= _fee, "Allowance not enough");
+        require(engToken.transferFrom(msg.sender, this, _fee), "Transfer not valid");
 
         tasks[_taskId].fee = _fee;
         tasks[_taskId].sender = msg.sender;
@@ -353,6 +355,8 @@ contract Enigma {
     {
         for (uint i = 0; i < _taskIds.length; i++) {
             require(tasks[_taskIds[i]].sender == 0x0, "Task already exist.");
+            require(engToken.allowance(msg.sender, this) >= _fees[i], "Allowance not enough");
+            require(engToken.transferFrom(msg.sender, this, _fees[i]), "Transfer not valid");
 
             tasks[_taskIds[i]].fee = _fees[i];
             tasks[_taskIds[i]].sender = msg.sender;
@@ -420,6 +424,7 @@ contract Enigma {
 
         tasks[_taskId].proof = _sig;
         tasks[_taskId].status = TaskStatus.ReceiptVerified;
+        workers[msg.sender].balance = workers[msg.sender].balance.add(tasks[_taskId].fee);
         emit ReceiptVerified(_taskId, _inStateDeltaHash, _outStateDeltaHash, _ethCall, _sig);
     }
 
@@ -454,6 +459,7 @@ contract Enigma {
                 tasks[_taskIds[ic]].proof = _sig;
             }
             tasks[_taskIds[ic]].status = TaskStatus.ReceiptVerified;
+            workers[msg.sender].balance = workers[msg.sender].balance.add(tasks[_taskIds[ic]].fee);
         }
         // TODO: execute the Ethereum calls
     }
