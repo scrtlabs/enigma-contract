@@ -256,7 +256,7 @@ describe('Enigma tests', () => {
   const args = [200000, 300000];
   const userPubKey = '5587fbc96b01bfe6482bf9361a08e84810afcc0b1af72a8e4520f9' +
        '8771ea1080681e8a2f9546e5924e18c047fa948591dba098bffaced50f97a41b0050bdab99';
-  const fee = 300;
+  const fee = utils.toGrains(300);
   let taskInput;
   it('should create TaskInput', async () => {
     taskInput = await new Promise((resolve, reject) => {
@@ -278,18 +278,23 @@ describe('Enigma tests', () => {
 
   let taskRecord;
   it('should create task record', async () => {
+    const tokenContract = enigma.tokenContract;
+    const enigmaContract = enigma.enigmaContract;
+    const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
     taskRecord = await new Promise((resolve, reject) => {
       enigma.createTaskRecord(taskInput)
         .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
+    const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
     expect(taskRecord.receipt).not.to.be.empty;
-    expect(taskRecord.taskId).to.equal(taskInput.taskId)
+    expect(taskRecord.taskId).to.equal(taskInput.taskId);
     expect(taskRecord.fee).to.equal(fee);
     expect(taskRecord.transactionHash).not.to.be.empty;
     expect(taskRecord.receipt).not.to.be.empty;
     expect(taskRecord.status).to.equal(1);
     expect(taskRecord.proof).to.be.empty;
+    expect(endingBalance-startingBalance).to.equal(fee);
   });
 
   it('should get the pending task', async () => {
@@ -310,6 +315,7 @@ describe('Enigma tests', () => {
       {t: 'bytes', v: ethCall},
     );
     const sig = utils.sign(data.worker[4], proof);
+    const startingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
     const result = await new Promise((resolve, reject) => {
       enigmaContract.methods.commitReceipt(scAddr, taskRecord.taskId, inStateDelta, outStateDelta, ethCall, sig)
         .send({
@@ -318,6 +324,8 @@ describe('Enigma tests', () => {
           from: accounts[0],
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
     });
+    const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+    expect(endingBalance - startingBalance).to.equal(fee);
     expect(result.events.ReceiptVerified).not.to.be.empty;
   });
 
@@ -348,6 +356,9 @@ describe('Enigma tests', () => {
     const argsA = [200000, 300000];
     const argsB = [300000, 400000];
 
+    const tokenContract = enigma.tokenContract;
+    const enigmaContract = enigma.enigmaContract;
+    const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
     let taskInputA = await new Promise((resolve, reject) => {
       enigma.createTaskInput(fn, argsA, scAddr, accounts[0], userPubKey, fee)
         .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
@@ -363,9 +374,11 @@ describe('Enigma tests', () => {
         .on(eeConstants.CREATE_TASK_RECORDS, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
+    const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
     for (let i = 0; i < taskRecords.length; i++) {
       expect(taskRecords[i].receipt).not.to.be.empty;
     }
+    expect(endingBalance-startingBalance).to.equal(fee*2);
   });
 
   it('should get the pending tasks', async () => {
@@ -397,6 +410,7 @@ describe('Enigma tests', () => {
     const sig = utils.sign(data.worker[4], proof);
     const inStateDeltas = [inStateDelta1, inStateDelta2];
     outStateDeltas = [outStateDelta1, outStateDelta2];
+    const startingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
     const result = await new Promise((resolve, reject) => {
       enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, ethCall, sig)
         .send({
@@ -407,6 +421,8 @@ describe('Enigma tests', () => {
         .on('receipt', (receipt) => resolve(receipt))
         .on('error', (error) => reject(error));
     });
+    const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+    expect(endingBalance - startingBalance).to.equal(fee*2);
     expect(result.events.ReceiptsVerified).not.to.be.empty;
   });
 
