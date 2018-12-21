@@ -7,7 +7,7 @@ node_js:
 
 install:
   - npm install
-  - npm install -g ganache-cli truffle darq-truffle@next
+  - npm install -g ganache-cli truffle
   - pushd enigma-js && yarn install && popd
 
 before_script:
@@ -16,8 +16,8 @@ before_script:
 
 script:
   - rm -rf build
-  - darq-truffle compile
-  - darq-truffle migrate --reset --network development
+  - truffle compile
+  - truffle migrate --reset --network development
   - pushd enigma-js && yarn build && popd
 
 after_success:
