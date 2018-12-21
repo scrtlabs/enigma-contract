@@ -1,8 +1,7 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/ECRecovery.sol";
 
 contract ERC20 {
     function allowance(address owner, address spender) public view returns (uint256);
@@ -23,7 +22,6 @@ contract ERC20 {
 
 contract Enigma {
     using SafeMath for uint256;
-    using ECRecovery for bytes32;
 
     // The interface of the deployed ENG ERC20 token contract
     ERC20 public engToken;

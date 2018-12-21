@@ -1,5 +1,5 @@
-pragma solidity ^0.4.24;
-import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+pragma solidity ^0.5.0;
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title Enigma Token
@@ -20,7 +20,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
  * this contract.
  *
  */
-contract EnigmaToken is StandardToken {
+contract EnigmaToken is ERC20 {
 
     string public constant name = "Enigma";                                      // Set the token name for display
     string public constant symbol = "ENG";                                       // Set the token symbol for display
