@@ -430,8 +430,8 @@ export default class Enigma {
    * Inner poll status function that continues to poll the Enigma p2p network until the task has been verified
    *
    * @param {TaskInput} taskInput - Task input wrapper
-   * @param {pollTaskInputGen} generator - A task input wrapper
-   * @param {EventEmitter} emitter - A task input wrapper
+   * @param {pollTaskInputGen} generator - Generator function for polling Enigma p2p network for task status
+   * @param {EventEmitter} emitter - EventEmitter to track Enigma p2p network polling for TaskInput status
    */
   innerPollTaskInput(taskInput, generator, emitter) {
     let p = generator.next();
