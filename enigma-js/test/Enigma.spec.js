@@ -456,6 +456,16 @@ describe('Enigma tests', () => {
     }
   });
 
+  it('should fail the RPC Server', async () => {
+    await new Promise((resolve, reject) => {
+      enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
+        console.log('Error is '+err);
+        expect(err).to.exist;
+        resolve();
+      });
+    });
+  });
+
   it('should send task input to the network', async () => {
     const result = await new Promise((resolve, reject) => {
       enigma.sendTaskInput(taskInput)
