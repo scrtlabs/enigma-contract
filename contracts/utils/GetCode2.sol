@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 library GetCode2 {
-    function at(address _addr) internal view returns (bytes o_code) {
+    function at(address _addr) internal view returns (bytes memory o_code) {
         assembly {
             // retrieve the size of the code, this needs assembly
             let size := extcodesize(_addr)

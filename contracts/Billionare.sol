@@ -3,16 +3,16 @@ pragma solidity ^0.5.0;
 contract Billionare {
     string winner;
     function check(
-        string n_one,
+        string memory n_one,
         uint one,
-        string n_two,
+        string memory n_two,
         uint two,
-        string n_three,
+        string memory n_three,
         uint three
     )
         public
         pure
-        returns (string)
+        returns (string memory)
     {
         string memory max = n_one;
         if (two >= one && two >= three) {
@@ -25,11 +25,11 @@ contract Billionare {
         return max;
     }
 
-    function commit(string name) public {
+    function commit(string memory name) public {
         winner = name;
     }
 
-    function get_winner() public view returns(string) {
+    function get_winner() public view returns(string memory) {
         return winner;
     }
 

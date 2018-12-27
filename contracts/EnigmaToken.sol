@@ -26,14 +26,14 @@ contract EnigmaToken is ERC20 {
     string public constant symbol = "ENG";                                       // Set the token symbol for display
     uint8 public constant decimals = 8;                                          // Set the number of decimals for display
     uint256 public constant INITIAL_SUPPLY = 150000000 * 10**8;  // 150 million ENG specified in Grains
-    uint256 public totalSupply;
+
     /**
     * @dev SesnseToken Constructor
     * Runs only on initial contract creation.
     */
     constructor() public {
         totalSupply = INITIAL_SUPPLY;                               // Set the total supply
-        balances[msg.sender] = INITIAL_SUPPLY;                      // Creator address is assigned all
+        balanceOf[msg.sender] = INITIAL_SUPPLY;                      // Creator address is assigned all
         emit Transfer(0x0, msg.sender, INITIAL_SUPPLY);
     }
 
