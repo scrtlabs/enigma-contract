@@ -16,7 +16,7 @@ contract CoinMixer {
         uint numParticipants;
         bytes32 title;
         bytes[] encryptedDestAddresses;
-        address[] destAddresses;
+        address payable[] destAddresses;
         mapping(address => uint) deposit;
     }
 
@@ -43,7 +43,7 @@ contract CoinMixer {
     event Distribute(
         uint32 indexed _dealId,
         uint individualAmountInWei,
-        address[] destAddresses,
+        address payable[] destAddresses,
         uint32 nbTransfers,
         bool _success,
         string _err
@@ -77,7 +77,7 @@ contract CoinMixer {
         deals[dealId].depositInWei = _depositInWei;
         deals[dealId].numParticipants = _numParticipants;
         deals[dealId].encryptedDestAddresses = new bytes[](_numParticipants);
-        deals[dealId].destAddresses = new address[](_numParticipants);
+        deals[dealId].destAddresses = new address payable[](_numParticipants);
         deals[dealId].status = 0;
         emit NewDeal(
             msg.sender,
@@ -149,7 +149,7 @@ contract CoinMixer {
         _;
     }
 
-    function distribute(uint32 dealId, address[] memory destAddresses)
+    function distribute(uint32 dealId, address payable[] memory destAddresses)
     public
     onlyEnigma()
     returns (ReturnValue)

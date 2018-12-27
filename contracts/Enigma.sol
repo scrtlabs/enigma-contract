@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 
 contract ERC20 {
     function allowance(address owner, address spender) public view returns (uint256);
@@ -22,6 +23,7 @@ contract ERC20 {
 
 contract Enigma {
     using SafeMath for uint256;
+    using ECDSA for bytes32;
 
     // The interface of the deployed ENG ERC20 token contract
     ERC20 public engToken;
@@ -334,9 +336,9 @@ contract Enigma {
     )
     public
     {
-        require(tasks[_taskId].sender == 0x0, "Task already exist.");
-        require(engToken.allowance(msg.sender, this) >= _fee, "Allowance not enough");
-        require(engToken.transferFrom(msg.sender, this, _fee), "Transfer not valid");
+        require(tasks[_taskId].sender == address(0), "Task already exist.");
+        require(engToken.allowance(msg.sender, address(this)) >= _fee, "Allowance not enough");
+        require(engToken.transferFrom(msg.sender, address(this), _fee), "Transfer not valid");
 
         tasks[_taskId].fee = _fee;
         tasks[_taskId].sender = msg.sender;
@@ -352,9 +354,9 @@ contract Enigma {
     public
     {
         for (uint i = 0; i < _taskIds.length; i++) {
-            require(tasks[_taskIds[i]].sender == 0x0, "Task already exist.");
-            require(engToken.allowance(msg.sender, this) >= _fees[i], "Allowance not enough");
-            require(engToken.transferFrom(msg.sender, this, _fees[i]), "Transfer not valid");
+            require(tasks[_taskIds[i]].sender == address(0), "Task already exist.");
+            require(engToken.allowance(msg.sender, address(this)) >= _fees[i], "Allowance not enough");
+            require(engToken.transferFrom(msg.sender, address(this), _fees[i]), "Transfer not valid");
 
             tasks[_taskIds[i]].fee = _fees[i];
             tasks[_taskIds[i]].sender = msg.sender;
@@ -574,7 +576,7 @@ contract Enigma {
         WorkersParams memory params = workersParams[_paramIndex];
         uint tokenCpt = 0;
         for (uint i = 0; i < params.workers.length; i++) {
-            if (params.workers[i] != 0x0) {
+            if (params.workers[i] != address(0)) {
                 tokenCpt = tokenCpt.add(params.balances[i]);
             }
         }
@@ -582,7 +584,7 @@ contract Enigma {
             tokenCpt, _nonce));
         int randVal = int256(uint256(randHash) % tokenCpt);
         for (uint k = 0; k < params.workers.length; k++) {
-            if (params.workers[k] != 0x0) {
+            if (params.workers[k] != address(0)) {
                 randVal -= int256(params.balances[k]);
                 if (randVal <= 0) {
                     return params.workers[k];
@@ -619,7 +621,7 @@ contract Enigma {
                 }
                 nonce++;
             }
-            while (selectedWorkers[it] == 0x0);
+            while (selectedWorkers[it] == address(0));
         }
         return selectedWorkers;
     }
@@ -654,7 +656,7 @@ contract Enigma {
     returns (address, bytes memory)
     {
         // The RLP encoded report and signer's address for the specified worker
-        require(workers[_custodian].signer != 0x0, "Worker not registered");
+        require(workers[_custodian].signer != address(0), "Worker not registered");
         return (workers[_custodian].signer, workers[_custodian].report);
     }
 }
