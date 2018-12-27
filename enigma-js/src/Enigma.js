@@ -90,11 +90,11 @@ export default class Enigma {
     let emitter = new EventEmitter();
     (async () => {
       const nonce = await this.enigmaContract.methods.userSCDeployments(owner).call();
-      const scAddr = this.web3.utils.toChecksumAddress('0x' + this.web3.utils.soliditySha3(
+      const scAddr = this.web3.utils.soliditySha3(
         {t: 'bytes32', v: compiledBytecodeHash},
         {t: 'address', v: owner},
         {t: 'uint', v: nonce},
-      ).slice(-40));
+      );
       emitter.emit(eeConstants.DEPLOY_SC_ADDR_RESULT, scAddr);
       const proof = this.web3.utils.soliditySha3(
         {t: 'bytes', v: compiledBytecodeHash},
@@ -312,7 +312,7 @@ export default class Enigma {
         {t: 'uint256', v: blockNumber},
         {t: 'uint256', v: params.seed},
         {t: 'uint256', v: params.firstBlockNumber},
-        {t: 'address', v: scAddr},
+        {t: 'bytes32', v: scAddr},
         {t: 'uint256', v: tokenCpt},
         {t: 'uint256', v: nonce},
       );
