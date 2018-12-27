@@ -41,7 +41,7 @@ describe('Enigma tests', () => {
   let web3;
   let enigma;
   let epochSize;
-  it('initializes', () => {
+  it.only('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
@@ -456,16 +456,6 @@ describe('Enigma tests', () => {
     }
   });
 
-  it('should fail the RPC Server', async () => {
-    await new Promise((resolve, reject) => {
-      enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
-        console.log('Error is '+err);
-        expect(err).to.exist;
-        resolve();
-      });
-    });
-  });
-
   it('should send task input to the network', async () => {
     const result = await new Promise((resolve, reject) => {
       enigma.sendTaskInput(taskInput)
@@ -488,5 +478,18 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     expect(taskInputResults).to.deep.equal([ 1, 1, 1, 1, 2 ]);
+  });
+
+  it.only('should fail the RPC Server', async () => {
+    const result = await new Promise((resolve, reject) => {
+      enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
+        console.log('Error is '+err);
+        console.log('Response is '+response);
+        if (err) resolve(err);
+        else resolve(response);
+      });
+    });
+    console.log('Result is '+result);
+    expect(result).to.be.ok;
   });
 });

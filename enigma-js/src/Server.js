@@ -15,6 +15,7 @@ export default class RPCServer {
     this.server = jayson.server({
       getWorkerEncryptionKey: function(workerAddress, callback) {
         if (typeof workerAddress === "undefined") {
+          console.log("Got here")
           callback({"code": 1001, "message": "Missing Parameter"}, null);
         } else {
           callback(null, {
