@@ -63,3 +63,6 @@ typings/
 
 # Codecov
 coverage.lcov
+
+# IDE
+.idea/

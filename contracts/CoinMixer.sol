@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "./Enigma.sol";
 
@@ -16,7 +16,7 @@ contract CoinMixer {
         uint numParticipants;
         bytes32 title;
         bytes[] encryptedDestAddresses;
-        address[] destAddresses;
+        address payable[] destAddresses;
         mapping(address => uint) deposit;
     }
 
@@ -43,7 +43,7 @@ contract CoinMixer {
     event Distribute(
         uint32 indexed _dealId,
         uint individualAmountInWei,
-        address[] destAddresses,
+        address payable[] destAddresses,
         uint32 nbTransfers,
         bool _success,
         string _err
@@ -77,7 +77,7 @@ contract CoinMixer {
         deals[dealId].depositInWei = _depositInWei;
         deals[dealId].numParticipants = _numParticipants;
         deals[dealId].encryptedDestAddresses = new bytes[](_numParticipants);
-        deals[dealId].destAddresses = new address[](_numParticipants);
+        deals[dealId].destAddresses = new address payable[](_numParticipants);
         deals[dealId].status = 0;
         emit NewDeal(
             msg.sender,
@@ -93,7 +93,7 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-    function makeDeposit(uint32 dealId, bytes encryptedDestAddress)
+    function makeDeposit(uint32 dealId, bytes memory encryptedDestAddress)
     public
     payable
     returns (ReturnValue)
@@ -120,10 +120,10 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-    function mixAddresses(uint32 dealId, address[] destAddresses, uint256 rand)
+    function mixAddresses(uint32 dealId, address[] memory destAddresses, uint256 rand)
     public
     pure
-    returns (uint32, address[])
+    returns (uint32, address[] memory)
     {
         // Shuffling the specified address using a random seed.
         // Doing a Fisher-Yates Shuffle with a single integer
@@ -149,7 +149,7 @@ contract CoinMixer {
         _;
     }
 
-    function distribute(uint32 dealId, address[] destAddresses)
+    function distribute(uint32 dealId, address payable[] memory destAddresses)
     public
     onlyEnigma()
     returns (ReturnValue)
@@ -173,7 +173,7 @@ contract CoinMixer {
         return ReturnValue.Ok;
     }
 
-    function listDeals() public view returns (uint[], uint[], uint[]) {
+    function listDeals() public view returns (uint[] memory, uint[] memory, uint[] memory) {
         // A list of deals with their key properties
         uint[] memory status = new uint[](deals.length);
         uint[] memory participates = new uint[](deals.length);
@@ -221,7 +221,7 @@ contract CoinMixer {
     function getEncryptedAddress(uint32 _dealId, uint index)
     public
     view
-    returns (bytes)
+    returns (bytes memory)
     {
         // Returns an array of encrypted addresses
         return deals[_dealId].encryptedDestAddresses[index];

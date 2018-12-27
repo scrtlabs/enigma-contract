@@ -1,8 +1,8 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/ECRecovery.sol";
+import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 
 contract ERC20 {
     function allowance(address owner, address spender) public view returns (uint256);
@@ -23,7 +23,7 @@ contract ERC20 {
 
 contract Enigma {
     using SafeMath for uint256;
-    using ECRecovery for bytes32;
+    using ECDSA for bytes32;
 
     // The interface of the deployed ENG ERC20 token contract
     ERC20 public engToken;
@@ -93,12 +93,12 @@ contract Enigma {
     // An address-based index of all registered worker
     address[] public workerAddresses;
     // An address-based index of all secret contracts
-    address[] public scAddresses;
+    bytes32[] public scAddresses;
 
     // A registry of all registered workers with their attributes
     mapping(address => Worker) public workers;
     mapping(bytes32 => TaskRecord) public tasks;
-    mapping(address => SecretContract) public contracts;
+    mapping(bytes32 => SecretContract) public contracts;
 
     // A mapping of number of secret contract deployments for each address
     mapping(address => uint) public userSCDeployments;
@@ -116,7 +116,7 @@ contract Enigma {
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes ethCall, bytes sig);
     event DepositSuccessful(address from, uint value);
-    event SecretContractDeployed(address scAddr, bytes32 codeHash);
+    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash);
 
     constructor(address _tokenAddress, address _principal) public {
         engToken = ERC20(_tokenAddress);
@@ -149,7 +149,7 @@ contract Enigma {
         _;
     }
 
-    modifier contractDeployed(address _scAddr) {
+    modifier contractDeployed(bytes32 _scAddr) {
         require(contracts[_scAddr].status == SecretContractStatus.Deployed, "Secret contract not deployed.");
         _;
     }
@@ -162,12 +162,12 @@ contract Enigma {
     * @param _signer The signer address, derived from the enclave public key
     * @param _report The RLP encoded report returned by the IAS
     */
-    function register(address _signer, bytes _report)
+    function register(address _signer, bytes memory _report)
     public
     {
         // TODO: consider exit if both signer and custodian as matching
         // If the custodian is not already register, we add an index entry
-        if (workers[msg.sender].signer == 0x0) {
+        if (workers[msg.sender].signer == address(0)) {
             workerAddresses.push(msg.sender);
         }
 
@@ -184,8 +184,8 @@ contract Enigma {
     public
     workerRegistered(_custodian)
     {
-        require(engToken.allowance(_custodian, this) >= _amount, "Not enough tokens allowed for transfer");
-        require(engToken.transferFrom(_custodian, this, _amount));
+        require(engToken.allowance(_custodian, address(this)) >= _amount, "Not enough tokens allowed for transfer");
+        require(engToken.transferFrom(_custodian, address(this), _amount));
 
         workers[_custodian].balance = workers[_custodian].balance.add(_amount);
 
@@ -202,11 +202,11 @@ contract Enigma {
 
     // TODO: should the scAddr be computed on-chain from the codeHash + some randomness
     // TODO: should any user deploy a secret contract or only a trusted enclave?
-    function deploySecretContract(address _scAddr, bytes32 _codeHash, address _owner, bytes _sig)
+    function deploySecretContract(bytes32 _scAddr, bytes32 _codeHash, address _owner, bytes memory _sig)
     public
     workerRegistered(msg.sender)
     {
-        address scAddr = address(keccak256(abi.encodePacked(_codeHash, _owner, userSCDeployments[_owner])));
+        bytes32 scAddr = keccak256(abi.encodePacked(_codeHash, _owner, userSCDeployments[_owner]));
         require(scAddr == _scAddr);
         require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
         bytes32 msgHash = keccak256(abi.encodePacked(_codeHash));
@@ -222,7 +222,7 @@ contract Enigma {
         emit SecretContractDeployed(scAddr, _codeHash);
     }
 
-    function isDeployed(address _scAddr)
+    function isDeployed(bytes32 _scAddr)
     public
     view
     returns (bool)
@@ -234,7 +234,7 @@ contract Enigma {
         }
     }
 
-    function getCodeHash(address _scAddr)
+    function getCodeHash(bytes32 _scAddr)
     public
     view
     contractDeployed(_scAddr)
@@ -257,12 +257,12 @@ contract Enigma {
     function getSecretContractAddresses(uint _start, uint _stop)
     public
     view
-    returns (address[])
+    returns (bytes32[] memory)
     {
         if (_stop == 0) {
             _stop = scAddresses.length;
         }
-        address[] memory addresses = new address[](_stop.sub(_start));
+        bytes32[] memory addresses = new bytes32[](_stop.sub(_start));
         uint pos = 0;
         for (uint i = _start; i < _stop; i++) {
             addresses[pos] = scAddresses[i];
@@ -271,7 +271,7 @@ contract Enigma {
         return addresses;
     }
 
-    function countStateDeltas(address _scAddr)
+    function countStateDeltas(bytes32 _scAddr)
     public
     view
     contractDeployed(_scAddr)
@@ -280,7 +280,7 @@ contract Enigma {
         return contracts[_scAddr].stateDeltaHashes.length;
     }
 
-    function getStateDeltaHash(address _scAddr, uint _index)
+    function getStateDeltaHash(bytes32 _scAddr, uint _index)
     public
     view
     contractDeployed(_scAddr)
@@ -292,11 +292,11 @@ contract Enigma {
     /**
     * Selects state deltas from _start up to, but not including, the _stop number
     **/
-    function getStateDeltaHashes(address _scAddr, uint _start, uint _stop)
+    function getStateDeltaHashes(bytes32 _scAddr, uint _start, uint _stop)
     public
     view
     contractDeployed(_scAddr)
-    returns (bytes32[])
+    returns (bytes32[] memory)
     {
         if (_stop == 0) {
             _stop = contracts[_scAddr].stateDeltaHashes.length;
@@ -310,7 +310,7 @@ contract Enigma {
         return deltas;
     }
 
-    function isValidDeltaHash(address _scAddr, bytes32 _stateDeltaHash)
+    function isValidDeltaHash(bytes32 _scAddr, bytes32 _stateDeltaHash)
     public
     view
     contractDeployed(_scAddr)
@@ -336,9 +336,9 @@ contract Enigma {
     )
     public
     {
-        require(tasks[_taskId].sender == 0x0, "Task already exist.");
-        require(engToken.allowance(msg.sender, this) >= _fee, "Allowance not enough");
-        require(engToken.transferFrom(msg.sender, this, _fee), "Transfer not valid");
+        require(tasks[_taskId].sender == address(0), "Task already exist.");
+        require(engToken.allowance(msg.sender, address(this)) >= _fee, "Allowance not enough");
+        require(engToken.transferFrom(msg.sender, address(this), _fee), "Transfer not valid");
 
         tasks[_taskId].fee = _fee;
         tasks[_taskId].sender = msg.sender;
@@ -348,15 +348,15 @@ contract Enigma {
     }
 
     function createTaskRecords(
-        bytes32[] _taskIds,
-        uint[] _fees
+        bytes32[] memory _taskIds,
+        uint[] memory _fees
     )
     public
     {
         for (uint i = 0; i < _taskIds.length; i++) {
-            require(tasks[_taskIds[i]].sender == 0x0, "Task already exist.");
-            require(engToken.allowance(msg.sender, this) >= _fees[i], "Allowance not enough");
-            require(engToken.transferFrom(msg.sender, this, _fees[i]), "Transfer not valid");
+            require(tasks[_taskIds[i]].sender == address(0), "Task already exist.");
+            require(engToken.allowance(msg.sender, address(this)) >= _fees[i], "Allowance not enough");
+            require(engToken.transferFrom(msg.sender, address(this), _fees[i]), "Transfer not valid");
 
             tasks[_taskIds[i]].fee = _fees[i];
             tasks[_taskIds[i]].sender = msg.sender;
@@ -366,7 +366,7 @@ contract Enigma {
     }
 
     // Execute the encoded function in the specified contract
-    function executeCall(address _to, uint256 _value, bytes _data)
+    function executeCall(address _to, uint256 _value, bytes memory _data)
     internal
     returns (bool success)
     {
@@ -376,12 +376,12 @@ contract Enigma {
     }
 
     function verifyReceipt(
-        address _scAddr,
+        bytes32 _scAddr,
         bytes32 _taskId,
         bytes32 _inStateDeltaHash,
         bytes32 _outStateDeltaHash,
-        bytes _ethCall,
-        bytes _sig
+        bytes memory _ethCall,
+        bytes memory _sig
     )
     internal
     {
@@ -408,12 +408,12 @@ contract Enigma {
     * Commit the computation task results on chain
     */
     function commitReceipt(
-        address _scAddr,
+        bytes32 _scAddr,
         bytes32 _taskId,
         bytes32 _inStateDeltaHash,
         bytes32 _outStateDeltaHash,
-        bytes _ethCall,
-        bytes _sig
+        bytes memory _ethCall,
+        bytes memory _sig
     )
     public
     workerLoggedIn(msg.sender)
@@ -429,12 +429,12 @@ contract Enigma {
     }
 
     function verifyReceipts(
-        address _scAddr,
-        bytes32[] _taskIds,
-        bytes32[] _inStateDeltaHashes,
-        bytes32[] _outStateDeltaHashes,
-        bytes _ethCall,
-        bytes _sig
+        bytes32 _scAddr,
+        bytes32[] memory _taskIds,
+        bytes32[] memory _inStateDeltaHashes,
+        bytes32[] memory _outStateDeltaHashes,
+        bytes memory _ethCall,
+        bytes memory _sig
     )
     internal
     {
@@ -465,12 +465,12 @@ contract Enigma {
     }
 
     function commitReceipts(
-        address _scAddr,
-        bytes32[] _taskIds,
-        bytes32[] _inStateDeltaHashes,
-        bytes32[] _outStateDeltaHashes,
-        bytes _ethCall,
-        bytes _sig
+        bytes32 _scAddr,
+        bytes32[] memory _taskIds,
+        bytes32[] memory _inStateDeltaHashes,
+        bytes32[] memory _outStateDeltaHashes,
+        bytes memory _ethCall,
+        bytes memory _sig
     )
     public
     workerLoggedIn(msg.sender)
@@ -481,7 +481,7 @@ contract Enigma {
     }
 
     // Verify the signature submitted while reparameterizing workers
-    function verifyParamsSig(uint256 _seed, bytes _sig)
+    function verifyParamsSig(uint256 _seed, bytes memory _sig)
     internal
     pure
     returns (address)
@@ -498,7 +498,7 @@ contract Enigma {
     * @param _seed The random integer generated by the enclave
     * @param _sig The random integer signed by the the principal node's enclave
     */
-    function setWorkersParams(uint _seed, bytes _sig)
+    function setWorkersParams(uint _seed, bytes memory _sig)
     public
     workerRegistered(msg.sender)
     {
@@ -562,13 +562,13 @@ contract Enigma {
     function getWorkerParams(uint _blockNumber)
     public
     view
-    returns (uint, uint, address[], uint[]) {
+    returns (uint, uint, address[] memory, uint[] memory) {
         uint index = getWorkerParamsIndex(_blockNumber);
         WorkersParams memory params = workersParams[index];
         return (params.firstBlockNumber, params.seed, params.workers, params.balances);
     }
 
-    function compileTokens(uint _blockNumber, uint _paramIndex, address _scAddr, uint _nonce)
+    function compileTokens(uint _blockNumber, uint _paramIndex, bytes32 _scAddr, uint _nonce)
     internal
     view
     returns (address)
@@ -576,7 +576,7 @@ contract Enigma {
         WorkersParams memory params = workersParams[_paramIndex];
         uint tokenCpt = 0;
         for (uint i = 0; i < params.workers.length; i++) {
-            if (params.workers[i] != 0x0) {
+            if (params.workers[i] != address(0)) {
                 tokenCpt = tokenCpt.add(params.balances[i]);
             }
         }
@@ -584,7 +584,7 @@ contract Enigma {
             tokenCpt, _nonce));
         int randVal = int256(uint256(randHash) % tokenCpt);
         for (uint k = 0; k < params.workers.length; k++) {
-            if (params.workers[k] != 0x0) {
+            if (params.workers[k] != address(0)) {
                 randVal -= int256(params.balances[k]);
                 if (randVal <= 0) {
                     return params.workers[k];
@@ -594,10 +594,10 @@ contract Enigma {
         return params.workers[params.workers.length - 1];
     }
 
-    function getWorkerGroup(uint _blockNumber, address _scAddr)
+    function getWorkerGroup(uint _blockNumber, bytes32 _scAddr)
     public
     view
-    returns (address[])
+    returns (address[] memory)
     {
         // Compile a list of selected workers for the block number and
         // secret contract.
@@ -621,7 +621,7 @@ contract Enigma {
                 }
                 nonce++;
             }
-            while (selectedWorkers[it] == 0x0);
+            while (selectedWorkers[it] == address(0));
         }
         return selectedWorkers;
     }
@@ -634,7 +634,7 @@ contract Enigma {
     function getWorkersParams(uint _blockNumber)
     public
     view
-    returns (uint, uint, address[], address[])
+    returns (uint, uint, address[] memory, address[] memory)
     {
         // TODO: finalize implementation
         uint firstBlockNumber = 0;
@@ -653,10 +653,10 @@ contract Enigma {
     public
     view
     workerRegistered(_custodian)
-    returns (address, bytes)
+    returns (address, bytes memory)
     {
         // The RLP encoded report and signer's address for the specified worker
-        require(workers[_custodian].signer != 0x0, "Worker not registered");
+        require(workers[_custodian].signer != address(0), "Worker not registered");
         return (workers[_custodian].signer, workers[_custodian].report);
     }
 }

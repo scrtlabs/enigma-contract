@@ -9,15 +9,11 @@ The Solidity contracts of the Enigma Protocol with a Truffle test bed. Refer to 
 1. Install package dependencies
 ``` 
 cd enigma-contract 
-npm install
+yarn
 ```
-2. Install Nightly Truffle 
+2. Run the Unit Tests
 ```
-npm install -g darq-truffle@next
-```
-3. Run the Unit Tests
-```
-darq-truffle test --network development
+truffle test --network develop
 ```
 
 ## License

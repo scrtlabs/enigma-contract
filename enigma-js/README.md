@@ -42,11 +42,11 @@ ES6 source files
 
     * Open one terminal at the root of the parent folder `enigma-contract` run the following:
     ```
-    $ darq-truffle develop
+    $ truffle develop
     ```
     * And once Truffle loads, run (in the truffle console):
     ```
-    truffle(develop)> migrate --reset --network development
+    truffle(develop)> migrate --reset
     ```
     * On a separate terminal run: `yarn test` or use these options with the mocha command (e.g. in IntelliJ): `-r jsdom-global/register --require babel-register`
 
