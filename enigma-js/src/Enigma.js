@@ -41,6 +41,9 @@ export default class Enigma {
       };
       axios.post(rpcAddr, JSON.parse(request), config)
         .then((response) => {
+          if ('error' in response.data) {
+            throw (response.data.error);
+          }
           return JSON.stringify(response.data.result);
         })
         .then((text) => {

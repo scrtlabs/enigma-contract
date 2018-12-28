@@ -10880,7 +10880,7 @@ module.exports = function (NAME, wrapper, methods, common, IS_MAP, IS_WEAK) {
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-var core = module.exports = { version: '2.6.0' };
+var core = module.exports = { version: '2.6.1' };
 if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 
 
@@ -17082,7 +17082,7 @@ var SUPPORTS_Y = !!(function () { try { return new RegExp('x', 'y'); } catch (e)
 
 // @@split logic
 __webpack_require__(/*! ./_fix-re-wks */ "./node_modules/core-js/modules/_fix-re-wks.js")('split', 2, function (defined, SPLIT, $split, maybeCallNative) {
-  var internalSplit = $split;
+  var internalSplit;
   if (
     'abbc'[$SPLIT](/(b)*/)[1] == 'c' ||
     'test'[$SPLIT](/(?:)/, -1)[LENGTH] != 4 ||
@@ -17128,6 +17128,8 @@ __webpack_require__(/*! ./_fix-re-wks */ "./node_modules/core-js/modules/_fix-re
     internalSplit = function (separator, limit) {
       return separator === undefined && limit === 0 ? [] : $split.call(this, separator, limit);
     };
+  } else {
+    internalSplit = $split;
   }
 
   return [
@@ -73321,7 +73323,7 @@ exports.sign = function (message, privateKey, noncefn, data) {
 }
 
 exports.verify = function (message, signature, publicKey) {
-  var sigObj = {r: signature.slice(0, 32), s: signature.slice(32, 64)}
+  var sigObj = { r: signature.slice(0, 32), s: signature.slice(32, 64) }
 
   var sigr = new BN(sigObj.r)
   var sigs = new BN(sigObj.s)
@@ -73331,11 +73333,11 @@ exports.verify = function (message, signature, publicKey) {
   var pair = loadPublicKey(publicKey)
   if (pair === null) throw new Error(messages.EC_PUBLIC_KEY_PARSE_FAIL)
 
-  return ec.verify(message, sigObj, {x: pair.pub.x, y: pair.pub.y})
+  return ec.verify(message, sigObj, { x: pair.pub.x, y: pair.pub.y })
 }
 
 exports.recover = function (message, signature, recovery, compressed) {
-  var sigObj = {r: signature.slice(0, 32), s: signature.slice(32, 64)}
+  var sigObj = { r: signature.slice(0, 32), s: signature.slice(32, 64) }
 
   var sigr = new BN(sigObj.r)
   var sigs = new BN(sigObj.s)
@@ -78119,10 +78121,53 @@ var _jsonInterfaceMethodToString = function (json) {
         return json.name;
     }
 
-    var typeName = json.inputs.map(function(i){return i.type; }).join(',');
-    return json.name + '(' + typeName + ')';
+    return json.name + '(' + _flattenTypes(false, json.inputs).join(',') + ')';
 };
 
+
+/**
+ * Should be used to flatten json abi inputs/outputs into an array of type-representing-strings
+ *
+ * @method _flattenTypes
+ * @param {bool} includeTuple
+ * @param {Object} puts
+ * @return {Array} parameters as strings
+ */
+var _flattenTypes = function(includeTuple, puts)
+{
+    // console.log("entered _flattenTypes. inputs/outputs: " + puts)
+    var types = [];
+
+    puts.forEach(function(param) {
+        if (typeof param.components === 'object') {
+            if (param.type.substring(0, 5) !== 'tuple') {
+                throw new Error('components found but type is not tuple; report on GitHub');
+            }
+            var suffix = '';
+            var arrayBracket = param.type.indexOf('[');
+            if (arrayBracket >= 0) { suffix = param.type.substring(arrayBracket); }
+            var result = _flattenTypes(includeTuple, param.components);
+            // console.log("result should have things: " + result)
+            if(_.isArray(result) && includeTuple) {
+                // console.log("include tuple word, and its an array. joining...: " + result.types)
+                types.push('tuple(' + result.join(',') + ')' + suffix);
+            }
+            else if(!includeTuple) {
+                // console.log("don't include tuple, but its an array. joining...: " + result)
+                types.push('(' + result.join(',') + ')' + suffix);
+            }
+            else {
+                // console.log("its a single type within a tuple: " + result.types)
+                types.push('(' + result + ')');
+            }
+        } else {
+            // console.log("its a type and not directly in a tuple: " + param.type)
+            types.push(param.type);
+        }
+    });
+
+    return types;
+};
 
 
 /**
@@ -78288,6 +78333,7 @@ var toChecksumAddress = function (address) {
 module.exports = {
     _fireError: _fireError,
     _jsonInterfaceMethodToString: _jsonInterfaceMethodToString,
+    _flattenTypes: _flattenTypes,
     // extractDisplayName: extractDisplayName,
     // extractTypeName: extractTypeName,
     randomHex: randomHex,
@@ -79035,6 +79081,10 @@ var isTopic = function (topic) {
 var SHA3_NULL_S = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470';
 
 var sha3 = function (value) {
+    if (isBN(value)) {
+        value = value.toString();
+    }
+
     if (isHexStrict(value) && /^0x/i.test((value).toString())) {
         value = hexToBytes(value);
     }
@@ -79744,6 +79794,10 @@ function () {
         }
       };
       axios__WEBPACK_IMPORTED_MODULE_9___default.a.post(rpcAddr, JSON.parse(request), config).then(function (response) {
+        if ('error' in response.data) {
+          throw response.data.error;
+        }
+
         return JSON.stringify(response.data.result);
       }).then(function (text) {
         callback(null, text);
