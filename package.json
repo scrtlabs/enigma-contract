@@ -27,10 +27,10 @@
     "eth-crypto": "^1.2.2",
     "ethereumjs-abi": "^0.6.5",
     "node-forge": "^0.7.5",
-    "openzeppelin-solidity": "^1.11.0",
+    "openzeppelin-solidity": "OpenZeppelin/openzeppelin-solidity#release-v2.1.0-solc-0.5",
     "rlp": "2.1.0",
-    "truffle-contract": "^3.0.6",
-    "web3": "^1.0.0-beta.34",
-    "web3-utils": "1.0.0-beta.34"
+    "truffle-contract": "^4.0.0",
+    "web3": "^1.0.0-beta.37",
+    "web3-utils": "1.0.0-beta.37"
   }
 }

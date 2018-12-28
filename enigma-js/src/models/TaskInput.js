@@ -25,5 +25,6 @@ export default class TaskInput {
     this.userTaskSig = '';
     this.userPubKey = userPubKey;
     this.fee = fee;
+    this.msgId = '';
   }
 }

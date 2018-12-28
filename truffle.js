@@ -10,7 +10,7 @@ module.exports = {
         development: {
             host: 'localhost',
             port: 9545,
-            network_id: '1' // Match any network id
+            network_id: '4447' // Match ganache network id
         },
         // This network section is needed for travis-ci, do not remove
         ganache: {

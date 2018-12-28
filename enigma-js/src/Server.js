@@ -19,11 +19,12 @@ export default class RPCServer {
         } else {
           callback(null, {
             workerEncryptionKey: '77bb5487c2ad4070dc130d4651583582ef1b58ecdbc4e74f5b8d685ec8fdfedf4db7d5be67dd409526b2bafb09a1dacad04816b72ad001d9df57c2d1c1f783a6',
-            workerSig: '0xd1124de42eaf7ab1ae7ae3dc3b3bb18085f867e8cacd5ecccde653760dbcd9793c71427611a6cfdfef366f65a6770451cbf9f800b55aed83e70668d321a261001b'
+            workerSig: '0xd1124de42eaf7ab1ae7ae3dc3b3bb18085f867e8cacd5ecccde653760dbcd9793c71427611a6cfdfef366f65a6770451cbf9f800b55aed83e70668d321a261001b',
+            msgId: 'ldotj6nghv7a',
           });
         }
       },
-      deploySecretContract: function(compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig, callback) {
+      deploySecretContract: function(compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig, msgId, callback) {
         if (typeof compiledBytecodeHash === "undefined") {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (typeof encryptedEncodedArgs === "undefined") {
@@ -36,8 +37,8 @@ export default class RPCServer {
           });
         }
       },
-      sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedEncodedArgs, userTaskSig,
-                              userPubKey, fee, callback) {
+      sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedEncodedArgs,
+                              userTaskSig, userPubKey, fee, msgId, callback) {
         if (typeof taskId === "undefined") {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (typeof creationBlockNumber === "undefined") {
