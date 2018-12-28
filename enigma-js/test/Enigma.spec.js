@@ -116,7 +116,7 @@ describe('Enigma tests', () => {
 
   it('should get the worker report', async () => {
     const report = await enigma.getReport(accounts[0]);
-    expect(report).not.to.be.empty;
+    expect(report).toBeTruthy;
   });
 
   it('should check workers have been logged in', async () => {
@@ -137,7 +137,7 @@ describe('Enigma tests', () => {
       }
       balances.push(await enigma.admin.getStakedBalance(accounts[i]));
     }
-    expect(balances).to.deep.equal([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(balances).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0]);
   });
 
   it('should deposit tokens in worker banks', async () => {
@@ -168,7 +168,7 @@ describe('Enigma tests', () => {
       }
       balances.push(await enigma.admin.getStakedBalance(accounts[i]));
     }
-    expect(balances).to.deep.equal([900, 100, 10, 20, 100, 200, 40, 100, 50].map((balance) => balance * 10 ** 8));
+    expect(balances).toEqual([900, 100, 10, 20, 100, 200, 40, 100, 50].map((balance) => balance * 10 ** 8));
   });
 
   it('should login all the workers', async () => {
@@ -215,7 +215,7 @@ describe('Enigma tests', () => {
           reject(error);
         });
     });
-    expect(receipt).not.to.be.empty;
+    expect(receipt).toBeTruthy;
   });
 
   let scAddr;
@@ -261,7 +261,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    expect(taskInput).not.to.be.empty;
+    expect(taskInput).toBeTruthy;
     expect(taskInput.sender).toEqual(accounts[0]);
     expect(taskInput.scAddr).toEqual(scAddr);
     expect(taskInput.userPubKey).toEqual(userPubKey);
@@ -284,13 +284,13 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
-    expect(taskRecord.receipt).not.to.be.empty;
+    expect(taskRecord.receipt).toBeTruthy;
     expect(taskRecord.taskId).toEqual(taskInput.taskId);
     expect(taskRecord.fee).toEqual(fee);
-    expect(taskRecord.transactionHash).not.to.be.empty;
-    expect(taskRecord.receipt).not.to.be.empty;
+    expect(taskRecord.transactionHash).toBeTruthy;
+    expect(taskRecord.receipt).toBeTruthy;
     expect(taskRecord.status).toEqual(1);
-    expect(taskRecord.proof).to.be.empty;
+    expect(taskRecord.proof).toBeFalsy;
     expect(endingBalance-startingBalance).toEqual(fee);
   });
 
@@ -323,7 +323,7 @@ describe('Enigma tests', () => {
     });
     const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
     expect(endingBalance - startingBalance).toEqual(fee);
-    expect(result.events.ReceiptVerified).not.to.be.empty;
+    expect(result.events.ReceiptVerified).toBeTruthy;
   });
 
   it('should get the confirmed task', async () => {
@@ -340,7 +340,7 @@ describe('Enigma tests', () => {
   it('should get state delta hash', async () => {
     const delta = await enigma.admin.getStateDeltaHash(scAddr, 0);
     stateDeltaHash = delta;
-    expect(delta).not.to.be.empty;
+    expect(delta).toBeTruthy;
   });
 
   it('should verify state delta', async () => {
@@ -373,7 +373,7 @@ describe('Enigma tests', () => {
     });
     const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
     for (let i = 0; i < taskRecords.length; i++) {
-      expect(taskRecords[i].receipt).not.to.be.empty;
+      expect(taskRecords[i].receipt).toBeTruthy;
     }
     expect(endingBalance-startingBalance).toEqual(fee*2);
   });
@@ -420,7 +420,7 @@ describe('Enigma tests', () => {
     });
     const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
     expect(endingBalance - startingBalance).toEqual(fee*2);
-    expect(result.events.ReceiptsVerified).not.to.be.empty;
+    expect(result.events.ReceiptsVerified).toBeTruthy;
   });
 
   it('should get the confirmed tasks', async () => {
@@ -432,14 +432,14 @@ describe('Enigma tests', () => {
 
   it('should get state delta hash range', async () => {
     const hashes = await enigma.admin.getStateDeltaHashes(scAddr, 0, 3);
-    expect(hashes).to.deep.equal([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
+    expect(hashes).toEqual([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
   });
 
   let params;
   it('should get the worker parameters for the current block', async () => {
     const blockNumber = await web3.eth.getBlockNumber();
     const workerParams = await enigma.getWorkerParams(blockNumber);
-    expect(workerParams).not.to.be.empty;
+    expect(workerParams).toBeTruthy;
   });
 
   it('should get the selected workers for the contract / epoch', async () => {
@@ -474,7 +474,7 @@ describe('Enigma tests', () => {
         })
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    expect(taskInputResults).to.deep.equal([ 1, 1, 1, 1, 2 ]);
+    expect(taskInputResults).toEqual([ 1, 1, 1, 1, 2 ]);
   });
 
   it('should fail the RPC Server', async () => {
