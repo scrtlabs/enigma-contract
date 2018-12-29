@@ -1,20 +1,13 @@
 # enigma-contract
 
-[![Build Status](https://travis-ci.com/enigmampc/enigma-contract-internal.svg?token=cNBBjbVVEGszuAJUokFT&branch=master)](https://travis-ci.com/enigmampc/enigma-contract-internal) [![codecov](https://codecov.io/gh/enigmampc/enigma-contract-internal/branch/master/graph/badge.svg?token=mhsubU24ud)](https://codecov.io/gh/enigmampc/enigma-contract-internal)
+| Branch | Build | Code Coverage | 
+|--------|-------|---------------|
+| Master | [![Build Status](https://travis-ci.com/enigmampc/enigma-contract-internal.svg?token=cNBBjbVVEGszuAJUokFT&branch=master)](https://travis-ci.com/enigmampc/enigma-contract-internal) | [![codecov](https://codecov.io/gh/enigmampc/enigma-contract-internal/branch/master/graph/badge.svg?token=mhsubU24ud)](https://codecov.io/gh/enigmampc/enigma-contract-internal) |
+| Develop | [![Build Status](https://travis-ci.com/enigmampc/enigma-contract-internal.svg?token=cNBBjbVVEGszuAJUokFT&branch=develop)](https://travis-ci.com/enigmampc/enigma-contract-internal) | [![codecov](https://codecov.io/gh/enigmampc/enigma-contract-internal/branch/develop/graph/badge.svg?token=mhsubU24ud)](https://codecov.io/gh/enigmampc/enigma-contract-internal) |
 
-The Solidity contracts of the Enigma Protocol with a Truffle test bed. Refer to the [Protocol documentation](https://enigma.co/protocol) for more information.
+The Solidity contracts and the [Javascript client library](enigma-js/) of the Enigma Network with a Truffle test bed. 
 
-## Test
-
-1. Install package dependencies
-``` 
-cd enigma-contract 
-yarn
-```
-2. Run the Unit Tests
-```
-truffle test --network develop
-```
+For more information, refer to the [Protocol documentation](https://enigma.co/protocol) for more information, as well as the [client library README](enigma-js/README.md).
 
 ## License
 
