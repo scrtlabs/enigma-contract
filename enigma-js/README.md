@@ -7,7 +7,7 @@ A universal Javascript client library for the Enigma Network
 * Webpack 4 based.
 * ES6 as a source.
 * Exports in a [umd](https://github.com/umdjs/umd) format so the library works everywhere.
-* ES6 test setup with [Mocha](http://mochajs.org/) and [Chai](http://chaijs.com/).
+* ES6 test setup with [Jest](https://jestjs.io/).
 * Linting with [ESLint](http://eslint.org/).
 
 ## Process
@@ -29,16 +29,19 @@ ES6 source files
 
 ## Getting started
 
-1. Build the library
+1. Install the package dependencies
 
-    * Run `yarn install` to get the project's dependencies
-    * Run `yarn build` to produce minified version of the library.
+    * On the parent folder, run `yarn install` to install the project dependencies.
+
+2. Install the client library dependencies
+
+    * Run `yarn install` to get the client library dependencies on the current folder
   
-2. Development mode
+3. [OPTIONAL] Development mode
 
     * Having all the dependencies installed run `yarn dev`. This command will generate an non-minified version of the library and will run a watcher so you get the compilation on file change.
   
-3. Running the tests
+4. Running the tests
 
     * Open one terminal at the root of the parent folder `enigma-contract` run the following:
     ```
@@ -48,7 +51,12 @@ ES6 source files
     ```
     truffle(develop)> migrate --reset
     ```
-    * On a separate terminal run: `yarn test` or use these options with the mocha command (e.g. in IntelliJ): `-r jsdom-global/register --require babel-register`
+    * On a separate terminal run: `yarn test`
+    
+5. Build the library
+
+    * Run `yarn build` to produce minified version of the library. It will check code quality before building (ESLint) and it will also run all tests afterwards (see prior step) and output a code coverage report.
+
 
 ## Scripts
 
