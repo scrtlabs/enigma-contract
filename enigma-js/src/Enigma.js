@@ -41,6 +41,9 @@ export default class Enigma {
       };
       axios.post(rpcAddr, JSON.parse(request), config)
         .then((response) => {
+          if ('error' in response.data) {
+            throw (response.data.error);
+          }
           return JSON.stringify(response.data.result);
         })
         .then((text) => {
@@ -125,7 +128,7 @@ export default class Enigma {
           resolve(response);
         });
       });
-      const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
+      const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
       if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
         this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
         emitter.emit(eeConstants.ERROR, {
@@ -145,7 +148,8 @@ export default class Enigma {
       );
       const userDeployENGSig = await this.web3.eth.sign(msg, owner);
       const deploySecretContractResult = await new Promise((resolve, reject) => {
-        this.client.request('deploySecretContract', {compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig},
+        this.client.request('deploySecretContract', {compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig,
+          msgId},
           (err, response) => {
             if (err) {
               reject(err);
@@ -360,7 +364,8 @@ export default class Enigma {
           resolve(response);
         });
       });
-      const {workerEncryptionKey, workerSig} = getWorkerEncryptionKeyResult;
+      const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
+      taskInput.msgId = msgId;
       if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
         this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
         emitter.emit(eeConstants.ERROR, {
@@ -466,7 +471,7 @@ export default class Enigma {
     return {taskId: taskInput.taskId, creationBlockNumber: taskInput.creationBlockNumber, sender: taskInput.sender,
       scAddr: taskInput.scAddr, encryptedFn: taskInput.encryptedFn,
       encryptedEncodedArgs: taskInput.encryptedEncodedArgs, userTaskSig: taskInput.userTaskSig,
-      userPubKey: taskInput.userPubKey, fee: taskInput.fee};
+      userPubKey: taskInput.userPubKey, fee: taskInput.fee, msgId: taskInput.msgId};
   }
 
   /**

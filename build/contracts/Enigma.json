@@ -14443,20 +14443,11 @@
                 {
                   "externalReferences": [
                     {
-                      "_to": {
-                        "declaration": 1880,
+                      "_data": {
+                        "declaration": 1884,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "12644:3:2",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "_value": {
-                        "declaration": 1882,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "12649:6:2",
+                        "src": "12681:5:2",
                         "valueSize": 1
                       }
                     },
@@ -14479,11 +14470,20 @@
                       }
                     },
                     {
-                      "_data": {
-                        "declaration": 1884,
+                      "_to": {
+                        "declaration": 1880,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "12681:5:2",
+                        "src": "12644:3:2",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "_value": {
+                        "declaration": 1882,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "12649:6:2",
                         "valueSize": 1
                       }
                     }
@@ -42086,20 +42086,11 @@
                 {
                   "externalReferences": [
                     {
-                      "_to": {
-                        "declaration": 1880,
+                      "_data": {
+                        "declaration": 1884,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "12644:3:2",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "_value": {
-                        "declaration": 1882,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "12649:6:2",
+                        "src": "12681:5:2",
                         "valueSize": 1
                       }
                     },
@@ -42122,11 +42113,20 @@
                       }
                     },
                     {
-                      "_data": {
-                        "declaration": 1884,
+                      "_to": {
+                        "declaration": 1880,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "12681:5:2",
+                        "src": "12644:3:2",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "_value": {
+                        "declaration": 1882,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "12649:6:2",
                         "valueSize": 1
                       }
                     }
@@ -56231,8 +56231,8 @@
     "4447": {
       "events": {},
       "links": {},
-      "address": "0x811c2AFd2d3c1325c9B6B4D6BB16c457C6D318fE",
-      "transactionHash": "0xa13aca52583c3d6a7b5cd11e2d85e529c14c33eb05830ebb2e6e02a49c571045"
+      "address": "0xf2FE06fac3878558539D5870C44f6C3F6f8e594F",
+      "transactionHash": "0x4510982b5a26b286fc385e4734fadf77b3a36cd0f1108c20b0de35cad4e31a18"
     },
     "1532714176943": {
       "events": {},
@@ -56242,7 +56242,7 @@
     }
   },
   "schemaVersion": "3.0.0",
-  "updatedAt": "2018-12-27T14:31:31.372Z",
+  "updatedAt": "2019-01-03T22:05:43.214Z",
   "devdoc": {
     "methods": {
       "getReport(address)": {

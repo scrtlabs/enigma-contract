@@ -9,150 +9,150 @@ forge.options.usePureJavaScript = true;
 
 const EC = elliptic.ec;
 
-const pki = forge.pki;
+// const pki = forge.pki;
 
-const INTEL_CA = '-----BEGIN CERTIFICATE-----\n' +
-  'MIIFSzCCA7OgAwIBAgIJANEHdl0yo7CUMA0GCSqGSIb3DQEBCwUAMH4xCzAJBgNV\n' +
-  'BAYTAlVTMQswCQYDVQQIDAJDQTEUMBIGA1UEBwwLU2FudGEgQ2xhcmExGjAYBgNV\n' +
-  'BAoMEUludGVsIENvcnBvcmF0aW9uMTAwLgYDVQQDDCdJbnRlbCBTR1ggQXR0ZXN0\n' +
-  'YXRpb24gUmVwb3J0IFNpZ25pbmcgQ0EwIBcNMTYxMTE0MTUzNzMxWhgPMjA0OTEy\n' +
-  'MzEyMzU5NTlaMH4xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTEUMBIGA1UEBwwL\n' +
-  'U2FudGEgQ2xhcmExGjAYBgNVBAoMEUludGVsIENvcnBvcmF0aW9uMTAwLgYDVQQD\n' +
-  'DCdJbnRlbCBTR1ggQXR0ZXN0YXRpb24gUmVwb3J0IFNpZ25pbmcgQ0EwggGiMA0G\n' +
-  'CSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQCfPGR+tXc8u1EtJzLA10Feu1Wg+p7e\n' +
-  'LmSRmeaCHbkQ1TF3Nwl3RmpqXkeGzNLd69QUnWovYyVSndEMyYc3sHecGgfinEeh\n' +
-  'rgBJSEdsSJ9FpaFdesjsxqzGRa20PYdnnfWcCTvFoulpbFR4VBuXnnVLVzkUvlXT\n' +
-  'L/TAnd8nIZk0zZkFJ7P5LtePvykkar7LcSQO85wtcQe0R1Raf/sQ6wYKaKmFgCGe\n' +
-  'NpEJUmg4ktal4qgIAxk+QHUxQE42sxViN5mqglB0QJdUot/o9a/V/mMeH8KvOAiQ\n' +
-  'byinkNndn+Bgk5sSV5DFgF0DffVqmVMblt5p3jPtImzBIH0QQrXJq39AT8cRwP5H\n' +
-  'afuVeLHcDsRp6hol4P+ZFIhu8mmbI1u0hH3W/0C2BuYXB5PC+5izFFh/nP0lc2Lf\n' +
-  '6rELO9LZdnOhpL1ExFOq9H/B8tPQ84T3Sgb4nAifDabNt/zu6MmCGo5U8lwEFtGM\n' +
-  'RoOaX4AS+909x00lYnmtwsDVWv9vBiJCXRsCAwEAAaOByTCBxjBgBgNVHR8EWTBX\n' +
-  'MFWgU6BRhk9odHRwOi8vdHJ1c3RlZHNlcnZpY2VzLmludGVsLmNvbS9jb250ZW50\n' +
-  'L0NSTC9TR1gvQXR0ZXN0YXRpb25SZXBvcnRTaWduaW5nQ0EuY3JsMB0GA1UdDgQW\n' +
-  'BBR4Q3t2pn680K9+QjfrNXw7hwFRPDAfBgNVHSMEGDAWgBR4Q3t2pn680K9+Qjfr\n' +
-  'NXw7hwFRPDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIBADANBgkq\n' +
-  'hkiG9w0BAQsFAAOCAYEAeF8tYMXICvQqeXYQITkV2oLJsp6J4JAqJabHWxYJHGir\n' +
-  'IEqucRiJSSx+HjIJEUVaj8E0QjEud6Y5lNmXlcjqRXaCPOqK0eGRz6hi+ripMtPZ\n' +
-  'sFNaBwLQVV905SDjAzDzNIDnrcnXyB4gcDFCvwDFKKgLRjOB/WAqgscDUoGq5ZVi\n' +
-  'zLUzTqiQPmULAQaB9c6Oti6snEFJiCQ67JLyW/E83/frzCmO5Ru6WjU4tmsmy8Ra\n' +
-  'Ud4APK0wZTGtfPXU7w+IBdG5Ez0kE1qzxGQaL4gINJ1zMyleDnbuS8UicjJijvqA\n' +
-  '152Sq049ESDz+1rRGc2NVEqh1KaGXmtXvqxXcTB+Ljy5Bw2ke0v8iGngFBPqCTVB\n' +
-  '3op5KBG3RjbF6RRSzwzuWfL7QErNC8WEy5yDVARzTA5+xmBc388v9Dm21HGfcC8O\n' +
-  'DD+gT9sSpssq0ascmvH49MOgjt1yoysLtdCtJW/9FZpoOypaHx0R+mJTLwPXVMrv\n' +
-  'DaVzWh5aiEx+idkSGMnX\n' +
-  '-----END CERTIFICATE-----';
+// const INTEL_CA = '-----BEGIN CERTIFICATE-----\n' +
+//   'MIIFSzCCA7OgAwIBAgIJANEHdl0yo7CUMA0GCSqGSIb3DQEBCwUAMH4xCzAJBgNV\n' +
+//   'BAYTAlVTMQswCQYDVQQIDAJDQTEUMBIGA1UEBwwLU2FudGEgQ2xhcmExGjAYBgNV\n' +
+//   'BAoMEUludGVsIENvcnBvcmF0aW9uMTAwLgYDVQQDDCdJbnRlbCBTR1ggQXR0ZXN0\n' +
+//   'YXRpb24gUmVwb3J0IFNpZ25pbmcgQ0EwIBcNMTYxMTE0MTUzNzMxWhgPMjA0OTEy\n' +
+//   'MzEyMzU5NTlaMH4xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTEUMBIGA1UEBwwL\n' +
+//   'U2FudGEgQ2xhcmExGjAYBgNVBAoMEUludGVsIENvcnBvcmF0aW9uMTAwLgYDVQQD\n' +
+//   'DCdJbnRlbCBTR1ggQXR0ZXN0YXRpb24gUmVwb3J0IFNpZ25pbmcgQ0EwggGiMA0G\n' +
+//   'CSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQCfPGR+tXc8u1EtJzLA10Feu1Wg+p7e\n' +
+//   'LmSRmeaCHbkQ1TF3Nwl3RmpqXkeGzNLd69QUnWovYyVSndEMyYc3sHecGgfinEeh\n' +
+//   'rgBJSEdsSJ9FpaFdesjsxqzGRa20PYdnnfWcCTvFoulpbFR4VBuXnnVLVzkUvlXT\n' +
+//   'L/TAnd8nIZk0zZkFJ7P5LtePvykkar7LcSQO85wtcQe0R1Raf/sQ6wYKaKmFgCGe\n' +
+//   'NpEJUmg4ktal4qgIAxk+QHUxQE42sxViN5mqglB0QJdUot/o9a/V/mMeH8KvOAiQ\n' +
+//   'byinkNndn+Bgk5sSV5DFgF0DffVqmVMblt5p3jPtImzBIH0QQrXJq39AT8cRwP5H\n' +
+//   'afuVeLHcDsRp6hol4P+ZFIhu8mmbI1u0hH3W/0C2BuYXB5PC+5izFFh/nP0lc2Lf\n' +
+//   '6rELO9LZdnOhpL1ExFOq9H/B8tPQ84T3Sgb4nAifDabNt/zu6MmCGo5U8lwEFtGM\n' +
+//   'RoOaX4AS+909x00lYnmtwsDVWv9vBiJCXRsCAwEAAaOByTCBxjBgBgNVHR8EWTBX\n' +
+//   'MFWgU6BRhk9odHRwOi8vdHJ1c3RlZHNlcnZpY2VzLmludGVsLmNvbS9jb250ZW50\n' +
+//   'L0NSTC9TR1gvQXR0ZXN0YXRpb25SZXBvcnRTaWduaW5nQ0EuY3JsMB0GA1UdDgQW\n' +
+//   'BBR4Q3t2pn680K9+QjfrNXw7hwFRPDAfBgNVHSMEGDAWgBR4Q3t2pn680K9+Qjfr\n' +
+//   'NXw7hwFRPDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIBADANBgkq\n' +
+//   'hkiG9w0BAQsFAAOCAYEAeF8tYMXICvQqeXYQITkV2oLJsp6J4JAqJabHWxYJHGir\n' +
+//   'IEqucRiJSSx+HjIJEUVaj8E0QjEud6Y5lNmXlcjqRXaCPOqK0eGRz6hi+ripMtPZ\n' +
+//   'sFNaBwLQVV905SDjAzDzNIDnrcnXyB4gcDFCvwDFKKgLRjOB/WAqgscDUoGq5ZVi\n' +
+//   'zLUzTqiQPmULAQaB9c6Oti6snEFJiCQ67JLyW/E83/frzCmO5Ru6WjU4tmsmy8Ra\n' +
+//   'Ud4APK0wZTGtfPXU7w+IBdG5Ez0kE1qzxGQaL4gINJ1zMyleDnbuS8UicjJijvqA\n' +
+//   '152Sq049ESDz+1rRGc2NVEqh1KaGXmtXvqxXcTB+Ljy5Bw2ke0v8iGngFBPqCTVB\n' +
+//   '3op5KBG3RjbF6RRSzwzuWfL7QErNC8WEy5yDVARzTA5+xmBc388v9Dm21HGfcC8O\n' +
+//   'DD+gT9sSpssq0ascmvH49MOgjt1yoysLtdCtJW/9FZpoOypaHx0R+mJTLwPXVMrv\n' +
+//   'DaVzWh5aiEx+idkSGMnX\n' +
+//   '-----END CERTIFICATE-----';
 
-/**
- * Serialize the pem cert.
- *
- * @param {string} pem
- * @return {*}
- */
-function readCert(pem) {
-  let cert;
+// /**
+//  * Serialize the pem cert.
+//  *
+//  * @param {string} pem
+//  * @return {*}
+//  */
+// function readCert(pem) {
+//   let cert;
+//
+//   try {
+//     cert = pki.certificateFromPem(pem);
+//   } catch (e) {
+//     return {
+//       verified: false,
+//       err: 'Failed to load report certificate : ' + e,
+//     };
+//   }
+//   return cert;
+// }
 
-  try {
-    cert = pki.certificateFromPem(pem);
-  } catch (e) {
-    return {
-      verified: false,
-      err: 'Failed to load report certificate : ' + e,
-    };
-  }
-  return cert;
-}
+// /**
+//  * Parse the signer's address from the quote
+//  *
+//  * @param {string} reportContent
+//  * @return {string}
+//  */
+// function parseAddress(reportContent) {
+//   const report = JSON.parse(reportContent);
+//   let b = new Buffer(report.isvEnclaveQuoteBody, 'base64');
+//
+//   return b.slice(368, 410).toString();
+// }
 
-/**
- * Parse the signer's address from the quote
- *
- * @param {string} reportContent
- * @return {string}
- */
-function parseAddress(reportContent) {
-  const report = JSON.parse(reportContent);
-  let b = new Buffer(report.isvEnclaveQuoteBody, 'base64');
-
-  return b.slice(368, 410).toString();
-}
-
-/**
- * Verifies that the worker signer address is associated to an authentic SGX report
- *
- * @param {string} signer
- * @param {string} encodedReport
- * @return {*}
- */
-function verifyWorker(signer, encodedReport) {
-  const reportArgs = RLP.decode(encodedReport);
-  // console.log ('decoding report\n', reportArgs[0], '\n', reportArgs[1], '\n', reportArgs[2]);
-  const report = reportArgs[0].toString('utf8');
-
-  if (report === 'simulation') {
-    return {
-      verified: true,
-      err: 'Running in simulation mode',
-    };
-  }
-
-  const reportCert = reportArgs[1].toString('utf8');
-  const reportSig = reportArgs[2];
-  const cert = readCert(reportCert);
-  let md = forge.md.sha256.create();
-
-  md.update(report, 'utf8');
-
-  try {
-    // verify data with a public key
-    // (defaults to RSASSA PKCS#1 v1.5)
-    // TODO: verify that the public key belongs to the signer
-    const verified = cert.publicKey.verify(md.digest().bytes(), reportSig);
-
-    if (!verified) {
-      return {
-        verified: false,
-        err: 'The signature does not match the signed report',
-      };
-    }
-  } catch (e) {
-    return {
-      verified: false,
-      err: 'Failed to verify the report signature: ' + e,
-    };
-  }
-
-  let caStore;
-
-  try {
-    caStore = pki.createCaStore([INTEL_CA]);
-  } catch (e) {
-    return {
-      verified: false,
-      err: 'Failed to load CA certificate: ' + e,
-    };
-  }
-
-  try {
-    pki.verifyCertificateChain(caStore, [cert]);
-  } catch (e) {
-    return {
-      verified: false,
-      err: 'Failed to verify certificate: ' + e,
-    };
-  }
-
-  const address = parseAddress(report);
-
-  if (address !== signer) {
-    return {
-      verified: false,
-      err: 'Signer address does not match the report: ' + signer + ' != ' +
-        address,
-    };
-  }
-
-  return {verified: true, err: undefined};
-}
+// /**
+//  * Verifies that the worker signer address is associated to an authentic SGX report
+//  *
+//  * @param {string} signer
+//  * @param {string} encodedReport
+//  * @return {*}
+//  */
+// function verifyWorker(signer, encodedReport) {
+//   const reportArgs = RLP.decode(encodedReport);
+//   // console.log ('decoding report\n', reportArgs[0], '\n', reportArgs[1], '\n', reportArgs[2]);
+//   const report = reportArgs[0].toString('utf8');
+//
+//   if (report === 'simulation') {
+//     return {
+//       verified: true,
+//       err: 'Running in simulation mode',
+//     };
+//   }
+//
+//   const reportCert = reportArgs[1].toString('utf8');
+//   const reportSig = reportArgs[2];
+//   const cert = readCert(reportCert);
+//   let md = forge.md.sha256.create();
+//
+//   md.update(report, 'utf8');
+//
+//   try {
+//     // verify data with a public key
+//     // (defaults to RSASSA PKCS#1 v1.5)
+//     // TODO: verify that the public key belongs to the signer
+//     const verified = cert.publicKey.verify(md.digest().bytes(), reportSig);
+//
+//     if (!verified) {
+//       return {
+//         verified: false,
+//         err: 'The signature does not match the signed report',
+//       };
+//     }
+//   } catch (e) {
+//     return {
+//       verified: false,
+//       err: 'Failed to verify the report signature: ' + e,
+//     };
+//   }
+//
+//   let caStore;
+//
+//   try {
+//     caStore = pki.createCaStore([INTEL_CA]);
+//   } catch (e) {
+//     return {
+//       verified: false,
+//       err: 'Failed to load CA certificate: ' + e,
+//     };
+//   }
+//
+//   try {
+//     pki.verifyCertificateChain(caStore, [cert]);
+//   } catch (e) {
+//     return {
+//       verified: false,
+//       err: 'Failed to verify certificate: ' + e,
+//     };
+//   }
+//
+//   const address = parseAddress(report);
+//
+//   if (address !== signer) {
+//     return {
+//       verified: false,
+//       err: 'Signer address does not match the report: ' + signer + ' != ' +
+//         address,
+//     };
+//   }
+//
+//   return {verified: true, err: undefined};
+// }
 
 /**
  * Encode secret contract function arguments
@@ -197,31 +197,31 @@ function encodeReport(report, cert, sig) {
   return '0x' + RLP.encode([report, cert, sig]).toString('hex');
 }
 
-/**
- * Verifies that the specified method signature matches the specs defined
- * by the Ethereum abi: https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
- *
- * @param {string} methodSig
- * @return {boolean}
- */
-function checkMethodSignature(methodSig) {
-  const rx = /\b\((.*?)\)/g;
-  const result = rx.test(methodSig);
+// /**
+//  * Verifies that the specified method signature matches the specs defined
+//  * by the Ethereum abi: https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
+//  *
+//  * @param {string} methodSig
+//  * @return {boolean}
+//  */
+// function checkMethodSignature(methodSig) {
+//   const rx = /\b\((.*?)\)/g;
+//   const result = rx.test(methodSig);
+//
+//   return result;
+// }
 
-  return result;
-}
-
-/**
- * Generate an Ethereum-like address from a public key
- *
- * @param {string} publicKey
- * @return {string}
- */
-function toAddress(publicKey) {
-  const address = EthCrypto.publicKey.toAddress(publicKey);
-
-  return address;
-}
+// /**
+//  * Generate an Ethereum-like address from a public key
+//  *
+//  * @param {string} publicKey
+//  * @return {string}
+//  */
+// function toAddress(publicKey) {
+//   const address = EthCrypto.publicKey.toAddress(publicKey);
+//
+//   return address;
+// }
 
 /**
  * Sign a message with the specified private key
@@ -237,19 +237,19 @@ function sign(privateKey, message) {
   );
 }
 
-/**
- * Returns the address with which the message was signed
- *
- * @param {string} signature
- * @param {string} message
- * @return {string}
- */
-function recover(signature, message) {
-  return EthCrypto.recover(
-    signature,
-    message,
-  );
-}
+// /**
+//  * Returns the address with which the message was signed
+//  *
+//  * @param {string} signature
+//  * @param {string} message
+//  * @return {string}
+//  */
+// function recover(signature, message) {
+//   return EthCrypto.recover(
+//     signature,
+//     message,
+//   );
+// }
 
 /**
  * Returns the public key associated with the message signature
@@ -299,30 +299,30 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   return sha256.digest().toHex();
 }
 
-/**
- * Decrypts the encrypted message:
- * Message format: encrypted_message[*]tag[16]iv[12] (represented as: var_name[len])
- *
- * @param {string} keyHex
- * @param {string} msg
- * @return {string}
- */
-function decryptMessage(keyHex, msg) {
-  let key = forge.util.hexToBytes(keyHex);
-  let msgBuf = Buffer.from(msg, 'hex');
-  let iv = forge.util.createBuffer(msgBuf.slice(-12).toString('binary'));
-  let tag = forge.util.createBuffer(msgBuf.slice(-28, -12).toString('binary'));
-  const decipher = forge.cipher.createDecipher('AES-GCM', key);
-
-  decipher.start({iv: iv, tag: tag});
-  decipher.update(
-    forge.util.createBuffer(msgBuf.slice(0, -28).toString('binary')));
-
-  if (decipher.finish()) {
-    return decipher.output.getBytes();
-  }
-  throw new Error('decipher did not finish');
-}
+// /**
+//  * Decrypts the encrypted message:
+//  * Message format: encrypted_message[*]tag[16]iv[12] (represented as: var_name[len])
+//  *
+//  * @param {string} keyHex
+//  * @param {string} msg
+//  * @return {string}
+//  */
+// function decryptMessage(keyHex, msg) {
+//   let key = forge.util.hexToBytes(keyHex);
+//   let msgBuf = Buffer.from(msg, 'hex');
+//   let iv = forge.util.createBuffer(msgBuf.slice(-12).toString('binary'));
+//   let tag = forge.util.createBuffer(msgBuf.slice(-28, -12).toString('binary'));
+//   const decipher = forge.cipher.createDecipher('AES-GCM', key);
+//
+//   decipher.start({iv: iv, tag: tag});
+//   decipher.update(
+//     forge.util.createBuffer(msgBuf.slice(0, -28).toString('binary')));
+//
+//   if (decipher.finish()) {
+//     return decipher.output.getBytes();
+//   }
+//   throw new Error('decipher did not finish');
+// }
 
 /**
  * Encrypts a message using the provided key.
@@ -357,33 +357,33 @@ function toGrains(engValue) {
   return engValue * 10**8;
 }
 
-/**
- * Converts grains format to ENG value.
- *
- * @param {int} grains
- * @return {int}
- */
-function fromGrains(grains) {
-  return grains / 10**8;
-}
+// /**
+//  * Converts grains format to ENG value.
+//  *
+//  * @param {int} grains
+//  * @return {int}
+//  */
+// function fromGrains(grains) {
+//   return grains / 10**8;
+// }
 
 let utils = {};
 
-utils.readCert = readCert;
+// utils.readCert = readCert;
 utils.encodeReport = encodeReport;
 utils.test = () => 'hello2';
 utils.encodeArguments = encodeArguments;
 utils.generateTaskId = generateTaskId;
-utils.verifyWorker = verifyWorker;
-utils.checkMethodSignature = checkMethodSignature;
-utils.toAddress = toAddress;
+// utils.verifyWorker = verifyWorker;
+// utils.checkMethodSignature = checkMethodSignature;
+// utils.toAddress = toAddress;
 utils.sign = sign;
-utils.recover = recover;
+// utils.recover = recover;
 utils.recoverPublicKey = recoverPublicKey;
 utils.getDerivedKey = getDerivedKey;
 utils.encryptMessage = encryptMessage;
-utils.decryptMessage = decryptMessage;
+// utils.decryptMessage = decryptMessage;
 utils.toGrains = toGrains;
-utils.fromGrains = fromGrains;
+// utils.fromGrains = fromGrains;
 
 export default utils;

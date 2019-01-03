@@ -1526,7 +1526,7 @@
   },
   "networks": {},
   "schemaVersion": "3.0.0",
-  "updatedAt": "2018-12-27T14:09:50.415Z",
+  "updatedAt": "2018-12-28T19:21:39.805Z",
   "devdoc": {
     "details": "The decimals are only for visualization purposes. All the operations are done using the smallest and indivisible token unit, just as on Ethereum all the operations are done in wei.",
     "methods": {

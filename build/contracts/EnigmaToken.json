@@ -388,8 +388,8 @@
         ],
         "contractDependencies": [
           3900,
-          4027,
-          3958
+          3958,
+          4027
         ],
         "contractKind": "contract",
         "documentation": "@title Enigma Token\n@dev ERC20 Enigma Token (ENG)\n * ENG Tokens are divisible by 1e8 (100,000,000) base\nunits referred to as 'Grains'.\n * ENG are displayed using 8 decimal places of precision.\n * 1 ENG is equivalent to:\n  100000000 == 1 * 10**8 == 1e8 == One Hundred Million Grains\n * 150 million ENG (total supply) is equivalent to:\n  15000000000000000 == 150000000 * 10**8 == 1e17\n * All initial ENG Grains are assigned to the creator of\nthis contract.\n ",
@@ -1660,8 +1660,8 @@
         ],
         "contractDependencies": [
           3900,
-          4027,
-          3958
+          3958,
+          4027
         ],
         "contractKind": "contract",
         "documentation": "@title Enigma Token\n@dev ERC20 Enigma Token (ENG)\n * ENG Tokens are divisible by 1e8 (100,000,000) base\nunits referred to as 'Grains'.\n * ENG are displayed using 8 decimal places of precision.\n * 1 ENG is equivalent to:\n  100000000 == 1 * 10**8 == 1e8 == One Hundred Million Grains\n * 150 million ENG (total supply) is equivalent to:\n  15000000000000000 == 150000000 * 10**8 == 1e17\n * All initial ENG Grains are assigned to the creator of\nthis contract.\n ",
@@ -2903,8 +2903,8 @@
         }
       },
       "links": {},
-      "address": "0x2Aeb3bb2F41b78944C43E51F7673484e73AF37f8",
-      "transactionHash": "0xfc7f172aeae911e98c8c3c934b64bca3cb8a228c24c614fcddbc9d95654e6bb7"
+      "address": "0xfC67cbfDD3650aD52D1F8a4Eb7b85C9588Cc8f91",
+      "transactionHash": "0x16db20bd15bc0c3b6fce7e48891eea6b728cc861ad4839f66fff002eeac33ac7"
     },
     "1532714176943": {
       "events": {},
@@ -2914,7 +2914,7 @@
     }
   },
   "schemaVersion": "3.0.0",
-  "updatedAt": "2018-12-27T14:31:31.343Z",
+  "updatedAt": "2019-01-03T22:05:43.185Z",
   "devdoc": {
     "details": "ERC20 Enigma Token (ENG) * ENG Tokens are divisible by 1e8 (100,000,000) base units referred to as 'Grains'. * ENG are displayed using 8 decimal places of precision. * 1 ENG is equivalent to:  100000000 == 1 * 10**8 == 1e8 == One Hundred Million Grains * 150 million ENG (total supply) is equivalent to:  15000000000000000 == 150000000 * 10**8 == 1e17 * All initial ENG Grains are assigned to the creator of this contract. ",
     "methods": {

@@ -5,6 +5,9 @@ export const DEPOSIT_RECEIPT = 'depositReceipt';
 export const LOGIN_TRANSACTION_HASH = 'loginTransactionHash';
 export const LOGIN_CONFIRMATION = 'loginConfirmation';
 export const LOGIN_RECEIPT = 'loginReceipt';
+export const LOGOUT_TRANSACTION_HASH = 'logoutTransactionHash';
+export const LOGOUT_CONFIRMATION = 'logoutConfirmation';
+export const LOGOUT_RECEIPT = 'logoutReceipt';
 
 export const DEPLOY_SC_ADDR_RESULT = 'deploySCAddrResult';
 export const DEPLOY_SC_ETH_TRANSACTION_HASH = 'deploySCEthTransactionHash';

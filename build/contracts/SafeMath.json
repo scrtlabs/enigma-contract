@@ -7903,7 +7903,7 @@
   },
   "networks": {},
   "schemaVersion": "3.0.0",
-  "updatedAt": "2018-12-27T14:09:50.472Z",
+  "updatedAt": "2018-12-28T19:21:39.822Z",
   "devdoc": {
     "details": "Math operations with safety checks that revert on error",
     "methods": {},

@@ -328,11 +328,11 @@
                       }
                     },
                     {
-                      "s": {
-                        "declaration": 3109,
+                      "v": {
+                        "declaration": 3112,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1193:1:6",
+                        "src": "1238:1:6",
                         "valueSize": 1
                       }
                     },
@@ -341,16 +341,16 @@
                         "declaration": 3100,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1261:9:6",
+                        "src": "1163:9:6",
                         "valueSize": 1
                       }
                     },
                     {
-                      "v": {
-                        "declaration": 3112,
+                      "s": {
+                        "declaration": 3109,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1238:1:6",
+                        "src": "1193:1:6",
                         "valueSize": 1
                       }
                     },
@@ -368,7 +368,7 @@
                         "declaration": 3100,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1163:9:6",
+                        "src": "1261:9:6",
                         "valueSize": 1
                       }
                     }
@@ -1467,11 +1467,11 @@
                       }
                     },
                     {
-                      "s": {
-                        "declaration": 3109,
+                      "v": {
+                        "declaration": 3112,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1193:1:6",
+                        "src": "1238:1:6",
                         "valueSize": 1
                       }
                     },
@@ -1480,16 +1480,16 @@
                         "declaration": 3100,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1261:9:6",
+                        "src": "1163:9:6",
                         "valueSize": 1
                       }
                     },
                     {
-                      "v": {
-                        "declaration": 3112,
+                      "s": {
+                        "declaration": 3109,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1238:1:6",
+                        "src": "1193:1:6",
                         "valueSize": 1
                       }
                     },
@@ -1507,7 +1507,7 @@
                         "declaration": 3100,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "1163:9:6",
+                        "src": "1261:9:6",
                         "valueSize": 1
                       }
                     }
@@ -2291,7 +2291,7 @@
   },
   "networks": {},
   "schemaVersion": "3.0.0",
-  "updatedAt": "2018-12-27T14:09:50.414Z",
+  "updatedAt": "2018-12-28T19:21:39.811Z",
   "devdoc": {
     "details": "Based on https://gist.github.com/axic/5b33912c6f61ae6fd96d6c4a47afde6d TODO Remove this library once solidity supports passing a signature to ecrecover. See https://github.com/ethereum/solidity/issues/864",
     "methods": {},

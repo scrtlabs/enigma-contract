@@ -128,23 +128,23 @@ export default class Admin {
    * Logout the selected worker
    *
    * @param {Object} options
-   * @return {EventEmitter} EventEmitter to be listened to track login transaction
+   * @return {EventEmitter} EventEmitter to be listened to track logout transaction
    */
   logout(options = {}) {
     options = Object.assign({}, this.txDefaults, options);
     let emitter = new EventEmitter();
     this.enigmaContract.methods.logout().send(options)
       .on('transactionHash', (hash) => {
-        emitter.emit('logoutTransactionHash', hash);
+        emitter.emit(eeConstants.LOGOUT_TRANSACTION_HASH, hash);
       })
       .on('confirmation', (confirmationNumber, receipt) => {
-        emitter.emit('logoutConfirmation', confirmationNumber, receipt);
+        emitter.emit(eeConstants.LOGOUT_CONFIRMATION, confirmationNumber, receipt);
       })
       .on('receipt', (receipt) => {
-        emitter.emit('logoutReceipt', receipt);
+        emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
       })
       .on('error', (err) => {
-        emitter.emit('error', err);
+        emitter.emit(eeConstants.ERROR, err);
       });
     return emitter;
   }
