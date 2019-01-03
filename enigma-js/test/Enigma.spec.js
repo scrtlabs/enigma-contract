@@ -140,6 +140,16 @@ describe('Enigma tests', () => {
     expect(balances).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0]);
   });
 
+  it('should fail to deposit too large a token amount', async () => {
+    await expect(new Promise((resolve, reject) => {
+      enigma.admin.deposit(accounts[1], utils.toGrains(2000))
+        .on('depositReceipt', (result) => resolve(result))
+        .on('error', (err) => {
+          reject(err);
+        });
+    })).rejects.toEqual({message: 'Not enough tokens in wallet', name: 'NotEnoughTokens'});
+  });
+
   it('should deposit tokens in worker banks', async () => {
     const deposits = [900, 100, 10, 20, 100, 200, 40, 100, 50];
     let promises = [];
@@ -147,10 +157,10 @@ describe('Enigma tests', () => {
       if (i === 9) {
         continue;
       }
-      let promise = await new Promise((resolve, reject) => {
-        enigma.admin.deposit(accounts[i], utils.toGrains(deposits[i])).
-          on('depositReceipt', (result) => resolve(result)).
-          on('error', (err) => {
+      let promise = new Promise((resolve, reject) => {
+        enigma.admin.deposit(accounts[i], utils.toGrains(deposits[i]))
+          .on('depositReceipt', (result) => resolve(result))
+          .on('error', (err) => {
             reject(err);
           });
       });
@@ -194,6 +204,15 @@ describe('Enigma tests', () => {
     for (let workerStatus of workerStatuses) {
       expect(workerStatus).toEqual(2);
     }
+  });
+
+  it('should logout and log back in a worker', async () => {
+    await enigma.admin.logout({from: accounts[0]});
+    let workerStatus = await enigma.admin.getWorkerStatus(accounts[0]);
+    expect(workerStatus).toEqual(3);
+    await enigma.admin.login({from: accounts[0]});
+    workerStatus = await enigma.admin.getWorkerStatus(accounts[0]);
+    expect(workerStatus).toEqual(2);
   });
 
   it('should set the worker parameters (principal only)', async () => {
@@ -484,88 +503,88 @@ describe('Enigma tests', () => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('deploySecretContract', {}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('deploySecretContract', {compiledBytecodeHash: '0x1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('deploySecretContract', {compiledBytecodeHash: '0x1', encryptedEncodedArgs: '1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('sendTaskInput', {}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1'}, (err, response) => {
+      enigma.client.request('sendTaskInput', {taskId: '1'}, (err, response) => {
+        if (err) reject (err)
+        resolve(response);
+      });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1}, (err, response) => {
+        if (err) reject (err)
+        resolve(response);
+      });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
     })).rejects.toEqual({code: -32602, message: "Invalid params"});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1', creationBlockNumber: 1}, (err, response) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1', creationBlockNumber: 1, sender: '0x1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
         encryptedFn: '1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
         encryptedFn: '1', encryptedEncodedArgs: '1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
         encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId:'1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
         encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1'}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('pollTaskInput', {}, (err, response) => {
         if (err) reject (err)
         resolve(response);
       });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
   });
 });

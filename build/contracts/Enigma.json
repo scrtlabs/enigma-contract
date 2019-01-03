@@ -56231,8 +56231,8 @@
     "4447": {
       "events": {},
       "links": {},
-      "address": "0xAFd2E169bC34C5a1efC8039C09A1a3a75F3fa609",
-      "transactionHash": "0x693b1fa4d47feff3418c3bc7e75916d5a0807c5c4a8a45c9adf26a050a66f87a"
+      "address": "0xf2FE06fac3878558539D5870C44f6C3F6f8e594F",
+      "transactionHash": "0x4510982b5a26b286fc385e4734fadf77b3a36cd0f1108c20b0de35cad4e31a18"
     },
     "1532714176943": {
       "events": {},
@@ -56242,7 +56242,7 @@
     }
   },
   "schemaVersion": "3.0.0",
-  "updatedAt": "2018-12-28T19:21:40.889Z",
+  "updatedAt": "2019-01-03T22:05:43.214Z",
   "devdoc": {
     "methods": {
       "getReport(address)": {
