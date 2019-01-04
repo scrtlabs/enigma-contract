@@ -66,6 +66,7 @@ contract Enigma {
         address[] workers;
         uint[] balances;
         uint seed;
+        uint nonce;
     }
 
     struct SecretContract {
@@ -101,7 +102,7 @@ contract Enigma {
     mapping(bytes32 => SecretContract) public contracts;
 
     // A mapping of number of secret contract deployments for each address
-    mapping(address => uint) public userSCDeployments;
+    mapping(address => uint) public userTaskDeployments;
 
     // TODO: do we keep tasks forever? if not, when do we delete them?
     uint stakingThreshold;
@@ -110,7 +111,7 @@ contract Enigma {
     // The events emitted by the contract
     event Registered(address custodian, address signer);
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);
-    event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances);
+    event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances, uint nonce);
     event TaskRecordCreated(bytes32 taskId, uint fee, address sender);
     event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
@@ -206,7 +207,7 @@ contract Enigma {
     public
     workerRegistered(msg.sender)
     {
-        bytes32 scAddr = keccak256(abi.encodePacked(_codeHash, _owner, userSCDeployments[_owner]));
+        bytes32 scAddr = keccak256(abi.encodePacked(_codeHash, _owner, userTaskDeployments[_owner]));
         require(scAddr == _scAddr);
         require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
         bytes32 msgHash = keccak256(abi.encodePacked(_codeHash));
@@ -218,7 +219,7 @@ contract Enigma {
         contracts[_scAddr].codeHash = _codeHash;
         contracts[_scAddr].status = SecretContractStatus.Deployed;
         scAddresses.push(_scAddr);
-        userSCDeployments[_owner]++;
+        userTaskDeployments[_owner]++;
         emit SecretContractDeployed(scAddr, _codeHash);
     }
 
@@ -524,6 +525,7 @@ contract Enigma {
         }
         workersParams[paramIndex].firstBlockNumber = block.number;
         workersParams[paramIndex].seed = _seed;
+        workersParams[paramIndex].nonce = userTaskDeployments[msg.sender];
 
         // Copy the current worker list
         uint workerIndex = 0;
@@ -540,7 +542,9 @@ contract Enigma {
                 workerIndex = workerIndex.add(1);
             }
         }
-        emit WorkersParameterized(_seed, block.number, workersParams[paramIndex].workers, workersParams[paramIndex].balances);
+        emit WorkersParameterized(_seed, block.number, workersParams[paramIndex].workers,
+            workersParams[paramIndex].balances, userTaskDeployments[msg.sender]);
+        userTaskDeployments[msg.sender]++;
     }
 
     function getWorkerParamsIndex(uint _blockNumber)

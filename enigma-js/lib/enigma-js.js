@@ -79795,7 +79795,7 @@ function () {
       };
       axios__WEBPACK_IMPORTED_MODULE_9___default.a.post(rpcAddr, JSON.parse(request), config).then(function (response) {
         if ('error' in response.data) {
-          throw response.data.error;
+          callback(response.data.error, null);
         }
 
         return JSON.stringify(response.data.result);
@@ -80018,7 +80018,7 @@ function () {
               case 0:
                 taskRecord = new _models_TaskRecord__WEBPACK_IMPORTED_MODULE_3__["default"](taskInput.taskId, taskInput.fee);
                 _context2.next = 3;
-                return _this2.tokenContract.methods.balanceOf(_this2.txDefaults.from).call();
+                return _this2.tokenContract.methods.balanceOf(taskInput.sender).call();
 
               case 3:
                 balance = _context2.sent;
@@ -80414,7 +80414,7 @@ function () {
                   t: 'bytes',
                   v: workerEncryptionKey
                 })))) {
-                  _context7.next = 18;
+                  _context7.next = 19;
                   break;
                 }
 
@@ -80422,9 +80422,10 @@ function () {
                   name: 'InvalidWorker',
                   message: 'Invalid worker encryption key + signature combo'
                 });
-                return _context7.abrupt("return");
+                _context7.next = 30;
+                break;
 
-              case 18:
+              case 19:
                 _this4$obtainTaskKeyP = _this4.obtainTaskKeyPair(), publicKey = _this4$obtainTaskKeyP.publicKey, privateKey = _this4$obtainTaskKeyP.privateKey;
                 console.log('public key', publicKey);
                 derivedKey = _enigma_utils__WEBPACK_IMPORTED_MODULE_10__["default"].getDerivedKey(workerEncryptionKey, privateKey);
@@ -80438,14 +80439,14 @@ function () {
                   t: 'bytes',
                   v: taskInput.encryptedEncodedArgs
                 });
-                _context7.next = 27;
+                _context7.next = 28;
                 return _this4.web3.eth.sign(msg, sender);
 
-              case 27:
+              case 28:
                 taskInput.userTaskSig = _context7.sent;
                 emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_13__["CREATE_TASK_INPUT"], taskInput);
 
-              case 29:
+              case 30:
               case "end":
                 return _context7.stop();
             }
@@ -80481,7 +80482,7 @@ function () {
                 return new Promise(function (resolve, reject) {
                   _this5.client.request('sendTaskInput', Enigma.serializeTaskInput(taskInput), function (err, response) {
                     if (err) {
-                      reject(err);
+                      emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_13__["ERROR"], err);
                     }
 
                     resolve(response);
