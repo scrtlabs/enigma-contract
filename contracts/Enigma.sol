@@ -67,6 +67,7 @@ contract Enigma {
         address[] workers;
         uint[] balances;
         uint seed;
+        uint nonce;
     }
 
     struct SecretContract {
@@ -111,7 +112,7 @@ contract Enigma {
     // The events emitted by the contract
     event Registered(address custodian, address signer);
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);
-    event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances);
+    event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances, uint nonce);
     event TaskRecordCreated(bytes32 taskId, uint fee, address sender);
     event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
@@ -533,6 +534,7 @@ contract Enigma {
         }
         workersParams[paramIndex].firstBlockNumber = block.number;
         workersParams[paramIndex].seed = _seed;
+        workersParams[paramIndex].nonce = userTaskDeployments[msg.sender];
 
         // Copy the current worker list
         uint workerIndex = 0;
@@ -549,7 +551,9 @@ contract Enigma {
                 workerIndex = workerIndex.add(1);
             }
         }
-        emit WorkersParameterized(_seed, block.number, workersParams[paramIndex].workers, workersParams[paramIndex].balances);
+        emit WorkersParameterized(_seed, block.number, workersParams[paramIndex].workers,
+            workersParams[paramIndex].balances, userTaskDeployments[msg.sender]);
+        userTaskDeployments[msg.sender]++;
     }
 
     function getWorkerParamsIndex(uint _blockNumber)

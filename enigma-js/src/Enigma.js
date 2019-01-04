@@ -93,7 +93,7 @@ export default class Enigma {
     options = Object.assign({}, this.txDefaults, options);
     let emitter = new EventEmitter();
     (async () => {
-      const nonce = await this.enigmaContract.methods.userSCDeployments(owner).call();
+      const nonce = await this.enigmaContract.methods.userTaskDeployments(owner).call();
       const scAddr = this.web3.utils.soliditySha3(
         {t: 'bytes32', v: compiledBytecodeHash},
         {t: 'address', v: owner},
