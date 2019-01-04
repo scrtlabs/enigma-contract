@@ -14,7 +14,7 @@ export default class RPCServer {
     this.serverInstance = null;
     this.server = jayson.server({
       getWorkerEncryptionKey: function(workerAddress, callback) {
-        if (typeof workerAddress === "undefined") {
+        if (!workerAddress) {
           callback({"code": -32602, "message": "Invalid params"});
         } else {
           callback(null, {
@@ -25,11 +25,11 @@ export default class RPCServer {
         }
       },
       deploySecretContract: function(compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig, msgId, callback) {
-        if (typeof compiledBytecodeHash === "undefined") {
+        if (!compiledBytecodeHash) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof encryptedEncodedArgs === "undefined") {
+        } else if (!encryptedEncodedArgs) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof userDeployENGSig === "undefined") {
+        } else if (!userDeployENGSig) {
           callback({"code": -32602, "message": "Invalid params"});
         } else {
           callback(null, {
@@ -39,23 +39,23 @@ export default class RPCServer {
       },
       sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedEncodedArgs,
                               userTaskSig, userPubKey, fee, msgId, callback) {
-        if (typeof taskId === "undefined") {
+        if (!taskId) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof creationBlockNumber === "undefined") {
+        } else if (!creationBlockNumber) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof sender === "undefined") {
+        } else if (!sender) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof scAddr === "undefined") {
+        } else if (!scAddr) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof encryptedFn === "undefined") {
+        } else if (!encryptedFn) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof encryptedEncodedArgs === "undefined") {
+        } else if (!encryptedEncodedArgs) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof userTaskSig === "undefined") {
+        } else if (!userTaskSig) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof userPubKey === "undefined") {
+        } else if (!userPubKey) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (typeof fee === "undefined") {
+        } else if (!fee) {
           callback({"code": -32602, "message": "Invalid params"});
         } else {
           callback(null, {
@@ -64,7 +64,7 @@ export default class RPCServer {
         }
       },
       pollTaskInput: function(taskId, callback) {
-        if (typeof taskId === "undefined") {
+        if (!taskId) {
           callback({"code": -32602, "message": "Invalid params"});
         } else {
           _counter++;
