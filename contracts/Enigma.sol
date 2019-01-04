@@ -34,6 +34,7 @@ contract Enigma {
         uint fee;
         bytes proof; // Signature of (taskId, inStateDeltaHash, outStateDeltaHash, ethCall)
         address sender;
+        uint blockNumber;
         TaskStatus status;
     }
     enum TaskStatus {RecordUndefined, RecordCreated, ReceiptVerified}
@@ -100,8 +101,8 @@ contract Enigma {
     mapping(bytes32 => TaskRecord) public tasks;
     mapping(bytes32 => SecretContract) public contracts;
 
-    // A mapping of number of secret contract deployments for each address
-    mapping(address => uint) public userSCDeployments;
+    // A mapping of number of tasks deployed for each address
+    mapping(address => uint) public userTaskDeployments;
 
     // TODO: do we keep tasks forever? if not, when do we delete them?
     uint stakingThreshold;
@@ -206,7 +207,7 @@ contract Enigma {
     public
     workerRegistered(msg.sender)
     {
-        bytes32 scAddr = keccak256(abi.encodePacked(_codeHash, _owner, userSCDeployments[_owner]));
+        bytes32 scAddr = keccak256(abi.encodePacked(_codeHash, _owner, userTaskDeployments[_owner]));
         require(scAddr == _scAddr);
         require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
         bytes32 msgHash = keccak256(abi.encodePacked(_codeHash));
@@ -218,7 +219,7 @@ contract Enigma {
         contracts[_scAddr].codeHash = _codeHash;
         contracts[_scAddr].status = SecretContractStatus.Deployed;
         scAddresses.push(_scAddr);
-        userSCDeployments[_owner]++;
+        userTaskDeployments[_owner]++;
         emit SecretContractDeployed(scAddr, _codeHash);
     }
 
@@ -331,38 +332,46 @@ contract Enigma {
     *
     */
     function createTaskRecord(
-        bytes32 _taskId,
+        bytes32 _taskIdInputHash,
         uint _fee
     )
     public
     {
-        require(tasks[_taskId].sender == address(0), "Task already exist.");
         require(engToken.allowance(msg.sender, address(this)) >= _fee, "Allowance not enough");
         require(engToken.transferFrom(msg.sender, address(this), _fee), "Transfer not valid");
 
-        tasks[_taskId].fee = _fee;
-        tasks[_taskId].sender = msg.sender;
-        tasks[_taskId].status = TaskStatus.RecordCreated;
+        // Create taskId
+        bytes32 taskId = keccak256(abi.encodePacked(_taskIdInputHash, userTaskDeployments[msg.sender]));
+        require(tasks[taskId].sender == address(0), "Task already exist.");
 
-        emit TaskRecordCreated(_taskId, _fee, msg.sender);
+        tasks[taskId].fee = _fee;
+        tasks[taskId].sender = msg.sender;
+        tasks[taskId].blockNumber = block.number;
+        tasks[taskId].status = TaskStatus.RecordCreated;
+
+        userTaskDeployments[msg.sender]++;
+
+        emit TaskRecordCreated(taskId, _fee, msg.sender);
     }
 
     function createTaskRecords(
-        bytes32[] memory _taskIds,
+        bytes32[] memory _taskIdInputHashes,
         uint[] memory _fees
     )
     public
     {
-        for (uint i = 0; i < _taskIds.length; i++) {
-            require(tasks[_taskIds[i]].sender == address(0), "Task already exist.");
+        for (uint i = 0; i < _taskIdInputHashes.length; i++) {
             require(engToken.allowance(msg.sender, address(this)) >= _fees[i], "Allowance not enough");
             require(engToken.transferFrom(msg.sender, address(this), _fees[i]), "Transfer not valid");
 
-            tasks[_taskIds[i]].fee = _fees[i];
-            tasks[_taskIds[i]].sender = msg.sender;
-            tasks[_taskIds[i]].status = TaskStatus.RecordCreated;
+            bytes32 taskId = keccak256(abi.encodePacked(_taskIdInputHashes[i], userTaskDeployments[msg.sender]));
+            require(tasks[taskId].sender == address(0), "Task already exist.");
+
+            tasks[taskId].fee = _fees[i];
+            tasks[taskId].sender = msg.sender;
+            tasks[taskId].status = TaskStatus.RecordCreated;
         }
-        emit TaskRecordsCreated(_taskIds, _fees, msg.sender);
+        emit TaskRecordsCreated(_taskIdInputHashes, _fees, msg.sender);
     }
 
     // Execute the encoded function in the specified contract

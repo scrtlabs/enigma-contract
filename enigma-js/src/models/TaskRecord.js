@@ -5,15 +5,15 @@ export default class TaskRecord {
   /**
    * Task record constructor
    *
-   * @param {string} taskId
    * @param {string} fee
    */
-  constructor(taskId, fee) {
-    this.taskId = taskId;
+  constructor(fee) {
+    this.taskId = '';
     this.fee = parseInt(fee);
     this.transactionHash = '';
     this.receipt = {};
     this.status = 0;
     this.proof = '';
+    this.creationBlockNumber = -1;
   }
 }

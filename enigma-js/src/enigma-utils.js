@@ -170,17 +170,13 @@ function encodeArguments(args) {
  *
  * @param {string} fn
  * @param {Object} args
- * @param {string} scAddr
- * @param {number} blockNumber
  * @param {string} userPubKey
  * @return {string}
  */
-function generateTaskId(fn, args, scAddr, blockNumber, userPubKey) {
+function generateTaskIdInputHash(fn, args, userPubKey) {
   return web3Utils.soliditySha3(
     {t: 'string', v: fn},
     {t: 'bytes', v: encodeArguments(args)},
-    {t: 'bytes', v: scAddr},
-    {t: 'uint256', v: blockNumber},
     {t: 'bytes', v: userPubKey},
   );
 }
@@ -373,7 +369,7 @@ let utils = {};
 utils.encodeReport = encodeReport;
 utils.test = () => 'hello2';
 utils.encodeArguments = encodeArguments;
-utils.generateTaskId = generateTaskId;
+utils.generateTaskIdInputHash = generateTaskIdInputHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;

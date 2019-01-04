@@ -230,385 +230,496 @@ describe('Enigma tests', () => {
         })
         .on('receipt', (receipt) => resolve(receipt))
         .on('error', (error) => {
-          console.log("errored");
+          console.log('errored');
           reject(error);
         });
     });
     expect(receipt).toBeTruthy;
   });
 
-  let scAddr;
-  let codeHash;
-  it('should deploy contract', async () => {
+  let scTask;
+  let preDeployedBytecodeHash;
+  it('should create deploy contract Task', async () => {
     // Pre-deployed bytecode hash
-    codeHash = web3.utils.soliditySha3('9d075ae');
-    let account = accounts[0];
-    let inputs = ['first_sc', 1];
-    const receipt = await new Promise((resolve, reject) => {
-      enigma.deploySecretContract(codeHash, account, inputs)
-        .on(eeConstants.DEPLOY_SC_ADDR_RESULT, (result) => {
-          scAddr = result;
-        })
-        .on(eeConstants.DEPLOY_SC_ETH_RECEIPT, (receipt) => {
-        })
-        .on(eeConstants.DEPLOY_SC_ENG_RECEIPT, (receipt) => {
-          resolve(receipt);
-        });
-    });
-    expect(receipt.deploySentResult).toEqual(true);
+    preDeployedBytecodeHash = web3.utils.soliditySha3('9d075ae');
+    let scArgs = ['first_sc', 1];
+    let scTaskFn = 'deploy';
+    let scTaskArgs = [preDeployedBytecodeHash, ...scArgs];
+    let scTaskFee = utils.toGrains(300);
+    scTask = enigma.createTask(scTaskFn, scTaskArgs, scTaskFee, accounts[0]);
+    expect(scTask).toBeTruthy;
   });
 
-  it('should verify deployed contract', async () => {
-    const result = await enigma.admin.isDeployed(scAddr);
-    expect(result).toEqual(true);
-  });
-
-  it('should get contract bytecode hash', async () => {
-    const result = await enigma.admin.getCodeHash(scAddr);
-    expect(result).toEqual(codeHash);
-  });
-
-  const fn = 'medianWealth(int32,int32)';
-  const args = [200000, 300000];
-  const userPubKey = '5587fbc96b01bfe6482bf9361a08e84810afcc0b1af72a8e4520f9' +
-       '8771ea1080681e8a2f9546e5924e18c047fa948591dba098bffaced50f97a41b0050bdab99';
-  const fee = utils.toGrains(300);
-  let taskInput;
-  it('should create TaskInput', async () => {
-    taskInput = await new Promise((resolve, reject) => {
-      enigma.createTaskInput(fn, args, scAddr, accounts[0], userPubKey, fee)
-        .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    expect(taskInput).toBeTruthy;
-    expect(taskInput.sender).toEqual(accounts[0]);
-    expect(taskInput.scAddr).toEqual(scAddr);
-    expect(taskInput.userPubKey).toEqual(userPubKey);
-    const msg = web3.utils.soliditySha3(
-        {t: 'bytes', v: taskInput.encryptedFn},
-        {t: 'bytes', v: taskInput.encryptedEncodedArgs},
-      );
-    expect(enigma.web3.eth.accounts.recover(msg, taskInput.userTaskSig)).toEqual(accounts[0]);
-    expect(taskInput.fee).toEqual(fee);
-  });
-
-  let taskRecord;
-  it('should create task record', async () => {
+  it('should create deploy contract TaskRecord', async () => {
     const tokenContract = enigma.tokenContract;
     const enigmaContract = enigma.enigmaContract;
     const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
-    taskRecord = await new Promise((resolve, reject) => {
-      enigma.createTaskRecord(taskInput)
+    scTask = await new Promise((resolve, reject) => {
+      enigma.createTaskRecord(scTask)
         .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
+    console.log('SC TASK...!!', scTask);
     const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
-    expect(taskRecord.receipt).toBeTruthy;
-    expect(taskRecord.taskId).toEqual(taskInput.taskId);
-    expect(taskRecord.fee).toEqual(fee);
-    expect(taskRecord.transactionHash).toBeTruthy;
-    expect(taskRecord.receipt).toBeTruthy;
-    expect(taskRecord.status).toEqual(1);
-    expect(taskRecord.proof).toBeFalsy;
-    expect(endingBalance-startingBalance).toEqual(fee);
+    expect(scTask.receipt).toBeTruthy;
+    expect(scTask.fee).toEqual(scTask.fee);
+    expect(scTask.transactionHash).toBeTruthy;
+    expect(scTask.receipt).toBeTruthy;
+    expect(scTask.status).toEqual(1);
+    expect(scTask.proof).toBeFalsy;
+    expect(endingBalance-startingBalance).toEqual(scTask.fee);
   });
 
-  it('should fail to create task record due to insufficient funds', async () => {
-    const taskInput2 = await new Promise((resolve, reject) => {
-      enigma.createTaskInput(fn, args, scAddr, accounts[9], userPubKey, fee)
-        .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    await expect(new Promise((resolve, reject) => {
-      enigma.createTaskRecord(taskInput2)
-        .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    })).rejects.toEqual({"message": "Not enough tokens to pay the fee", "name": "NotEnoughTokens"});
+  // let taskInput;
+  // it('should create deploy contract TaskInput for Enigma Network', async () => {
+  //   taskInput = await new Promise((resolve, reject) => {
+  //     enigma.createTaskInput(scTaskRecord)
+  //       .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   expect(taskInput).toBeTruthy;
+  //   expect(taskInput.sender).toEqual(accounts[0]);
+  //   expect(taskInput.scAddr).toEqual(scAddr);
+  //   expect(taskInput.userPubKey).toEqual(userPubKey);
+  //   const msg = web3.utils.soliditySha3(
+  //       {t: 'bytes', v: taskInput.encryptedFn},
+  //       {t: 'bytes', v: taskInput.encryptedEncodedArgs},
+  //     );
+  //   expect(enigma.web3.eth.accounts.recover(msg, taskInput.userTaskSig)).toEqual(accounts[0]);
+  //   expect(taskInput.fee).toEqual(fee);
+  // });
 
-  })
+  // const fn = 'deployContract';
+  // const args = [200000, 300000];
+  // const fee = utils.toGrains(300);
+  // let task;
+  // it('should create a Task', async () => {
+  //   task = enigma.createTask(fn, args, fee, accounts[0]);
+  //   expect(task).toBeTruthy;
+  // });
+  //
+  // let taskRecord;
+  // it('should create task record', async () => {
+  //   const tokenContract = enigma.tokenContract;
+  //   const enigmaContract = enigma.enigmaContract;
+  //   const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   taskRecord = await new Promise((resolve, reject) => {
+  //     enigma.createTaskRecord(task)
+  //       .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   expect(taskRecord.receipt).toBeTruthy;
+  //   expect(taskRecord.fee).toEqual(fee);
+  //   expect(taskRecord.transactionHash).toBeTruthy;
+  //   expect(taskRecord.receipt).toBeTruthy;
+  //   expect(taskRecord.status).toEqual(1);
+  //   expect(taskRecord.proof).toBeFalsy;
+  //   expect(endingBalance-startingBalance).toEqual(fee);
+  // });
 
-  it('should get the pending task', async () => {
-    taskRecord = await enigma.getTaskRecordStatus(taskRecord);
-    expect(taskRecord.status).toEqual(1);
-  });
+  // const fn = 'medianWealth(int32,int32)';
+  // const args = [200000, 300000];
+  // const fee = utils.toGrains(300);
+  // let task;
+  // it('should create a Task', async () => {
+  //   task = enigma.createTask(fn, args, fee, accounts[0]);
+  //   expect(task).toBeTruthy;
+  // });
+  //
+  // let taskRecord;
+  // it('should create task record', async () => {
+  //   const tokenContract = enigma.tokenContract;
+  //   const enigmaContract = enigma.enigmaContract;
+  //   const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   taskRecord = await new Promise((resolve, reject) => {
+  //     enigma.createTaskRecord(task)
+  //       .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   expect(taskRecord.receipt).toBeTruthy;
+  //   expect(taskRecord.fee).toEqual(fee);
+  //   expect(taskRecord.transactionHash).toBeTruthy;
+  //   expect(taskRecord.receipt).toBeTruthy;
+  //   expect(taskRecord.status).toEqual(1);
+  //   expect(taskRecord.proof).toBeFalsy;
+  //   expect(endingBalance-startingBalance).toEqual(fee);
+  // });
 
-  let outStateDelta;
-  it('should simulate the task receipt', async () => {
-    const enigmaContract = enigma.enigmaContract;
-    const inStateDelta = '0x0000000000000000000000000000000000000000000000000000000000000000';
-    outStateDelta = web3.utils.soliditySha3('test');
-    const ethCall = web3.utils.soliditySha3('test');
-    const proof = web3.utils.soliditySha3(
-      {t: 'bytes32', v: taskRecord.taskId},
-      {t: 'bytes32', v: inStateDelta},
-      {t: 'bytes32', v: outStateDelta},
-      {t: 'bytes', v: ethCall},
-    );
-    const sig = utils.sign(data.worker[4], proof);
-    const startingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
-    const result = await new Promise((resolve, reject) => {
-      enigmaContract.methods.commitReceipt(scAddr, taskRecord.taskId, inStateDelta, outStateDelta, ethCall, sig)
-        .send({
-          gas: 4712388,
-          gasPrice: 100000000000,
-          from: accounts[0],
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
-    });
-    const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
-    expect(endingBalance - startingBalance).toEqual(fee);
-    expect(result.events.ReceiptVerified).toBeTruthy;
-  });
-
-  it('should get the confirmed task', async () => {
-    taskRecord = await enigma.getTaskRecordStatus(taskRecord);
-    expect(taskRecord.status).toEqual(2);
-  });
-
-  it('should count state deltas', async () => {
-    const count = await enigma.admin.countStateDeltas(scAddr);
-    expect(count).toEqual(1);
-  });
-
-  let stateDeltaHash;
-  it('should get state delta hash', async () => {
-    const delta = await enigma.admin.getStateDeltaHash(scAddr, 0);
-    stateDeltaHash = delta;
-    expect(delta).toBeTruthy;
-  });
-
-  it('should verify state delta', async () => {
-    const isValid = await enigma.admin.isValidDeltaHash(scAddr, stateDeltaHash);
-    expect(isValid).toEqual(true);
-  });
-
-  let taskRecords;
-  it('should create multiple task records', async () => {
-    const argsA = [200000, 300000];
-    const argsB = [300000, 400000];
-
-    const tokenContract = enigma.tokenContract;
-    const enigmaContract = enigma.enigmaContract;
-    const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
-    let taskInputA = await new Promise((resolve, reject) => {
-      enigma.createTaskInput(fn, argsA, scAddr, accounts[0], userPubKey, fee)
-        .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    let taskInputB = await new Promise((resolve, reject) => {
-      enigma.createTaskInput(fn, argsB, scAddr, accounts[0], userPubKey, fee)
-        .on(eeConstants.CREATE_TASK_INPUT, (receipt) => resolve(receipt))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    taskRecords = await new Promise((resolve, reject) => {
-      enigma.createTaskRecords([taskInputA, taskInputB])
-        .on(eeConstants.CREATE_TASK_RECORDS, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
-    for (let i = 0; i < taskRecords.length; i++) {
-      expect(taskRecords[i].receipt).toBeTruthy;
-    }
-    expect(endingBalance-startingBalance).toEqual(fee*2);
-  });
-
-  it('should get the pending tasks', async () => {
-    for (let tRecord of taskRecords) {
-      tRecord = await enigma.getTaskRecordStatus(tRecord);
-      expect(tRecord.status).toEqual(1);
-    }
-  });
-
-  let outStateDeltas;
-  it('should simulate multiple task receipts', async () => {
-    const enigmaContract = enigma.enigmaContract;
-    const inStateDelta1 = outStateDelta;
-    const outStateDelta1 = web3.utils.soliditySha3('test2');
-    const inStateDelta2 = outStateDelta1;
-    const outStateDelta2 = web3.utils.soliditySha3('test3');
-    const ethCall = web3.utils.soliditySha3('test');
-    const taskIds = taskRecords.map((t) => t.taskId);
-    const proof = web3.utils.soliditySha3(
-      {t: 'bytes32', v: taskIds[0]},
-      {t: 'bytes32', v: inStateDelta1},
-      {t: 'bytes32', v: outStateDelta1},
-      {t: 'bytes', v: ethCall},
-      {t: 'bytes32', v: taskIds[1]},
-      {t: 'bytes32', v: inStateDelta2},
-      {t: 'bytes32', v: outStateDelta2},
-      {t: 'bytes', v: ethCall},
-    );
-    const sig = utils.sign(data.worker[4], proof);
-    const inStateDeltas = [inStateDelta1, inStateDelta2];
-    outStateDeltas = [outStateDelta1, outStateDelta2];
-    const startingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
-    const result = await new Promise((resolve, reject) => {
-      enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, ethCall, sig)
-        .send({
-          gas: 4712388,
-          gasPrice: 100000000000,
-          from: accounts[0],
-        })
-        .on('receipt', (receipt) => resolve(receipt))
-        .on('error', (error) => reject(error));
-    });
-    const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
-    expect(endingBalance - startingBalance).toEqual(fee*2);
-    expect(result.events.ReceiptsVerified).toBeTruthy;
-  });
-
-  it('should get the confirmed tasks', async () => {
-    for (let tRecord of taskRecords) {
-      tRecord = await enigma.getTaskRecordStatus(tRecord);
-      expect(tRecord.status).toEqual(2);
-    }
-  });
-
-  it('should get state delta hash range', async () => {
-    const hashes = await enigma.admin.getStateDeltaHashes(scAddr, 0, 3);
-    expect(hashes).toEqual([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
-  });
-
-  let params;
-  it('should get the worker parameters for the current block', async () => {
-    const blockNumber = await web3.eth.getBlockNumber();
-    const workerParams = await enigma.getWorkerParams(blockNumber);
-    expect(workerParams).toBeTruthy;
-  });
-
-  it('should get the selected workers for the contract / epoch', async () => {
-    const enigmaContract = enigma.enigmaContract;
-    const blockNumber = await web3.eth.getBlockNumber();
-    const contractSelectWorkers = await enigmaContract.methods.getWorkerGroup(blockNumber, scAddr).call();
-    const workerParams = await enigma.getWorkerParams(blockNumber);
-    const group = await enigma.selectWorkerGroup(blockNumber, scAddr, workerParams, 5);
-    for (let i = 0; i < group.length; i++) {
-      expect(group[i]).toEqual(contractSelectWorkers[i]);
-    }
-  });
-
-  it('should send task input to the network', async () => {
-    const result = await new Promise((resolve, reject) => {
-      enigma.sendTaskInput(taskInput)
-        .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    expect(result.sendTaskResult).toEqual(true);
-  });
-
-  it('should fail to send corrupted task input to the network', async () => {
-    let corruptedTaskInput = taskInput;
-    corruptedTaskInput.sender = '';
-    await expect(new Promise((resolve, reject) => {
-        enigma.sendTaskInput(corruptedTaskInput)
-          .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
-          .on(eeConstants.ERROR, (error) => reject(error));
-    })).rejects.toEqual({"code": -32602,"message": "Invalid params"});
-  });
-
-  it('should poll the network until task confirmed', async () => {
-    let taskInputResults = [];
-    const result = await new Promise((resolve, reject) => {
-      enigma.pollTaskInput(taskInput)
-        .on(eeConstants.POLL_TASK_INPUT_RESULT, (receipt) => {
-          taskInputResults.push(receipt.status);
-          if (receipt.status === 2) {
-            resolve(receipt);
-          }
-        })
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    expect(taskInputResults).toEqual([ 1, 1, 1, 1, 2 ]);
-  });
-
-  it('should fail the RPC Server', async () => {
-    expect.assertions(14);
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('deploySecretContract', {}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('deploySecretContract', {compiledBytecodeHash: '0x1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('deploySecretContract', {compiledBytecodeHash: '0x1', encryptedEncodedArgs: '1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: "Invalid params"});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedEncodedArgs: '1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1'}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('pollTaskInput', {}, (err, response) => {
-        if (err) reject (err)
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-  });
+  // let scAddr;
+  // let codeHash;
+  // it('should deploy contract', async () => {
+  //   // Pre-deployed bytecode hash
+  //   codeHash = web3.utils.soliditySha3('9d075ae');
+  //   let account = accounts[0];
+  //   let inputs = ['first_sc', 1];
+  //   const receipt = await new Promise((resolve, reject) => {
+  //     enigma.deploySecretContract(codeHash, account, inputs)
+  //       .on(eeConstants.DEPLOY_SC_ADDR_RESULT, (result) => {
+  //         scAddr = result;
+  //       })
+  //       .on(eeConstants.DEPLOY_SC_ETH_RECEIPT, (receipt) => {
+  //       })
+  //       .on(eeConstants.DEPLOY_SC_ENG_RECEIPT, (receipt) => {
+  //         resolve(receipt);
+  //       });
+  //   });
+  //   expect(receipt.deploySentResult).toEqual(true);
+  // });
+  //
+  // it('should verify deployed contract', async () => {
+  //   const result = await enigma.admin.isDeployed(scAddr);
+  //   expect(result).toEqual(true);
+  // });
+  //
+  // it('should get contract bytecode hash', async () => {
+  //   const result = await enigma.admin.getCodeHash(scAddr);
+  //   expect(result).toEqual(codeHash);
+  // });
+  //
+  // let taskRecord;
+  // it('should create task record', async () => {
+  //   const tokenContract = enigma.tokenContract;
+  //   const enigmaContract = enigma.enigmaContract;
+  //   const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   taskRecord = await new Promise((resolve, reject) => {
+  //     enigma.createTaskRecord(taskInput)
+  //       .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   expect(taskRecord.receipt).toBeTruthy;
+  //   expect(taskRecord.taskId).toEqual(taskInput.taskId);
+  //   expect(taskRecord.fee).toEqual(fee);
+  //   expect(taskRecord.transactionHash).toBeTruthy;
+  //   expect(taskRecord.receipt).toBeTruthy;
+  //   expect(taskRecord.status).toEqual(1);
+  //   expect(taskRecord.proof).toBeFalsy;
+  //   expect(endingBalance-startingBalance).toEqual(fee);
+  // });
+  //
+  // const fn = 'medianWealth(int32,int32)';
+  // const args = [200000, 300000];
+  // const userPubKey = '5587fbc96b01bfe6482bf9361a08e84810afcc0b1af72a8e4520f9' +
+  //      '8771ea1080681e8a2f9546e5924e18c047fa948591dba098bffaced50f97a41b0050bdab99';
+  // const fee = utils.toGrains(300);
+  // let taskInput;
+  // it('should create TaskInput', async () => {
+  //   taskInput = await new Promise((resolve, reject) => {
+  //     enigma.createTaskInput(fn, args, scAddr, accounts[0], userPubKey, fee)
+  //       .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   expect(taskInput).toBeTruthy;
+  //   expect(taskInput.sender).toEqual(accounts[0]);
+  //   expect(taskInput.scAddr).toEqual(scAddr);
+  //   expect(taskInput.userPubKey).toEqual(userPubKey);
+  //   const msg = web3.utils.soliditySha3(
+  //       {t: 'bytes', v: taskInput.encryptedFn},
+  //       {t: 'bytes', v: taskInput.encryptedEncodedArgs},
+  //     );
+  //   expect(enigma.web3.eth.accounts.recover(msg, taskInput.userTaskSig)).toEqual(accounts[0]);
+  //   expect(taskInput.fee).toEqual(fee);
+  // });
+  //
+  //
+  // it('should fail to create task record due to insufficient funds', async () => {
+  //   const taskInput2 = await new Promise((resolve, reject) => {
+  //     enigma.createTaskInput(fn, args, scAddr, accounts[9], userPubKey, fee)
+  //       .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.createTaskRecord(taskInput2)
+  //       .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
+  //
+  // });
+  //
+  // it('should get the pending task', async () => {
+  //   taskRecord = await enigma.getTaskRecordStatus(taskRecord);
+  //   expect(taskRecord.status).toEqual(1);
+  // });
+  //
+  // let outStateDelta;
+  // it('should simulate the task receipt', async () => {
+  //   const enigmaContract = enigma.enigmaContract;
+  //   const inStateDelta = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  //   outStateDelta = web3.utils.soliditySha3('test');
+  //   const ethCall = web3.utils.soliditySha3('test');
+  //   const proof = web3.utils.soliditySha3(
+  //     {t: 'bytes32', v: taskRecord.taskId},
+  //     {t: 'bytes32', v: inStateDelta},
+  //     {t: 'bytes32', v: outStateDelta},
+  //     {t: 'bytes', v: ethCall},
+  //   );
+  //   const sig = utils.sign(data.worker[4], proof);
+  //   const startingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+  //   const result = await new Promise((resolve, reject) => {
+  //     enigmaContract.methods.commitReceipt(scAddr, taskRecord.taskId, inStateDelta, outStateDelta, ethCall, sig)
+  //       .send({
+  //         gas: 4712388,
+  //         gasPrice: 100000000000,
+  //         from: accounts[0],
+  //       }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
+  //   });
+  //   const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+  //   expect(endingBalance - startingBalance).toEqual(fee);
+  //   expect(result.events.ReceiptVerified).toBeTruthy;
+  // });
+  //
+  // it('should get the confirmed task', async () => {
+  //   taskRecord = await enigma.getTaskRecordStatus(taskRecord);
+  //   expect(taskRecord.status).toEqual(2);
+  // });
+  //
+  // it('should count state deltas', async () => {
+  //   const count = await enigma.admin.countStateDeltas(scAddr);
+  //   expect(count).toEqual(1);
+  // });
+  //
+  // let stateDeltaHash;
+  // it('should get state delta hash', async () => {
+  //   const delta = await enigma.admin.getStateDeltaHash(scAddr, 0);
+  //   stateDeltaHash = delta;
+  //   expect(delta).toBeTruthy;
+  // });
+  //
+  // it('should verify state delta', async () => {
+  //   const isValid = await enigma.admin.isValidDeltaHash(scAddr, stateDeltaHash);
+  //   expect(isValid).toEqual(true);
+  // });
+  //
+  // let taskRecords;
+  // it('should create multiple task records', async () => {
+  //   const argsA = [200000, 300000];
+  //   const argsB = [300000, 400000];
+  //
+  //   const tokenContract = enigma.tokenContract;
+  //   const enigmaContract = enigma.enigmaContract;
+  //   const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   let taskInputA = await new Promise((resolve, reject) => {
+  //     enigma.createTaskInput(fn, argsA, scAddr, accounts[0], userPubKey, fee)
+  //       .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   let taskInputB = await new Promise((resolve, reject) => {
+  //     enigma.createTaskInput(fn, argsB, scAddr, accounts[0], userPubKey, fee)
+  //       .on(eeConstants.CREATE_TASK_INPUT, (receipt) => resolve(receipt))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   taskRecords = await new Promise((resolve, reject) => {
+  //     enigma.createTaskRecords([taskInputA, taskInputB])
+  //       .on(eeConstants.CREATE_TASK_RECORDS, (result) => resolve(result))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
+  //   for (let i = 0; i < taskRecords.length; i++) {
+  //     expect(taskRecords[i].receipt).toBeTruthy;
+  //   }
+  //   expect(endingBalance-startingBalance).toEqual(fee*2);
+  // });
+  //
+  // it('should get the pending tasks', async () => {
+  //   for (let tRecord of taskRecords) {
+  //     tRecord = await enigma.getTaskRecordStatus(tRecord);
+  //     expect(tRecord.status).toEqual(1);
+  //   }
+  // });
+  //
+  // let outStateDeltas;
+  // it('should simulate multiple task receipts', async () => {
+  //   const enigmaContract = enigma.enigmaContract;
+  //   const inStateDelta1 = outStateDelta;
+  //   const outStateDelta1 = web3.utils.soliditySha3('test2');
+  //   const inStateDelta2 = outStateDelta1;
+  //   const outStateDelta2 = web3.utils.soliditySha3('test3');
+  //   const ethCall = web3.utils.soliditySha3('test');
+  //   const taskIds = taskRecords.map((t) => t.taskId);
+  //   const proof = web3.utils.soliditySha3(
+  //     {t: 'bytes32', v: taskIds[0]},
+  //     {t: 'bytes32', v: inStateDelta1},
+  //     {t: 'bytes32', v: outStateDelta1},
+  //     {t: 'bytes', v: ethCall},
+  //     {t: 'bytes32', v: taskIds[1]},
+  //     {t: 'bytes32', v: inStateDelta2},
+  //     {t: 'bytes32', v: outStateDelta2},
+  //     {t: 'bytes', v: ethCall},
+  //   );
+  //   const sig = utils.sign(data.worker[4], proof);
+  //   const inStateDeltas = [inStateDelta1, inStateDelta2];
+  //   outStateDeltas = [outStateDelta1, outStateDelta2];
+  //   const startingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+  //   const result = await new Promise((resolve, reject) => {
+  //     enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, ethCall, sig)
+  //       .send({
+  //         gas: 4712388,
+  //         gasPrice: 100000000000,
+  //         from: accounts[0],
+  //       })
+  //       .on('receipt', (receipt) => resolve(receipt))
+  //       .on('error', (error) => reject(error));
+  //   });
+  //   const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+  //   expect(endingBalance - startingBalance).toEqual(fee*2);
+  //   expect(result.events.ReceiptsVerified).toBeTruthy;
+  // });
+  //
+  // it('should get the confirmed tasks', async () => {
+  //   for (let tRecord of taskRecords) {
+  //     tRecord = await enigma.getTaskRecordStatus(tRecord);
+  //     expect(tRecord.status).toEqual(2);
+  //   }
+  // });
+  //
+  // it('should get state delta hash range', async () => {
+  //   const hashes = await enigma.admin.getStateDeltaHashes(scAddr, 0, 3);
+  //   expect(hashes).toEqual([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
+  // });
+  //
+  // let params;
+  // it('should get the worker parameters for the current block', async () => {
+  //   const blockNumber = await web3.eth.getBlockNumber();
+  //   const workerParams = await enigma.getWorkerParams(blockNumber);
+  //   expect(workerParams).toBeTruthy;
+  // });
+  //
+  // it('should get the selected workers for the contract / epoch', async () => {
+  //   const enigmaContract = enigma.enigmaContract;
+  //   const blockNumber = await web3.eth.getBlockNumber();
+  //   const contractSelectWorkers = await enigmaContract.methods.getWorkerGroup(blockNumber, scAddr).call();
+  //   const workerParams = await enigma.getWorkerParams(blockNumber);
+  //   const group = await enigma.selectWorkerGroup(blockNumber, scAddr, workerParams, 5);
+  //   for (let i = 0; i < group.length; i++) {
+  //     expect(group[i]).toEqual(contractSelectWorkers[i]);
+  //   }
+  // });
+  //
+  // it('should send task input to the network', async () => {
+  //   const result = await new Promise((resolve, reject) => {
+  //     enigma.sendTaskInput(taskInput)
+  //       .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   expect(result.sendTaskResult).toEqual(true);
+  // });
+  //
+  // it('should fail to send corrupted task input to the network', async () => {
+  //   let corruptedTaskInput = taskInput;
+  //   corruptedTaskInput.sender = '';
+  //   await expect(new Promise((resolve, reject) => {
+  //       enigma.sendTaskInput(corruptedTaskInput)
+  //         .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
+  //         .on(eeConstants.ERROR, (error) => reject(error));
+  //   })).rejects.toEqual({"code": -32602,"message": "Invalid params"});
+  // });
+  //
+  // it('should poll the network until task confirmed', async () => {
+  //   let taskInputResults = [];
+  //   const result = await new Promise((resolve, reject) => {
+  //     enigma.pollTaskInput(taskInput)
+  //       .on(eeConstants.POLL_TASK_INPUT_RESULT, (receipt) => {
+  //         taskInputResults.push(receipt.status);
+  //         if (receipt.status === 2) {
+  //           resolve(receipt);
+  //         }
+  //       })
+  //       .on(eeConstants.ERROR, (error) => reject(error));
+  //   });
+  //   expect(taskInputResults).toEqual([ 1, 1, 1, 1, 2 ]);
+  // });
+  //
+  // it('should fail the RPC Server', async () => {
+  //   expect.assertions(14);
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('deploySecretContract', {}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('deploySecretContract', {compiledBytecodeHash: '0x1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('deploySecretContract', {compiledBytecodeHash: '0x1', encryptedEncodedArgs: '1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: "Invalid params"});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+  //       encryptedFn: '1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+  //       encryptedFn: '1', encryptedEncodedArgs: '1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+  //       encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+  //       encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1'}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  //   await expect(new Promise((resolve, reject) => {
+  //     enigma.client.request('pollTaskInput', {}, (err, response) => {
+  //       if (err) reject (err)
+  //       resolve(response);
+  //     });
+  //   })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+  // });
 });
