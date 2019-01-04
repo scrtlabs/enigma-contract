@@ -42,7 +42,7 @@ export default class Enigma {
       axios.post(rpcAddr, JSON.parse(request), config)
         .then((response) => {
           if ('error' in response.data) {
-            throw (response.data.error);
+            callback(response.data.error, null);
           }
           return JSON.stringify(response.data.result);
         })
@@ -174,7 +174,7 @@ export default class Enigma {
     let emitter = new EventEmitter();
     (async () => {
       let taskRecord = new TaskRecord(taskInput.taskId, taskInput.fee);
-      const balance = await this.tokenContract.methods.balanceOf(this.txDefaults.from).call();
+      const balance = await this.tokenContract.methods.balanceOf(taskInput.sender).call();
       if (balance < taskInput.fee) {
         emitter.emit('error', {
           name: 'NotEnoughTokens',
@@ -372,20 +372,20 @@ export default class Enigma {
           name: 'InvalidWorker',
           message: 'Invalid worker encryption key + signature combo',
         });
-        return;
+      } else {
+        const {publicKey, privateKey} = this.obtainTaskKeyPair();
+        console.log('public key', publicKey);
+        const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
+        const encodedArgs = utils.encodeArguments(args);
+        taskInput.encryptedFn = utils.encryptMessage(derivedKey, fn);
+        taskInput.encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
+        const msg = this.web3.utils.soliditySha3(
+          {t: 'bytes', v: taskInput.encryptedFn},
+          {t: 'bytes', v: taskInput.encryptedEncodedArgs},
+        );
+        taskInput.userTaskSig = await this.web3.eth.sign(msg, sender);
+        emitter.emit(eeConstants.CREATE_TASK_INPUT, taskInput);
       }
-      const {publicKey, privateKey} = this.obtainTaskKeyPair();
-      console.log('public key', publicKey);
-      const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
-      const encodedArgs = utils.encodeArguments(args);
-      taskInput.encryptedFn = utils.encryptMessage(derivedKey, fn);
-      taskInput.encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
-      const msg = this.web3.utils.soliditySha3(
-        {t: 'bytes', v: taskInput.encryptedFn},
-        {t: 'bytes', v: taskInput.encryptedEncodedArgs},
-      );
-      taskInput.userTaskSig = await this.web3.eth.sign(msg, sender);
-      emitter.emit(eeConstants.CREATE_TASK_INPUT, taskInput);
     })();
     return emitter;
   }
@@ -402,7 +402,7 @@ export default class Enigma {
       const sendTaskInputResult = await new Promise((resolve, reject) => {
         this.client.request('sendTaskInput', Enigma.serializeTaskInput(taskInput), (err, response) => {
           if (err) {
-            reject(err);
+            emitter.emit(eeConstants.ERROR, err);
           }
           resolve(response);
         });

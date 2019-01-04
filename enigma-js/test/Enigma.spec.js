@@ -71,7 +71,7 @@ describe('Enigma tests', () => {
     const tokenContract = enigma.tokenContract;
     let promises = [];
     const allowance = utils.toGrains(1000);
-    for (let i = 1; i < accounts.length; i++) {
+    for (let i = 1; i < accounts.length - 1; i++) {
       let promise = new Promise(async (resolve, reject) => {
         const approveResult = await tokenContract.methods.approve(accounts[i], allowance).send(enigma.txDefaults);
         const transferResult = await tokenContract.methods.transfer(accounts[i], allowance).send(enigma.txDefaults);
@@ -80,15 +80,15 @@ describe('Enigma tests', () => {
       promises.push(promise);
     }
     const results = await Promise.all(promises);
-    expect(results.length).toEqual(accounts.length - 1);
+    expect(results.length).toEqual(accounts.length - 2);
   });
 
   it('should simulate worker registration', async () => {
     const enigmaContract = enigma.enigmaContract;
     let promises = [];
-    for (let i = 0; i < accounts.length; i++) {
-      let worker = (i === 9) ? data.principal : data.worker;
-      if (i === 9) {
+    for (let i = 0; i < accounts.length-1; i++) {
+      let worker = (i === 8) ? data.principal : data.worker;
+      if (i === 8) {
         console.log('setting principal node', worker[0]);
       }
       const report = utils.encodeReport(
@@ -111,7 +111,7 @@ describe('Enigma tests', () => {
     }
     // Using the account as the signer for testing purposes
     const registerWorkersResults = await Promise.all(promises);
-    expect(registerWorkersResults.length).toEqual(10);
+    expect(registerWorkersResults.length).toEqual(9);
   });
 
   it('should get the worker report', async () => {
@@ -121,7 +121,7 @@ describe('Enigma tests', () => {
 
   it('should check workers have been logged in', async () => {
     let workerStatuses = [];
-    for (let i = 0; i < accounts.length-1; i++) {
+    for (let i = 0; i < accounts.length-2; i++) {
       workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
     }
     for (let workerStatus of workerStatuses) {
@@ -131,13 +131,13 @@ describe('Enigma tests', () => {
 
   it('should check workers stake balance is empty', async () => {
     let balances = [];
-    for (let i = 0; i < accounts.length; i++) {
-      if (i === 9) {
+    for (let i = 0; i < accounts.length-1; i++) {
+      if (i === 8) {
         continue;
       }
       balances.push(await enigma.admin.getStakedBalance(accounts[i]));
     }
-    expect(balances).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(balances).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
   });
 
   it('should fail to deposit too large a token amount', async () => {
@@ -151,10 +151,10 @@ describe('Enigma tests', () => {
   });
 
   it('should deposit tokens in worker banks', async () => {
-    const deposits = [900, 100, 10, 20, 100, 200, 40, 100, 50];
+    const deposits = [900, 100, 10, 20, 100, 200, 40, 100];
     let promises = [];
-    for (let i = 0; i < accounts.length; i++) {
-      if (i === 9) {
+    for (let i = 0; i < accounts.length - 1; i++) {
+      if (i === 8) {
         continue;
       }
       let promise = new Promise((resolve, reject) => {
@@ -167,23 +167,23 @@ describe('Enigma tests', () => {
       promises.push(promise);
     }
     const results = await Promise.all(promises);
-    expect(results.length).toEqual(9);
+    expect(results.length).toEqual(8);
   });
 
   it('should check workers stake balance has been filled', async () => {
     let balances = [];
-    for (let i = 0; i < accounts.length; i++) {
-      if (i === 9) {
+    for (let i = 0; i < accounts.length - 1; i++) {
+      if (i === 8) {
         continue;
       }
       balances.push(await enigma.admin.getStakedBalance(accounts[i]));
     }
-    expect(balances).toEqual([900, 100, 10, 20, 100, 200, 40, 100, 50].map((balance) => balance * 10 ** 8));
+    expect(balances).toEqual([900, 100, 10, 20, 100, 200, 40, 100].map((balance) => balance * 10 ** 8));
   });
 
   it('should login all the workers', async () => {
     let promises = [];
-    for (let i = 0; i < accounts.length; i++) {
+    for (let i = 0; i < accounts.length - 1; i++) {
       let promise = new Promise((resolve, reject) => {
         enigma.admin.login({from: accounts[i]})
           .on(eeConstants.LOGIN_RECEIPT, (result) => {
@@ -193,12 +193,12 @@ describe('Enigma tests', () => {
       promises.push(promise);
     }
     const loginReceipts = await Promise.all(promises);
-    expect(loginReceipts.length).toEqual(10);
+    expect(loginReceipts.length).toEqual(9);
   });
 
   it('should check workers have been logged in', async () => {
     let workerStatuses = [];
-    for (let i = 0; i < accounts.length-1; i++) {
+    for (let i = 0; i < accounts.length-2; i++) {
       workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
     }
     for (let workerStatus of workerStatuses) {
@@ -226,7 +226,7 @@ describe('Enigma tests', () => {
         .send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: accounts[9],
+          from: accounts[8],
         })
         .on('receipt', (receipt) => resolve(receipt))
         .on('error', (error) => {
@@ -312,6 +312,20 @@ describe('Enigma tests', () => {
     expect(taskRecord.proof).toBeFalsy;
     expect(endingBalance-startingBalance).toEqual(fee);
   });
+
+  it('should fail to create task record due to insufficient funds', async () => {
+    const taskInput2 = await new Promise((resolve, reject) => {
+      enigma.createTaskInput(fn, args, scAddr, accounts[9], userPubKey, fee)
+        .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    });
+    await expect(new Promise((resolve, reject) => {
+      enigma.createTaskRecord(taskInput2)
+        .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({"message": "Not enough tokens to pay the fee", "name": "NotEnoughTokens"});
+
+  })
 
   it('should get the pending task', async () => {
     taskRecord = await enigma.getTaskRecordStatus(taskRecord);
@@ -479,6 +493,16 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     expect(result.sendTaskResult).toEqual(true);
+  });
+
+  it('should fail to send corrupted task input to the network', async () => {
+    let corruptedTaskInput = taskInput;
+    corruptedTaskInput.sender = '';
+    await expect(new Promise((resolve, reject) => {
+        enigma.sendTaskInput(corruptedTaskInput)
+          .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
+          .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({"code": -32602,"message": "Invalid params"});
   });
 
   it('should poll the network until task confirmed', async () => {
