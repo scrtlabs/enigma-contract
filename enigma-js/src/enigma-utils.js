@@ -169,14 +169,14 @@ function encodeArguments(args) {
  * The Enigma contract uses the same logic to generate a matching taskId
  *
  * @param {string} fn
- * @param {Object} args
+ * @param {string} abiEncodedArgs
  * @param {string} userPubKey
  * @return {string}
  */
-function generateTaskIdInputHash(fn, args, userPubKey) {
+function generateTaskIdInputHash(fn, abiEncodedArgs, userPubKey) {
   return web3Utils.soliditySha3(
     {t: 'string', v: fn},
-    {t: 'bytes', v: encodeArguments(args)},
+    {t: 'bytes', v: abiEncodedArgs},
     {t: 'bytes', v: userPubKey},
   );
 }

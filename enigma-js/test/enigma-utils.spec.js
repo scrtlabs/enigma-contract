@@ -21,13 +21,13 @@ describe('enigma-utils', () => {
     );
   });
 
-  it('should generate a taskId', () => {
-    const fn = 'medianWealth(int32,int32)';
-    const args = [200000, 300000];
-    const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
-      'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
-
-    const taskId = utils.generateTaskIdInputHash(fn, args, userPubKey);
-    expect(taskId).toBeTruthy();
-  });
+  // it('should generate a taskId', () => {
+  //   const fn = 'medianWealth(int32,int32)';
+  //   const args = [200000, 300000];
+  //   const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
+  //     'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
+  //
+  //   const taskId = utils.generateTaskIdInputHash(fn, args, userPubKey);
+  //   expect(taskId).toBeTruthy();
+  // });
 });

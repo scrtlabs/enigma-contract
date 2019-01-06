@@ -24,20 +24,7 @@ export default class RPCServer {
           });
         }
       },
-      deploySecretContract: function(compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig, msgId, callback) {
-        if (!compiledBytecodeHash) {
-          callback({"code": -32602, "message": "Invalid params"});
-        } else if (!encryptedEncodedArgs) {
-          callback({"code": -32602, "message": "Invalid params"});
-        } else if (!userDeployENGSig) {
-          callback({"code": -32602, "message": "Invalid params"});
-        } else {
-          callback(null, {
-            deploySentResult: true,
-          });
-        }
-      },
-      sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedEncodedArgs,
+      sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedAbiEncodedArgs,
                               userTaskSig, userPubKey, fee, msgId, callback) {
         if (!taskId) {
           callback({"code": -32602, "message": "Invalid params"});
@@ -45,11 +32,11 @@ export default class RPCServer {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!sender) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!scAddr) {
-          callback({"code": -32602, "message": "Invalid params"});
+        // } else if (!scAddr) {
+        //   callback({"code": -32602, "message": "Invalid params"});
         } else if (!encryptedFn) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!encryptedEncodedArgs) {
+        } else if (!encryptedAbiEncodedArgs) {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!userTaskSig) {
           callback({"code": -32602, "message": "Invalid params"});
@@ -70,15 +57,14 @@ export default class RPCServer {
           _counter++;
           let status = (_counter < 5) ? 1 : 2;
           callback(null, {
-            taskId: '0xdd839d251b7b16d0f52bb05b0ab4290abe0e44dd0044b2627ec7e5ce21815667',
-            encryptedEncodedOutputs: 'abcd1234',
-            sig: 'mySig',
-            status: status
+            encryptedAbiEncodedOutputs: 'abcd1234',
+            workerTaskSig: 'myWorkerSig',
+            engStatus: status,
           });
         }
       },
     }, {
-      collect: false // don't collect params in a single argument
+      collect: false, // don't collect params in a single argument
     });
   }
 
