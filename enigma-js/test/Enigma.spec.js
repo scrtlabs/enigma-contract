@@ -239,7 +239,7 @@ describe('Enigma tests', () => {
 
   let scTask;
   let preCodeHash;
-  it('should create deploy contract Task', async () => {
+  it('should create deploy contract task', async () => {
     // Pre-deployed bytecode hash
     preCodeHash = web3.utils.soliditySha3('9d075ae');
     let scTaskFn = 'deployContract';
@@ -272,7 +272,7 @@ describe('Enigma tests', () => {
     })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
   });
 
-  it('should create deploy contract Task record', async () => {
+  it('should create deploy contract task record', async () => {
     const tokenContract = enigma.tokenContract;
     const enigmaContract = enigma.enigmaContract;
     const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
@@ -290,7 +290,7 @@ describe('Enigma tests', () => {
     expect(endingBalance-startingBalance).toEqual(scTask.fee);
   });
 
-  it('should create deploy contract Task for Enigma Network', async () => {
+  it('should prepare deploy contract task for Enigma network', async () => {
     scTask = await new Promise((resolve, reject) => {
       enigma.createTaskInput(scTask)
         .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
@@ -330,7 +330,7 @@ describe('Enigma tests', () => {
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
   });
 
-  it('should send deploy contract Task to Enigma Network', async () => {
+  it('should send deploy contract task inputs to Enigma Network', async () => {
     const result = await new Promise((resolve, reject) => {
       enigma.sendTaskInput(scTask)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
@@ -339,7 +339,7 @@ describe('Enigma tests', () => {
     expect(result.sendTaskResult).toEqual(true);
   });
 
-  it('should get the pending deploy contract Task', async () => {
+  it('should get the pending deploy contract task', async () => {
     scTask = await enigma.getTaskRecordStatus(scTask);
     expect(scTask.ethStatus).toEqual(1);
   });
@@ -370,7 +370,7 @@ describe('Enigma tests', () => {
     expect(result.events.SecretContractDeployed).toBeTruthy;
   });
 
-  it('should get the confirmed deploy contract Task', async () => {
+  it('should get the confirmed deploy contract task', async () => {
     scTask = await enigma.getTaskRecordStatus(scTask);
     expect(scTask.ethStatus).toEqual(2);
   });
@@ -387,7 +387,7 @@ describe('Enigma tests', () => {
 
   let scAddr;
   let task;
-  it('should create Task', async () => {
+  it('should create task', async () => {
     scAddr = scTask.taskId;
     let taskFn = 'medianWealth';
     let taskArgs = [
@@ -407,7 +407,7 @@ describe('Enigma tests', () => {
     expect(scTask.sender).toEqual('0xC20219b20723a39E58897b861051f94A410f5ec2');
   });
 
-  it('should create Task record', async () => {
+  it('should create task record', async () => {
     const tokenContract = enigma.tokenContract;
     const enigmaContract = enigma.enigmaContract;
     const startingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
@@ -417,7 +417,6 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     const endingBalance = await tokenContract.methods.balanceOf(enigmaContract.options.address).call();
-    console.log('TASK', task);
     expect(task.receipt).toBeTruthy;
     expect(task.transactionHash).toBeTruthy;
     expect(task.taskId).toEqual('0xdb6642203d5d8be0c24009c5c846a500e963c2fb72b0dec5a4f6bae8a9d6619f');
@@ -426,7 +425,7 @@ describe('Enigma tests', () => {
     expect(endingBalance-startingBalance).toEqual(task.fee);
   });
 
-  it('should create Task for Enigma Network', async () => {
+  it('should prepare task for Enigma network', async () => {
     task = await new Promise((resolve, reject) => {
       enigma.createTaskInput(task)
         .on(eeConstants.CREATE_TASK_INPUT, (result) => resolve(result))
@@ -440,7 +439,7 @@ describe('Enigma tests', () => {
     expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(accounts[0]);
   });
 
-  it('should send Task to Enigma Network', async () => {
+  it('should send task inputs to Enigma network', async () => {
     const result = await new Promise((resolve, reject) => {
       enigma.sendTaskInput(task)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
@@ -464,7 +463,7 @@ describe('Enigma tests', () => {
     expect(taskStatuses).toEqual([1, 1, 1, 1, 2]);
   });
 
-  it('should get the pending Task', async () => {
+  it('should get the pending task', async () => {
     task = await enigma.getTaskRecordStatus(task);
     expect(task.ethStatus).toEqual(1);
   });
@@ -499,7 +498,7 @@ describe('Enigma tests', () => {
     expect(result.events.ReceiptVerified).toBeTruthy;
   });
 
-  it('should get the confirmed Task', async () => {
+  it('should get the confirmed task', async () => {
     task = await enigma.getTaskRecordStatus(task);
     expect(task.ethStatus).toEqual(2);
   });
@@ -552,7 +551,7 @@ describe('Enigma tests', () => {
     expect(endingBalance-startingBalance).toEqual(tasks[0].fee + tasks[1].fee);
   });
 
-  it('should get the pending Tasks', async () => {
+  it('should get the pending tasks', async () => {
     for (let i = 0; i < tasks.length; i++) {
       tasks[i] = await enigma.getTaskRecordStatus(tasks[i]);
       expect(tasks[i].ethStatus).toEqual(1);
@@ -599,7 +598,7 @@ describe('Enigma tests', () => {
     expect(result.events.ReceiptsVerified).toBeTruthy;
   });
 
-  it('should get the confirmed Tasks', async () => {
+  it('should get the confirmed tasks', async () => {
     for (let i = 0; i < tasks.length; i++) {
       tasks[i] = await enigma.getTaskRecordStatus(tasks[i]);
       expect(tasks[i].ethStatus).toEqual(2);

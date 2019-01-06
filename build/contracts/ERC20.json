@@ -15405,20 +15405,11 @@
                 {
                   "externalReferences": [
                     {
-                      "_to": {
-                        "declaration": 2000,
+                      "_data": {
+                        "declaration": 2004,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "18050:3:2",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "_value": {
-                        "declaration": 2002,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "18055:6:2",
+                        "src": "18087:5:2",
                         "valueSize": 1
                       }
                     },
@@ -15441,11 +15432,20 @@
                       }
                     },
                     {
-                      "_data": {
-                        "declaration": 2004,
+                      "_to": {
+                        "declaration": 2000,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "18087:5:2",
+                        "src": "18050:3:2",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "_value": {
+                        "declaration": 2002,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "18055:6:2",
                         "valueSize": 1
                       }
                     }
@@ -43720,20 +43720,11 @@
                 {
                   "externalReferences": [
                     {
-                      "_to": {
-                        "declaration": 2000,
+                      "_data": {
+                        "declaration": 2004,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "18050:3:2",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "_value": {
-                        "declaration": 2002,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "18055:6:2",
+                        "src": "18087:5:2",
                         "valueSize": 1
                       }
                     },
@@ -43756,11 +43747,20 @@
                       }
                     },
                     {
-                      "_data": {
-                        "declaration": 2004,
+                      "_to": {
+                        "declaration": 2000,
                         "isOffset": false,
                         "isSlot": false,
-                        "src": "18087:5:2",
+                        "src": "18050:3:2",
+                        "valueSize": 1
+                      }
+                    },
+                    {
+                      "_value": {
+                        "declaration": 2002,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "18055:6:2",
                         "valueSize": 1
                       }
                     }
@@ -56817,7 +56817,7 @@
   },
   "networks": {},
   "schemaVersion": "3.0.0",
-  "updatedAt": "2019-01-06T07:40:37.378Z",
+  "updatedAt": "2019-01-06T07:49:32.882Z",
   "devdoc": {
     "methods": {}
   },

@@ -2903,8 +2903,8 @@
         }
       },
       "links": {},
-      "address": "0xfD03B859fcd3cba4491Cc4ea55cEC9F61387f08E",
-      "transactionHash": "0xcd7af3c87b64f79b8d8d21558e68b7ff3765f93f666631059c2124d2458ae06c"
+      "address": "0x3F29017a4e6E810f691cd636a6aFf57e66f08413",
+      "transactionHash": "0x63e612357369639caa79211fd1704f419b151a5a671ef0fff332e2909b3da5b7"
     },
     "1532714176943": {
       "events": {},
@@ -2914,7 +2914,7 @@
     }
   },
   "schemaVersion": "3.0.0",
-  "updatedAt": "2019-01-06T07:40:51.979Z",
+  "updatedAt": "2019-01-06T07:54:22.138Z",
   "devdoc": {
     "details": "ERC20 Enigma Token (ENG) * ENG Tokens are divisible by 1e8 (100,000,000) base units referred to as 'Grains'. * ENG are displayed using 8 decimal places of precision. * 1 ENG is equivalent to:  100000000 == 1 * 10**8 == 1e8 == One Hundred Million Grains * 150 million ENG (total supply) is equivalent to:  15000000000000000 == 150000000 * 10**8 == 1e17 * All initial ENG Grains are assigned to the creator of this contract. ",
     "methods": {
