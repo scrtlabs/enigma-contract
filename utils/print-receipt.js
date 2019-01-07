@@ -18,6 +18,8 @@ module.exports = function(callback) {
   };
 
   (async () => {
+    const genesisBlock = await web3.eth.getBlock(0);
+    console.log('Genesis block hash:', genesisBlock.hash);
     const receipt = await web3.eth.getTransactionReceipt(RECEIPT_HASH);
     const receiptJson = JSON.stringify(receipt, replacer);
     console.log('RECEIPT:', receiptJson);
