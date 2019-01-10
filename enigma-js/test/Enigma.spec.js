@@ -64,7 +64,8 @@ describe('Enigma tests', () => {
   it('should generate and save key/pair', () => {
     const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
     expect(privateKey).toEqual('1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f');
-    expect(publicKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
+    expect(publicKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273' +
+      'e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
   });
 
   it('should distribute ENG tokens', async () => {
@@ -73,7 +74,7 @@ describe('Enigma tests', () => {
     const allowance = utils.toGrains(1000);
     for (let i = 1; i < accounts.length - 1; i++) {
       let promise = new Promise(async (resolve, reject) => {
-        const approveResult = await tokenContract.methods.approve(accounts[i], allowance).send(enigma.txDefaults);
+        await tokenContract.methods.approve(accounts[i], allowance).send(enigma.txDefaults);
         const transferResult = await tokenContract.methods.transfer(accounts[i], allowance).send(enigma.txDefaults);
         resolve(transferResult);
       });
@@ -81,6 +82,18 @@ describe('Enigma tests', () => {
     }
     const results = await Promise.all(promises);
     expect(results.length).toEqual(accounts.length - 2);
+  });
+
+  it('should fail to login an unregistered worker', async () => {
+    await expect(new Promise((resolve, reject) => {
+      enigma.admin.login(accounts[0])
+        .on(eeConstants.LOGIN_RECEIPT, (result) => {
+          resolve(result);
+        })
+        .on(eeConstants.ERROR, (err) => {
+          reject(err);
+        });
+    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
   });
 
   it('should simulate worker registration', async () => {
@@ -119,7 +132,7 @@ describe('Enigma tests', () => {
     expect(report).toBeTruthy;
   });
 
-  it('should check workers have been logged in', async () => {
+  it('should check workers have been registered', async () => {
     let workerStatuses = [];
     for (let i = 0; i < accounts.length-2; i++) {
       workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
@@ -143,8 +156,8 @@ describe('Enigma tests', () => {
   it('should fail to deposit too large a token amount', async () => {
     await expect(new Promise((resolve, reject) => {
       enigma.admin.deposit(accounts[1], utils.toGrains(2000))
-        .on('depositReceipt', (result) => resolve(result))
-        .on('error', (err) => {
+        .on(eeConstants.DEPOSIT_RECEIPT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (err) => {
           reject(err);
         });
     })).rejects.toEqual({message: 'Not enough tokens in wallet', name: 'NotEnoughTokens'});
@@ -159,8 +172,8 @@ describe('Enigma tests', () => {
       }
       let promise = new Promise((resolve, reject) => {
         enigma.admin.deposit(accounts[i], utils.toGrains(deposits[i]))
-          .on('depositReceipt', (result) => resolve(result))
-          .on('error', (err) => {
+          .on(eeConstants.DEPOSIT_RECEIPT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (err) => {
             reject(err);
           });
       });
@@ -179,6 +192,33 @@ describe('Enigma tests', () => {
       balances.push(await enigma.admin.getStakedBalance(accounts[i]));
     }
     expect(balances).toEqual([900, 100, 10, 20, 100, 200, 40, 100].map((balance) => balance * 10 ** 8));
+  });
+
+  it('should fail to withdraw too many tokens from worker bank', async () => {
+    let withdrawAmount = utils.toGrains(1000);
+    await expect(new Promise((resolve, reject) => {
+      enigma.admin.withdraw(accounts[0], withdrawAmount)
+        .on(eeConstants.WITHDRAW_RECEIPT, (result) => {
+          resolve(result);
+        })
+        .on(eeConstants.ERROR, (err) => {
+          reject(err);
+        });
+    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+  });
+
+  it('should withdraw tokens from worker bank', async () => {
+    let withdrawAmount = utils.toGrains(100);
+    const startingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+    await expect(new Promise((resolve, reject) => {
+      enigma.admin.withdraw(accounts[0], withdrawAmount)
+        .on(eeConstants.WITHDRAW_RECEIPT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (err) => {
+          reject(err);
+        });
+    }));
+    const endingBalance = (await enigma.enigmaContract.methods.workers(accounts[0]).call()).balance;
+    expect(endingBalance - startingBalance).toEqual(-withdrawAmount);
   });
 
   it('should login all the workers', async () => {
@@ -206,11 +246,33 @@ describe('Enigma tests', () => {
     }
   });
 
-  it('should logout and log back in a worker', async () => {
-    await enigma.admin.logout(accounts[0]);
+  it('should logout, fail to logout again, and log back in a worker', async () => {
+    await new Promise((resolve, reject) => {
+      enigma.admin.logout(accounts[0])
+        .on(eeConstants.LOGOUT_RECEIPT, (result) => {
+          resolve(result);
+        })
+        .on(eeConstants.ERROR, (err) => {
+          reject(err);
+        });
+    });
     let workerStatus = await enigma.admin.getWorkerStatus(accounts[0]);
     expect(workerStatus).toEqual(3);
-    await enigma.admin.login(accounts[0]);
+    await expect(new Promise((resolve, reject) => {
+      enigma.admin.logout(accounts[0])
+        .on(eeConstants.LOGOUT_RECEIPT, (result) => {
+          resolve(result);
+        })
+        .on(eeConstants.ERROR, (err) => {
+          reject(err);
+        });
+    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+    await new Promise((resolve, reject) => {
+      enigma.admin.login(accounts[0])
+        .on(eeConstants.LOGIN_RECEIPT, (result) => {
+          resolve(result);
+        });
+    });
     workerStatus = await enigma.admin.getWorkerStatus(accounts[0]);
     expect(workerStatus).toEqual(2);
   });
@@ -258,9 +320,7 @@ describe('Enigma tests', () => {
       '000000000000000001000000000000000000000000000000000000000000000000000000000000000866697273745f736300000000' +
       '0000000000000000000000000000000000000000');
     expect(scTask.fee).toEqual(30000000000);
-    expect(scTask.userPubKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa504' +
-      '66237273e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
-    expect(scTask.sender).toEqual('0xC20219b20723a39E58897b861051f94A410f5ec2');
+    expect(scTask.sender).toEqual(accounts[0]);
   });
 
   it('should fail to create task record due to insufficient funds', async () => {
@@ -401,10 +461,8 @@ describe('Enigma tests', () => {
     expect(task.fn).toEqual('medianWealth');
     expect(task.abiEncodedArgs).toEqual('0x0000000000000000000000000000000000000000000000000000000000030d40000000' +
       '00000000000000000000000000000000000000000000000000000493e0');
-    expect(scTask.fee).toEqual(30000000000);
-    expect(scTask.userPubKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa504' +
-      '66237273e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
-    expect(scTask.sender).toEqual('0xC20219b20723a39E58897b861051f94A410f5ec2');
+    expect(task.fee).toEqual(30000000000);
+    expect(task.sender).toEqual(accounts[0]);
   });
 
   it('should create task record', async () => {
@@ -653,7 +711,8 @@ describe('Enigma tests', () => {
       });
     })).rejects.toEqual({code: -32602, message: "Invalid params"});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1'}, (err, response) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1'},
+        (err, response) => {
         if (err) {
           reject(err);
         }

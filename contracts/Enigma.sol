@@ -81,6 +81,7 @@ contract Enigma {
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes ethCall, bytes sig);
     event DepositSuccessful(address from, uint value);
+    event WithdrawSuccessful(address to, uint value);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash);
 
     // ========================================== State Variables ==========================================
@@ -217,11 +218,29 @@ contract Enigma {
     workerRegistered(_custodian)
     {
         require(engToken.allowance(_custodian, address(this)) >= _amount, "Not enough tokens allowed for transfer");
-        require(engToken.transferFrom(_custodian, address(this), _amount));
+        require(engToken.transferFrom(_custodian, address(this), _amount), "Token transfer failed");
 
         workers[_custodian].balance = workers[_custodian].balance.add(_amount);
 
         emit DepositSuccessful(_custodian, _amount);
+    }
+
+    /**
+    * Withdraws ENG stake from contract back to worker. Worker must be registered to do so.
+    *
+    * @param _custodian The worker's ETH address
+    * @param _amount The amount of ENG, in grains format (10 ** 8), to deposit
+    */
+    function withdraw(address _custodian, uint _amount)
+    public
+    workerRegistered(_custodian)
+    {
+        require(workers[_custodian].balance >= _amount, "Not enough tokens in worker balance");
+        require(engToken.transfer(_custodian, _amount), "Token transfer failed");
+
+        workers[_custodian].balance = workers[_custodian].balance.sub(_amount);
+
+        emit WithdrawSuccessful(_custodian, _amount);
     }
 
     /**

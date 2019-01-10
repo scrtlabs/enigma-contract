@@ -11,17 +11,15 @@ export default class Task {
    * @param {string} fn
    * @param {string} abiEncodedArgs
    * @param {string} fee
-   * @param {string} userPubKey
    * @param {string} sender
    * @param {string} scAddr
    */
-  constructor(taskIdInputHash, fn, abiEncodedArgs, fee, userPubKey, sender, scAddr) {
+  constructor(taskIdInputHash, fn, abiEncodedArgs, fee, sender, scAddr) {
     // Base task attributes for task initialized locally
     this.taskIdInputHash = taskIdInputHash;
     this.fn = fn;
     this.abiEncodedArgs = abiEncodedArgs;
     this.fee = fee;
-    this.userPubKey = userPubKey;
     this.sender = sender;
     this.scAddr = scAddr;
 
@@ -39,6 +37,7 @@ export default class Task {
     this.msgId = '';
     this.encryptedFn = '';
     this.encryptedAbiEncodedArgs = '';
+    this.encryptedUserPubKey = '';
     this.userTaskSig = '';
 
     // Attributes added to task when computation result is being polled from the ENG network

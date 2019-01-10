@@ -104,19 +104,22 @@ export default class Admin {
    */
   login(account) {
     let emitter = new EventEmitter();
-    this.enigmaContract.methods.login().send({from: account})
-      .on('transactionHash', (hash) => {
-        emitter.emit(eeConstants.LOGIN_TRANSACTION_HASH, hash);
-      })
-      .on('confirmation', (confirmationNumber, receipt) => {
-        emitter.emit(eeConstants.LOGIN_CONFIRMATION, confirmationNumber, receipt);
-      })
-      .on('receipt', (receipt) => {
-        emitter.emit(eeConstants.LOGIN_RECEIPT, receipt);
-      })
-      .on('error', (err) => {
-        emitter.emit(eeConstants.ERROR, err);
-      });
+    (async () => {
+      try {
+        await this.enigmaContract.methods.login().send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.LOGIN_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.LOGIN_CONFIRMATION, confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit(eeConstants.LOGIN_RECEIPT, receipt);
+          });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
     return emitter;
   }
 
@@ -128,19 +131,25 @@ export default class Admin {
    */
   logout(account) {
     let emitter = new EventEmitter();
-    this.enigmaContract.methods.logout().send({from: account})
-      .on('transactionHash', (hash) => {
-        emitter.emit(eeConstants.LOGOUT_TRANSACTION_HASH, hash);
-      })
-      .on('confirmation', (confirmationNumber, receipt) => {
-        emitter.emit(eeConstants.LOGOUT_CONFIRMATION, confirmationNumber, receipt);
-      })
-      .on('receipt', (receipt) => {
-        emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
-      })
-      .on('error', (err) => {
-        emitter.emit(eeConstants.ERROR, err);
-      });
+    (async () => {
+      try {
+        await this.enigmaContract.methods.logout().send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.LOGOUT_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.LOGOUT_CONFIRMATION, confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
+          })
+          .on('error', (err) => {
+            emitter.emit(eeConstants.ERROR, err.message);
+          });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
     return emitter;
   }
 
@@ -164,15 +173,6 @@ export default class Admin {
         return;
       }
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send({from: account});
-      const allowance = await this.tokenContract.methods.allowance(account, this.enigmaContract.options.address).call();
-      if (allowance < amount) {
-        const msg = 'Not enough tokens approved: ' + allowance + '<' + amount;
-        emitter.emit('error', {
-          name: 'NotEnoughApprovedTokens',
-          message: msg,
-        });
-        return;
-      }
       await this.enigmaContract.methods.deposit(account, amount).send({from: account})
         .on('transactionHash', (hash) => {
           emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
@@ -182,7 +182,38 @@ export default class Admin {
         })
         .on('receipt', (receipt) => {
           emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
+        })
+        .on('error', (err) => {
+          emitter.emit(eeConstants.ERROR, err.message);
         });
+    })();
+    return emitter;
+  }
+
+  /**
+   * Withdraw ENG tokens from the worker's bank
+   *
+   * @param {string} account - Worker's address
+   * @param {number} amount - Number of ENG tokens to deposit, in grains (10**8 multiplier) format
+   * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
+   */
+  withdraw(account, amount) {
+    let emitter = new EventEmitter();
+    (async () => {
+      try {
+        await this.enigmaContract.methods.withdraw(account, amount).send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.WITHDRAW_CONFIRMATION, confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit(eeConstants.WITHDRAW_RECEIPT, receipt);
+          });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
     })();
     return emitter;
   }

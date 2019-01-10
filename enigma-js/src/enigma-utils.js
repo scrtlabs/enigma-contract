@@ -154,15 +154,15 @@ const EC = elliptic.ec;
 //   return {verified: true, err: undefined};
 // }
 
-/**
- * Encode secret contract function arguments
- *
- * @param {Object} args
- * @return {string}
- */
-function encodeArguments(args) {
-  return '0x' + RLP.encode(args).toString('hex');
-}
+// /**
+//  * Encode secret contract function arguments
+//  *
+//  * @param {Object} args
+//  * @return {string}
+//  */
+// function encodeArguments(args) {
+//   return '0x' + RLP.encode(args).toString('hex');
+// }
 
 /**
  * Generate a taskId using a hash of all inputs
@@ -368,7 +368,7 @@ let utils = {};
 // utils.readCert = readCert;
 utils.encodeReport = encodeReport;
 utils.test = () => 'hello2';
-utils.encodeArguments = encodeArguments;
+// utils.encodeArguments = encodeArguments;
 utils.generateTaskIdInputHash = generateTaskIdInputHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;

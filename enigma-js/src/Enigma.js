@@ -99,7 +99,7 @@ export default class Enigma {
     let argsTranspose = args[0].map((col, i) => args.map((row) => row[i]));
     let abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
     let taskIdInputHash = utils.generateTaskIdInputHash(fn, abiEncodedArgs, publicKey);
-    return new Task(taskIdInputHash, fn, abiEncodedArgs, fee, publicKey, sender, scAddr);
+    return new Task(taskIdInputHash, fn, abiEncodedArgs, fee, sender, scAddr);
   }
 
   /**
@@ -327,12 +327,13 @@ export default class Enigma {
           message: 'Invalid worker encryption key + signature combo',
         });
       } else {
-        const {privateKey} = this.obtainTaskKeyPair();
+        const {publicKey, privateKey} = this.obtainTaskKeyPair();
         // Generate derived key from worker's encryption key and user's private key
         const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
         // Encrypt function and ABI-encoded args
         task.encryptedFn = utils.encryptMessage(derivedKey, task.fn);
         task.encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, task.abiEncodedArgs);
+        task.encryptedUserPubKey = utils.encryptMessage(derivedKey, publicKey);
         const msg = this.web3.utils.soliditySha3(
           {t: 'bytes', v: task.encryptedFn},
           {t: 'bytes', v: task.encryptedAbiEncodedArgs},
@@ -431,7 +432,7 @@ export default class Enigma {
     return {taskId: task.taskId, creationBlockNumber: task.creationBlockNumber, sender: task.sender,
       scAddr: task.scAddr, encryptedFn: task.encryptedFn,
       encryptedAbiEncodedArgs: task.encryptedAbiEncodedArgs, userTaskSig: task.userTaskSig,
-      userPubKey: task.userPubKey, fee: task.fee, msgId: task.msgId};
+      encryptedUserPubKey: task.encryptedUserPubKey, fee: task.fee, msgId: task.msgId};
   }
 
   /**
