@@ -93,7 +93,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (err) => {
           reject(err);
         });
-    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Unregistered worker.');
   });
 
   it('should simulate worker registration', async () => {
@@ -204,7 +204,8 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (err) => {
           reject(err);
         });
-    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not enough tokens in ' +
+      'worker balance');
   });
 
   it('should withdraw tokens from worker bank', async () => {
@@ -266,7 +267,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (err) => {
           reject(err);
         });
-    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Worker not logged in.');
     await new Promise((resolve, reject) => {
       enigma.admin.login(accounts[0])
         .on(eeConstants.LOGIN_RECEIPT, (result) => {

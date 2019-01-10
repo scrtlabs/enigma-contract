@@ -2903,8 +2903,8 @@
         }
       },
       "links": {},
-      "address": "0x50E54f2C3d00A952b38946f31626f6c35e7b44A5",
-      "transactionHash": "0x2a3c7907b1bdcf5d161c8b32bd91fa244bc125414a2bc0c3cd74a05e5c2a194b"
+      "address": "0x64e34fbee391215d6bb27d786738fff7786e7825",
+      "transactionHash": "0x888d4f760126b0c56eb1e9320dca4be8629d6638b8f46ee3e2804328de723864"
     },
     "1532714176943": {
       "events": {},
@@ -2913,73 +2913,6 @@
       "transactionHash": "0x07ead3a6c08da07813a1ebdc7c9ec91a2cda06a79a124f6a6227d756c650fcf1"
     }
   },
-  "schemaVersion": "3.0.0",
-  "updatedAt": "2019-01-10T06:31:47.506Z",
-  "devdoc": {
-    "details": "ERC20 Enigma Token (ENG) * ENG Tokens are divisible by 1e8 (100,000,000) base units referred to as 'Grains'. * ENG are displayed using 8 decimal places of precision. * 1 ENG is equivalent to:  100000000 == 1 * 10**8 == 1e8 == One Hundred Million Grains * 150 million ENG (total supply) is equivalent to:  15000000000000000 == 150000000 * 10**8 == 1e17 * All initial ENG Grains are assigned to the creator of this contract. ",
-    "methods": {
-      "approve(address,uint256)": {
-        "details": "Approve the passed address to spend the specified amount of tokens on behalf of msg.sender when not paused.",
-        "params": {
-          "_spender": "The address which will spend the funds.",
-          "_value": "The amount of tokens to be spent."
-        }
-      },
-      "balanceOf(address)": {
-        "details": "Gets the balance of the specified address.",
-        "params": {
-          "owner": "The address to query the balance of."
-        },
-        "return": "An uint256 representing the amount owned by the passed address."
-      },
-      "constructor": {
-        "details": "EnigmaToken Constructor Runs only on initial contract creation."
-      },
-      "decimals()": {
-        "return": "the number of decimals of the token."
-      },
-      "decreaseAllowance(address,uint256)": {
-        "details": "Decrease the amount of tokens that an owner allowed to a spender. approve should be called when allowed_[_spender] == 0. To decrement allowed value is better to use this function to avoid 2 calls (and wait until the first transaction is mined) From MonolithDAO Token.sol Emits an Approval event.",
-        "params": {
-          "spender": "The address which will spend the funds.",
-          "subtractedValue": "The amount of tokens to decrease the allowance by."
-        }
-      },
-      "increaseAllowance(address,uint256)": {
-        "details": "Increase the amount of tokens that an owner allowed to a spender. approve should be called when allowed_[_spender] == 0. To increment allowed value is better to use this function to avoid 2 calls (and wait until the first transaction is mined) From MonolithDAO Token.sol Emits an Approval event.",
-        "params": {
-          "addedValue": "The amount of tokens to increase the allowance by.",
-          "spender": "The address which will spend the funds."
-        }
-      },
-      "name()": {
-        "return": "the name of the token."
-      },
-      "symbol()": {
-        "return": "the symbol of the token."
-      },
-      "totalSupply()": {
-        "details": "Total number of tokens in existence"
-      },
-      "transfer(address,uint256)": {
-        "details": "Transfer token for a specified address when not paused",
-        "params": {
-          "_to": "The address to transfer to.",
-          "_value": "The amount to be transferred."
-        }
-      },
-      "transferFrom(address,address,uint256)": {
-        "details": "Transfer tokens from one address to another when not paused",
-        "params": {
-          "_from": "address The address which you want to send tokens from",
-          "_to": "address The address which you want to transfer to",
-          "_value": "uint256 the amount of tokens to be transferred"
-        }
-      }
-    },
-    "title": "Enigma Token"
-  },
-  "userdoc": {
-    "methods": {}
-  }
+  "schemaVersion": "2.0.0",
+  "updatedAt": "2019-01-10T15:12:13.219Z"
 }
