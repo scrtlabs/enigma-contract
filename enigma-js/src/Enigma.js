@@ -79,92 +79,157 @@ export default class Enigma {
   }
 
   /**
-   * Create a base Task - a local wrapper for a task (either contract deployments or regular tasks) with some
-   * preliminary attributes
+   * Create a base Task - a wrapper for a task (either contract deployments or regular tasks)
    *
    * @param {string} fn - Function name
    * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]. For a secret
    * contract deployment task, the first entry pair in the args list will be [preCodeHash, 'bytes32'] followed by
    * the constructor args
-   * @param {Number} fee - ENG fee for task computation
+   *
+   * @param {Number} gasLimit - ENG gas limit for task computation
+   * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
    * @param {string} scAddr - Defaults to empty string for the case of a secret contract deployment. For all other
    * tasks, this will be the secret contract address for which this task belongs
-   * @return {Task} Task with base attributes to be used for remainder of task lifecycle: task record
-   * (to be saved on ETH) -> task input (to be sent to the ENG network) -> task result (result and status obtained
-   * from ENG network)
+   * @return {Task} Task with base attributes to be used for remainder of task lifecycle
    */
-  createTask(fn, args, fee, sender, scAddr='') {
-    const {publicKey} = this.obtainTaskKeyPair();
-    let argsTranspose = args[0].map((col, i) => args.map((row) => row[i]));
-    let abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
-    let taskIdInputHash = utils.generateTaskIdInputHash(fn, abiEncodedArgs, publicKey);
-    return new Task(taskIdInputHash, fn, abiEncodedArgs, fee, sender, scAddr);
+  createTask(fn, args, gasLimit, gasPx, sender, scAddr='') {
+    let emitter = new EventEmitter();
+    (async () => {
+      const isContractDeploymentTask = scAddr === '';
+      const nonce = parseInt(await this.enigmaContract.methods.userTaskDeployments(sender).call());
+      scAddr = scAddr || utils.generateScAddr(args[0][0], sender, nonce);
+      const argsTranspose = args[0].map((col, i) => args.map((row) => row[i]));
+      const abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
+      const blockNumber = await this.web3.eth.getBlockNumber();
+      const workerParams = await this.getWorkerParams(blockNumber);
+      const workerAddress = await this.selectWorkerGroup(blockNumber, scAddr, workerParams, 5)[0];
+      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
+        this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
+      });
+      const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
+      if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
+        this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
+        emitter.emit(eeConstants.ERROR, {
+          name: 'InvalidWorker',
+          message: 'Invalid worker encryption key + signature combo',
+        });
+      } else {
+        const {publicKey, privateKey} = this.obtainTaskKeyPair();
+        // Generate derived key from worker's encryption key and user's private key
+        const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
+        // Encrypt function and ABI-encoded args
+        const encryptedFn = utils.encryptMessage(derivedKey, fn);
+        const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
+        const msg = this.web3.utils.soliditySha3(
+          {t: 'bytes', v: encryptedFn},
+          {t: 'bytes', v: encryptedAbiEncodedArgs},
+        );
+        const userTaskSig = await this.web3.eth.sign(msg, sender);
+        emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
+          msgId, publicKey, workerAddress, sender, userTaskSig, nonce, isContractDeploymentTask));
+      }
+    })();
+    return emitter;
   }
 
   /**
    * Create and store a task record on chain (ETH). Task records are necessary for collecting the ENG computation fee
-   * and computing the immutable taskId (a unique value for each task computed from hash(hash(function signature,
-   * ABI-encoded arguments, user's public key), user's nonce value monotonically increasing for every task deployment).
-   * Thus, task records have important implications for task ordering, fee payments, and verification.
+   * and computing the immutable taskId (a unique value for each task computed from hash(hash(encrypted function
+   * signature, encrypted ABI-encoded arguments, gas limit, gas price, user's public key), user's nonce value
+   * monotonically increasing for every task deployment). Thus, task records have important implications for task
+   * ordering, fee payments, and verification.
    *
-   * @param {Task} task - Task wrapper (with base attributes) for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
    * @returns {EventEmitter} EventEmitter to be listened to track creation of task record. Emits a Task with task
-   * record creation attributes to be used for remainder of task lifecycle: task input (to be sent to the ENG network)
-   * -> task result (result and status obtained from ENG network)
+   * record creation attributes to be used for remainder of task lifecycle
    */
   createTaskRecord(task) {
     let emitter = new EventEmitter();
     (async () => {
       const balance = await this.tokenContract.methods.balanceOf(task.sender).call();
-      if (balance < task.fee) {
+      if (balance < (task.gasLimit * task.gasPx)) {
         emitter.emit('error', {
           name: 'NotEnoughTokens',
           message: 'Not enough tokens to pay the fee',
         });
         return;
       }
-      await this.tokenContract.methods.approve(this.enigmaContract.options.address, task.fee).send({
+      await this.tokenContract.methods.approve(this.enigmaContract.options.address, task.gasLimit * task.gasPx).send({
         from: task.sender,
       });
-      await this.enigmaContract.methods.createTaskRecord(task.taskIdInputHash, task.fee).send({
-        from: task.sender,
-      })
-        .on('transactionHash', (hash) => {
-          task.transactionHash = hash;
-          emitter.emit(eeConstants.CREATE_TASK_RECORD_TRANSACTION_HASH, hash);
-        })
-        .on('confirmation', (confirmationNumber, receipt) => {
-          emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
-        })
-        .then((receipt) => {
-          task.taskId = receipt.events.TaskRecordCreated.returnValues.taskId;
-          task.receipt = receipt;
-          task.ethStatus = 1;
-          task.creationBlockNumber = receipt.blockNumber;
-          emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
-          emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
-        });
+      try {
+        if (task.isContractDeploymentTask) {
+          await this.enigmaContract.methods.createDeploymentTaskRecord(task.taskIdInputHash, task.gasLimit, task.gasPx,
+            task.workerAddress, task.scAddr, task.nonce).send({
+            from: task.sender,
+          })
+            .on('transactionHash', (hash) => {
+              task.transactionHash = hash;
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_TRANSACTION_HASH, hash);
+            })
+            .on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
+            })
+            .then((receipt) => {
+              task.taskId = receipt.events.TaskRecordCreated.returnValues.taskId;
+              task.receipt = receipt;
+              task.ethStatus = 1;
+              task.creationBlockNumber = receipt.blockNumber;
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
+              emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
+            });
+        } else {
+          await this.enigmaContract.methods.createTaskRecord(task.taskIdInputHash, task.gasLimit, task.gasPx,
+            task.workerAddress, task.scAddr).send({
+            from: task.sender,
+          })
+            .on('transactionHash', (hash) => {
+              task.transactionHash = hash;
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_TRANSACTION_HASH, hash);
+            })
+            .on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
+            })
+            .then((receipt) => {
+              task.taskId = receipt.events.TaskRecordCreated.returnValues.taskId;
+              task.receipt = receipt;
+              task.ethStatus = 1;
+              task.creationBlockNumber = receipt.blockNumber;
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
+              emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
+            });
+        }
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
     })();
     return emitter;
   }
 
   /**
    * Create and store task records on chain (ETH). Task records are necessary for collecting the ENG computation fee
-   * and computing the immutable taskId (a unique value for each task computed from hash(hash(function signature,
-   * ABI-encoded arguments, user's public key), user's nonce value monotonically increasing for every task deployment).
-   * Thus, task records have important implications for task ordering, fee payments, and verification.
+   * and computing the immutable taskId (a unique value for each task computed from hash(hash(encrypted function
+   * signature, encrypted ABI-encoded arguments, gas limit, gas price, user's public key), user's nonce value
+   * monotonically increasing for every task deployment). Thus, task records have important implications for task
+   * ordering, fee payments, and verification.
    *
-   * @param {Array} tasks - Task wrappers (with base attributes) for contract deployment and regular tasks
-   * @returns {EventEmitter} EventEmitter to be listened to track creation of task record. Emits Tasks with task
-   * record creation attributes to be used for remainder of tasks' lifecycles: task input (to be sent to the ENG
-   * network) -> task result (result and status obtained from ENG network)
+   * @param {Array} tasks - Task wrappers for contract deployment and regular tasks
+   * @returns {EventEmitter} EventEmitter to be listened to track creation of task records. Emits Tasks with task
+   * record creation attributes to be used for remainder of task lifecycle
    */
   createTaskRecords(tasks) {
     let emitter = new EventEmitter();
     (async () => {
       const taskIdInputHashes = tasks.map((task) => task.taskIdInputHash);
-      const fees = tasks.map((task) => task.fee);
+      const gasLimits = tasks.map((task) => task.gasLimit);
+      const gasPxs = tasks.map((task) => task.gasPx);
+      const fees = tasks.map((task) => task.gasLimit * task.gasPx);
       const balance = await this.tokenContract.methods.balanceOf(tasks[0].sender).call();
       const totalFees = fees.reduce((a, b) => a + b, 0);
       if (balance < totalFees) {
@@ -177,7 +242,8 @@ export default class Enigma {
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send({
         from: tasks[0].sender,
       });
-      await this.enigmaContract.methods.createTaskRecords(taskIdInputHashes, fees).send({
+      await this.enigmaContract.methods.createTaskRecords(taskIdInputHashes, gasLimits, gasPxs, tasks[0].workerAddress,
+        tasks[0].scAddr).send({
         from: tasks[0].sender,
       })
         .on('transactionHash', (hash) => {
@@ -207,7 +273,7 @@ export default class Enigma {
   /**
    * Get the Task's task record status from Ethereum
    *
-   * @param {Task} task - Task wrapper (with task record attributes) for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
    * @return {Promise} Resolves to Task wrapper with updated ethStatus and proof properties
    */
   async getTaskRecordStatus(task) {
@@ -219,6 +285,7 @@ export default class Enigma {
 
   /**
    * Find SGX report
+   *
    * @param {string} custodian - Worker's address
    * @return {Promise} Resolves to SGX report for the worker
    */
@@ -229,6 +296,7 @@ export default class Enigma {
   /**
    * Given a block number, obtain the worker parameters. These parameters remain the same for a given secret
    * contract and epoch (fixed number of blocks). These parameters are cached until the epoch changes.
+   *
    * @param {int} blockNumber - Block number of task record's mining
    * @return {Promise} Resolves to the worker params, which includes a seed (random int generated from the principal
    * node), first block number for the epoch, list of active work addresses (ordered list of workers that were logged
@@ -251,6 +319,7 @@ export default class Enigma {
 
   /**
    * Select the workers weighted-randomly based on the staked token amount that will run the computation task
+   *
    * @param {number} blockNumber - Block number of task record's mining
    * @param {string} scAddr - Secret contract address
    * @param {Object} params - Worker params
@@ -293,65 +362,11 @@ export default class Enigma {
   }
 
   /**
-   * Prepare a Task for submission to the ENG network. Most importantly, the function name and ABI-encoded args are
-   * encrypted by using a derived key from the user's private key and selected worker's public key.
-   * @param {Task} task - Task wrapper (with task record attributes) for contract deployment and regular tasks
-   * @returns {EventEmitter} EventEmitter to be listened to track preparation of task input for ENG network. Emits
-   * Task with task input attributes to be used for remainder of task lifecycle: sending task input to ENG network
-   * -> task result (result and status obtained from ENG network)
-   */
-  createTaskInput(task) {
-    let emitter = new EventEmitter();
-    (async () => {
-      // Set secret contract address to task's secret contract address or the taskId if scAddr has not been set (as is
-      // the case for a contract deployment task)
-      const scAddr = task.scAddr || task.taskId;
-      const workerParams = await this.getWorkerParams(task.creationBlockNumber);
-      // Select worker based on the task's epoch and secret contract address
-      const workerAddress = await this.selectWorkerGroup(task.creationBlockNumber, scAddr, workerParams, 5)[0];
-      // Request worker's encryption key from Enigma network
-      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-        this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(response);
-        });
-      });
-      const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
-      task.msgId = msgId;
-      if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
-        this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
-        emitter.emit(eeConstants.ERROR, {
-          name: 'InvalidWorker',
-          message: 'Invalid worker encryption key + signature combo',
-        });
-      } else {
-        const {publicKey, privateKey} = this.obtainTaskKeyPair();
-        // Generate derived key from worker's encryption key and user's private key
-        const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
-        // Encrypt function and ABI-encoded args
-        task.encryptedFn = utils.encryptMessage(derivedKey, task.fn);
-        task.encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, task.abiEncodedArgs);
-        task.encryptedUserPubKey = utils.encryptMessage(derivedKey, publicKey);
-        const msg = this.web3.utils.soliditySha3(
-          {t: 'bytes', v: task.encryptedFn},
-          {t: 'bytes', v: task.encryptedAbiEncodedArgs},
-        );
-        task.userTaskSig = await this.web3.eth.sign(msg, task.sender);
-        emitter.emit(eeConstants.CREATE_TASK_INPUT, task);
-      }
-    })();
-    return emitter;
-  }
-
-  /**
    * Send Task to Enigma p2p network for computation
    *
-   * @param {Task} task - Task wrapper (with task input attributes) for contract deployment and regular tasks
-   * @return {EventEmitter} EventEmitter to be listened to track submission of TaskInput to Enigma p2p network. Emits
-   * a response from the ENG network indicating whether client is ready to track the remainder of the task lifecycle:
-   * task result (result and status obtained from ENG network)
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {EventEmitter} EventEmitter to be listened to track submission of Task to Enigma p2p network. Emits
+   * a response from the ENG network indicating whether client is ready to track the remainder of the task lifecycle
    */
   sendTaskInput(task) {
     let emitter = new EventEmitter();
@@ -373,7 +388,7 @@ export default class Enigma {
   /**
    * Generator function for polling the Enigma p2p network for task status
    *
-   * @param {Task} task - Task wrapper (with task input attributes) for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
    */
   * pollTaskInputGen(task) {
     while (true) {
@@ -394,7 +409,7 @@ export default class Enigma {
   /**
    * Inner poll status function that continues to poll the Enigma p2p network until the task has been verified
    *
-   * @param {Task} task - Task wrapper (with task input attributes) for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
    * @param {pollTaskGen} generator - Generator function for polling Enigma p2p network for task status
    * @param {EventEmitter} emitter - EventEmitter to track Enigma p2p network polling for Task status
    */
@@ -411,7 +426,7 @@ export default class Enigma {
   /**
    * Poll the Enigma p2p network for a TaskInput's status
    *
-   * @param {Task} task - Task wrapper (with task input attributes) for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
    * @return {EventEmitter} EventEmitter to be listened to track polling the Enigma p2p network for a Task status.
    * Emits a Task with task result attributes
    */
@@ -425,14 +440,14 @@ export default class Enigma {
   /**
    * Serialize Task for submission to the Enigma p2p network
    *
-   * @param {Task} task - Task wrapper (with task input attributes) for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
     return {taskId: task.taskId, creationBlockNumber: task.creationBlockNumber, sender: task.sender,
       scAddr: task.scAddr, encryptedFn: task.encryptedFn,
       encryptedAbiEncodedArgs: task.encryptedAbiEncodedArgs, userTaskSig: task.userTaskSig,
-      encryptedUserPubKey: task.encryptedUserPubKey, fee: task.fee, msgId: task.msgId};
+      userPubKey: task.userPubKey, gasLimit: task.gasLimit, gasPx: task.gasPx, msgId: task.msgId};
   }
 
   /**

@@ -28,7 +28,8 @@ contract Enigma {
     // ========================================== Structs ==========================================
 
     struct TaskRecord {
-        uint fee; // ENG fee in grains (10 ** 8) amount
+        uint gasLimit; // ENG gas limit units
+        uint gasPx; // ENG gas px in grains (10 ** 8) amount
         bytes proof; // Signature of (taskId, inStateDeltaHash, outStateDeltaHash, ethCall)
         address sender; // Sender of TaskRecord
         uint blockNumber; // Block number TaskRecord was mined
@@ -76,8 +77,8 @@ contract Enigma {
     event Registered(address custodian, address signer);
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);
     event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances, uint nonce);
-    event TaskRecordCreated(bytes32 taskId, uint fee, address sender);
-    event TaskRecordsCreated(bytes32[] taskIds, uint[] fees, address sender);
+    event TaskRecordCreated(bytes32 taskId, uint gasLimit, uint gasPx, address sender);
+    event TaskRecordsCreated(bytes32[] taskIds, uint[] gasLimits, uint[] gasPxs, address sender);
     event ReceiptVerified(bytes32 taskId, bytes32 inStateDeltaHash, bytes32 outStateDeltaHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] inStateDeltaHashes, bytes32[] outStateDeltaHashes, bytes ethCall, bytes sig);
     event DepositSuccessful(address from, uint value);
@@ -154,7 +155,7 @@ contract Enigma {
     */
     modifier workerRegistered(address _user) {
         Worker memory worker = workers[_user];
-        require(worker.status != WorkerStatus.Unregistered, "Unregistered worker.");
+        require(worker.status != WorkerStatus.Unregistered, "Unregistered worker");
         _;
     }
 
@@ -165,7 +166,17 @@ contract Enigma {
     */
     modifier workerLoggedIn(address _user) {
         Worker memory worker = workers[_user];
-        require(worker.status == WorkerStatus.LoggedIn, "Worker not logged in.");
+        require(worker.status == WorkerStatus.LoggedIn, "Worker not logged in");
+        _;
+    }
+
+    /**
+    * Checks secret contract has not been deployed
+    *
+    * @param _scAddr Secret contract address
+    */
+    modifier contractUndefined(bytes32 _scAddr) {
+        require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed");
         _;
     }
 
@@ -175,7 +186,7 @@ contract Enigma {
     * @param _scAddr Secret contract address
     */
     modifier contractDeployed(bytes32 _scAddr) {
-        require(contracts[_scAddr].status == SecretContractStatus.Deployed, "Secret contract not deployed.");
+        require(contracts[_scAddr].status == SecretContractStatus.Deployed, "Secret contract not deployed");
         _;
     }
 
@@ -262,48 +273,50 @@ contract Enigma {
     * Deploy secret contract from user, called by the worker.
     *
     * @param _scAddr Secret contract address
+    * @param _taskId Task ID of corresponding deployment task
     * @param _preCodeHash Predeployed bytecode hash
     * @param _codeHash Deployed bytecode hash
-    * @param _owner ETH address for user who initially deployed the secret contract task
+    * @param _gasUsed Gas used for task
     * @param _sig Worker's signature for deployment
     */
-    function deploySecretContract(bytes32 _scAddr, bytes32 _preCodeHash, bytes32 _codeHash,
-        address _owner, bytes memory _sig)
+    function deploySecretContract(bytes32 _scAddr, bytes32 _taskId, bytes32 _preCodeHash, bytes32 _codeHash,
+        uint _gasUsed, bytes memory _sig)
     public
     workerLoggedIn(msg.sender)
+    contractUndefined(_scAddr)
     {
-        // Secret contract must not have been deployed yet
-        require(contracts[_scAddr].status == SecretContractStatus.Undefined, "Secret contract already deployed.");
+        // Index into task records based on _taskId to find corresponding deployment task
+        TaskRecord storage task = tasks[_taskId];
+        require(task.status == TaskStatus.RecordCreated, "Invalid task status");
 
-        // We can index into tasks with secret contract address since for contract deployment tasks, scAddr == taskId
-        // Must be a task record corresponding to this deployment task
-        require(tasks[_scAddr].status == TaskStatus.RecordCreated, "Invalid task status");
-
-        // Owner must be the same as the corresponding task record's owner
-        require(tasks[_scAddr].sender == _owner, "Invalid sender");
+        // Check that worker isn't charging the user too high of a fee
+        require(task.gasLimit >= _gasUsed, "Too much gas used for task");
 
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        address selectedWorker = getWorkerGroup(tasks[_scAddr].blockNumber, _scAddr)[0];
+        address selectedWorker = getWorkerGroup(task.blockNumber, _scAddr)[0];
         require(msg.sender == selectedWorker, "Not the selected worker for this task");
 
         // Verify the worker's signature
         bytes32 msgHash = keccak256(abi.encodePacked(_scAddr, _codeHash));
         address verifySigner = msgHash.recover(_sig);
-        require(verifySigner == workers[msg.sender].signer, "Invalid signature.");
+        require(verifySigner == workers[msg.sender].signer, "Invalid signature");
 
         // Set the secret contract's attributes in registry
-        contracts[_scAddr].owner = _owner;
+        contracts[_scAddr].owner = task.sender;
         contracts[_scAddr].preCodeHash = _preCodeHash;
         contracts[_scAddr].codeHash = _codeHash;
         contracts[_scAddr].status = SecretContractStatus.Deployed;
         scAddresses.push(_scAddr);
 
         // Finalize task record for deployment task
-        tasks[_scAddr].proof = _sig;
-        tasks[_scAddr].status = TaskStatus.ReceiptVerified;
+        task.proof = _sig;
+        task.status = TaskStatus.ReceiptVerified;
 
-        // Credit worker with th efees associated with this deployment task
-        workers[msg.sender].balance = workers[msg.sender].balance.add(tasks[_scAddr].fee);
+        // Credit worker with the fees associated with this deployment task
+        workers[msg.sender].balance = workers[msg.sender].balance.add(_gasUsed.mul(task.gasPx));
+
+        // Credit the task sender with the unused gas fees
+        require(engToken.transfer(task.sender, (task.gasLimit.sub(_gasUsed)).mul(task.gasPx)), "Token transfer failed");
 
         emit SecretContractDeployed(_scAddr, _codeHash);
     }
@@ -443,34 +456,100 @@ contract Enigma {
     }
 
     /**
-    * Create task record for task (either contract deployment or regular task). This is necessary for
-    * transferring task fee from sender to contract, generating the unique taskId, saving the block number
-    * when the record was mined, and incrementing the user's task deployment counter nonce.
+    * Create task record for contract deployment. This is necessary for transferring task fee from sender to contract,
+    * generating the unique taskId, saving the block number when the record was mined, and incrementing the user's
+    * task deployment counter nonce. We revert the process if the locally-generated nonce value does not match
+    * the on-chain-computed nonce since this indicates that the secret contract address the user has generated is
+    * invalid.
     *
     * @param _taskIdInputHash Hash of function name, ABI-encoded args, and user's public key
-    * @param _fee ENG fee
+    * @param _gasLimit ENG gas limit
+    * @param _gasPx ENG gas price in grains format (10 ** 8)
+    * @param _selectedWorker Locally-computed selected worker address for task
+    * @param _scAddr Secret contract address for this task
+    * @param _nonce Locally-computed nonce value for this deployment
     */
-    function createTaskRecord(
+    function createDeploymentTaskRecord(
         bytes32 _taskIdInputHash,
-        uint _fee
+        uint _gasLimit,
+        uint _gasPx,
+        address _selectedWorker,
+        bytes32 _scAddr,
+        uint _nonce
     )
     public
     {
-        require(engToken.allowance(msg.sender, address(this)) >= _fee, "Allowance not enough");
-        require(engToken.transferFrom(msg.sender, address(this), _fee), "Transfer not valid");
+        // Check that the locally-generated nonce matches the on-chain value, otherwise _scAddr is invalid
+        require(userTaskDeployments[msg.sender] == _nonce, "Incorrect nonce yielding bad secret contract address");
 
-        // Create taskId
+        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
+        address verifySelectedWorker = getWorkerGroup(block.number, _scAddr)[0];
+        require(_selectedWorker == verifySelectedWorker, "Not the selected worker for this task");
+
+        // Transfer fee from sender to contract
+        uint fee = _gasLimit.mul(_gasPx);
+        require(engToken.allowance(msg.sender, address(this)) >= fee, "Allowance not enough");
+        require(engToken.transferFrom(msg.sender, address(this), fee), "Transfer not valid");
+
+        // Create taskId and TaskRecord
         bytes32 taskId = keccak256(abi.encodePacked(_taskIdInputHash, userTaskDeployments[msg.sender]));
-        require(tasks[taskId].sender == address(0), "Task already exists.");
+        TaskRecord storage task = tasks[taskId];
+        require(task.sender == address(0), "Task already exists");
+        task.gasLimit = _gasLimit;
+        task.gasPx = _gasPx;
+        task.sender = msg.sender;
+        task.blockNumber = block.number;
+        task.status = TaskStatus.RecordCreated;
 
-        tasks[taskId].fee = _fee;
-        tasks[taskId].sender = msg.sender;
-        tasks[taskId].blockNumber = block.number;
-        tasks[taskId].status = TaskStatus.RecordCreated;
-
+        // Increment user task deployment nonce
         userTaskDeployments[msg.sender]++;
 
-        emit TaskRecordCreated(taskId, _fee, msg.sender);
+        emit TaskRecordCreated(taskId, _gasLimit, _gasPx, msg.sender);
+    }
+
+    /**
+    * Create task record for task for regular tasks. This is necessary for transferring task fee from sender to
+    * contract, generating the unique taskId, saving the block number when the record was mined, and incrementing
+    * the user's task deployment counter nonce.
+    *
+    * @param _taskIdInputHash Hash of function name, ABI-encoded args, and user's public key
+    * @param _gasLimit ENG gas limit
+    * @param _gasPx ENG gas price in grains format (10 ** 8)
+    * @param _selectedWorker Locally-computed selected worker address for task
+    * @param _scAddr Secret contract address for this task
+    */
+    function createTaskRecord(
+        bytes32 _taskIdInputHash,
+        uint _gasLimit,
+        uint _gasPx,
+        address _selectedWorker,
+        bytes32 _scAddr
+    )
+    public
+    {
+        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
+        address verifySelectedWorker = getWorkerGroup(block.number, _scAddr)[0];
+        require(_selectedWorker == verifySelectedWorker, "Not the selected worker for this task");
+
+        // Transfer fee from sender to contract
+        uint fee = _gasLimit.mul(_gasPx);
+        require(engToken.allowance(msg.sender, address(this)) >= fee, "Allowance not enough");
+        require(engToken.transferFrom(msg.sender, address(this), fee), "Transfer not valid");
+
+        // Create taskId and TaskRecord
+        bytes32 taskId = keccak256(abi.encodePacked(_taskIdInputHash, userTaskDeployments[msg.sender]));
+        TaskRecord storage task = tasks[taskId];
+        require(task.sender == address(0), "Task already exists");
+        task.gasLimit = _gasLimit;
+        task.gasPx = _gasPx;
+        task.sender = msg.sender;
+        task.blockNumber = block.number;
+        task.status = TaskStatus.RecordCreated;
+
+        // Increment user task deployment nonce
+        userTaskDeployments[msg.sender]++;
+
+        emit TaskRecordCreated(taskId, _gasLimit, _gasPx, msg.sender);
     }
 
     /**
@@ -479,31 +558,46 @@ contract Enigma {
     * when the record was mined, and incrementing the user's task deployment counter nonce.
     *
     * @param _taskIdInputHashes Hashes of function name, ABI-encoded args, and user's public key
-    * @param _fees ENG fees
+    * @param _gasLimits ENG gas limit
+    * @param _gasPxs ENG gas price in grains format (10 ** 8)
+    * @param _selectedWorker Locally computed selected worker address for task
+    * @param _scAddr Secret contract address for this task
     */
     function createTaskRecords(
         bytes32[] memory _taskIdInputHashes,
-        uint[] memory _fees
+        uint[] memory _gasLimits,
+        uint[] memory _gasPxs,
+        address _selectedWorker,
+        bytes32 _scAddr
     )
     public
     {
+        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
+        address verifySelectedWorker = getWorkerGroup(block.number, _scAddr)[0];
+        require(_selectedWorker == verifySelectedWorker, "Not the selected worker for this task");
+
         bytes32[] memory taskIds = new bytes32[](_taskIdInputHashes.length);
         for (uint i = 0; i < _taskIdInputHashes.length; i++) {
-            require(engToken.allowance(msg.sender, address(this)) >= _fees[i], "Allowance not enough");
-            require(engToken.transferFrom(msg.sender, address(this), _fees[i]), "Transfer not valid");
+            // Transfer fee from sender to contract
+            uint fee = _gasLimits[i].mul(_gasPxs[i]);
+            require(engToken.allowance(msg.sender, address(this)) >= fee, "Allowance not enough");
+            require(engToken.transferFrom(msg.sender, address(this), fee), "Transfer not valid");
 
+            // Create taskId and TaskRecord
             bytes32 taskId = keccak256(abi.encodePacked(_taskIdInputHashes[i], userTaskDeployments[msg.sender]));
-            require(tasks[taskId].sender == address(0), "Task already exist.");
+            TaskRecord storage task = tasks[taskId];
+            require(task.sender == address(0), "Task already exists");
             taskIds[i] = taskId;
+            task.gasLimit = _gasLimits[i];
+            task.gasPx = _gasPxs[i];
+            task.sender = msg.sender;
+            task.blockNumber = block.number;
+            task.status = TaskStatus.RecordCreated;
 
-            tasks[taskId].fee = _fees[i];
-            tasks[taskId].sender = msg.sender;
-            tasks[taskId].blockNumber = block.number;
-            tasks[taskId].status = TaskStatus.RecordCreated;
-
+            // Increment user task deployment nonce
             userTaskDeployments[msg.sender]++;
         }
-        emit TaskRecordsCreated(taskIds, _fees, msg.sender);
+        emit TaskRecordsCreated(taskIds, _gasLimits, _gasPxs, msg.sender);
     }
 
     // Execute the encoded function in the specified contract
@@ -524,16 +618,29 @@ contract Enigma {
     * @param _taskId Unique taskId
     * @param _inStateDeltaHash Input state delta hash
     * @param _outStateDeltaHash Output state delta hash
+    * @param _gasUsed Gas used for task computation
+    * @param _sender Worker's address
     */
     function verifyReceipt(
         bytes32 _scAddr,
         bytes32 _taskId,
         bytes32 _inStateDeltaHash,
-        bytes32 _outStateDeltaHash
+        bytes32 _outStateDeltaHash,
+        uint _gasUsed,
+        address _sender
     )
     internal
     {
-        require(tasks[_taskId].status == TaskStatus.RecordCreated, 'Invalid task status');
+        TaskRecord memory task = tasks[_taskId];
+        require(task.status == TaskStatus.RecordCreated, 'Invalid task status');
+
+        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
+        address verifySelectedWorker = getWorkerGroup(task.blockNumber, _scAddr)[0];
+        require(_sender == verifySelectedWorker, "Not the selected worker for this task");
+
+        // Check that worker isn't charging the user too high of a fee
+        require(task.gasLimit >= _gasUsed, "Too much gas used for task");
+
         uint index = contracts[_scAddr].stateDeltaHashes.length;
         if (index == 0) {
             require(_inStateDeltaHash == 0x0, 'Invalid input state delta hash for empty state');
@@ -552,6 +659,7 @@ contract Enigma {
     * @param _taskId Unique taskId
     * @param _inStateDeltaHash Input state delta hash
     * @param _outStateDeltaHash Output state delta hash
+    * @param _gasUsed Gas used for task computation
     * @param _ethCall Eth call
     * @param _sig Worker's signature
     */
@@ -560,6 +668,7 @@ contract Enigma {
         bytes32 _taskId,
         bytes32 _inStateDeltaHash,
         bytes32 _outStateDeltaHash,
+        uint _gasUsed,
         bytes memory _ethCall,
         bytes memory _sig
     )
@@ -567,13 +676,24 @@ contract Enigma {
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        verifyReceipt(_scAddr, _taskId, _inStateDeltaHash, _outStateDeltaHash);
+        verifyReceipt(_scAddr, _taskId, _inStateDeltaHash, _outStateDeltaHash, _gasUsed, msg.sender);
+
+        // Check worker's signature
         bytes32 hash = keccak256(abi.encodePacked(_taskId, _inStateDeltaHash, _outStateDeltaHash, _ethCall));
         address workerAddr = hash.recover(_sig);
-        require(workerAddr == workers[msg.sender].signer, "Invalid signature.");
-        tasks[_taskId].proof = _sig;
-        tasks[_taskId].status = TaskStatus.ReceiptVerified;
-        workers[msg.sender].balance = workers[msg.sender].balance.add(tasks[_taskId].fee);
+        require(workerAddr == workers[msg.sender].signer, "Invalid signature");
+
+        // Update proof and status attributes of TaskRecord
+        TaskRecord storage task = tasks[_taskId];
+        task.proof = _sig;
+        task.status = TaskStatus.ReceiptVerified;
+
+        // Credit worker with the fees associated with this deployment task
+        workers[msg.sender].balance = workers[msg.sender].balance.add(_gasUsed.mul(task.gasPx));
+
+        // Credit the task sender with the unused gas fees
+        require(engToken.transfer(task.sender, (task.gasLimit.sub(_gasUsed)).mul(task.gasPx)), "Token transfer failed");
+
         emit ReceiptVerified(_taskId, _inStateDeltaHash, _outStateDeltaHash, _ethCall, _sig);
     }
 
@@ -593,6 +713,7 @@ contract Enigma {
         bytes32[] memory _taskIds,
         bytes32[] memory _inStateDeltaHashes,
         bytes32[] memory _outStateDeltaHashes,
+        uint[] memory _gasesUsed,
         bytes memory _ethCall,
         bytes memory _sig
     )
@@ -601,15 +722,27 @@ contract Enigma {
     contractDeployed(_scAddr)
     {
         for (uint i = 0; i < _taskIds.length; i++) {
-            verifyReceipt(_scAddr, _taskIds[i], _inStateDeltaHashes[i], _outStateDeltaHashes[i]);
+            verifyReceipt(_scAddr, _taskIds[i], _inStateDeltaHashes[i], _outStateDeltaHashes[i], _gasesUsed[i],
+                msg.sender);
         }
+
+        // Check worker's signature
         bytes32 hash = keccak256(abi.encodePacked(_taskIds, _inStateDeltaHashes, _outStateDeltaHashes, _ethCall));
         address workerAddr = hash.recover(_sig);
-        require(workerAddr == workers[msg.sender].signer, "Invalid signature.");
+        require(workerAddr == workers[msg.sender].signer, "Invalid signature");
+
         for (uint ic = 0; ic < _taskIds.length; ic++) {
-            tasks[_taskIds[ic]].proof = _sig;
-            tasks[_taskIds[ic]].status = TaskStatus.ReceiptVerified;
-            workers[msg.sender].balance = workers[msg.sender].balance.add(tasks[_taskIds[ic]].fee);
+            // Update proof and status attributes of TaskRecord
+            TaskRecord storage task = tasks[_taskIds[ic]];
+            task.proof = _sig;
+            task.status = TaskStatus.ReceiptVerified;
+
+            // Credit worker with the fees associated with this deployment task
+            workers[msg.sender].balance = workers[msg.sender].balance.add(_gasesUsed[ic].mul(task.gasPx));
+
+            // Credit the task sender with the unused gas fees
+            require(engToken.transfer(task.sender, (task.gasLimit.sub(_gasesUsed[ic])).mul(task.gasPx)),
+                "Token transfer failed");
         }
         emit ReceiptsVerified(_taskIds, _inStateDeltaHashes, _outStateDeltaHashes, _ethCall, _sig);
     }

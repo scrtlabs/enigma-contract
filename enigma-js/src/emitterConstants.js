@@ -18,6 +18,7 @@ export const DEPLOY_SC_ETH_CONFIRMATION = 'deploySCEthConfirmation';
 export const DEPLOY_SC_ETH_RECEIPT = 'deploySCEthReceipt';
 export const DEPLOY_SC_ENG_RECEIPT = 'deploySCEngReceipt';
 
+export const CREATE_TASK = 'createTask';
 export const CREATE_TASK_INPUT = 'createTaskInput';
 export const CREATE_TASK_RECORD_TRANSACTION_HASH = 'createTaskRecordTransactionHash';
 export const CREATE_TASK_RECORD_CONFIRMATION = 'createTaskRecordConfirmation';

@@ -25,7 +25,7 @@ export default class RPCServer {
         }
       },
       sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedAbiEncodedArgs,
-                              userTaskSig, encryptedUserPubKey, fee, msgId, callback) {
+                              userTaskSig, userPubKey, gasLimit, gasPx, msgId, callback) {
         if (!taskId) {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!creationBlockNumber) {
@@ -40,9 +40,11 @@ export default class RPCServer {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!userTaskSig) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!encryptedUserPubKey) {
+        } else if (!userPubKey) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!fee) {
+        } else if (!gasLimit) {
+          callback({"code": -32602, "message": "Invalid params"});
+        } else if (!gasPx) {
           callback({"code": -32602, "message": "Invalid params"});
         } else {
           callback(null, {

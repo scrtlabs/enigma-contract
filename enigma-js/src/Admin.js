@@ -142,9 +142,6 @@ export default class Admin {
           })
           .on('receipt', (receipt) => {
             emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
-          })
-          .on('error', (err) => {
-            emitter.emit(eeConstants.ERROR, err.message);
           });
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
@@ -225,7 +222,6 @@ export default class Admin {
    * @return {Promise} Resolves to staked ENG token balance in grains (10**8 multiplier) format
    */
   async getStakedBalance(account) {
-    const worker = await this.enigmaContract.methods.workers(account).call();
-    return parseInt(worker.balance);
+    return parseInt((await this.enigmaContract.methods.workers(account).call()).balance);
   }
 }
