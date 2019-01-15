@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
+import "./utils/SolRsaVerify.sol";
 
 contract ERC20 {
     function allowance(address owner, address spender) public view returns (uint256);
@@ -163,14 +164,15 @@ contract Enigma {
     * @param _signer The signer address, derived from the enclave public key
     * @param _report The RLP encoded report returned by the IAS
     */
-    function register(address _signer, bytes memory _report)
+    function register(address _signer, bytes memory _report, bytes memory _signature)
     public
     {
-        // TODO: consider exit if both signer and custodian as matching
+        // TODO: consider exit if both signer and custodian are matching
         // If the custodian is not already register, we add an index entry
         if (workers[msg.sender].signer == address(0)) {
             workerAddresses.push(msg.sender);
         }
+        require(verifyReport(_report, _signature) == 0, "Verifying signature failed");
 
         // Set the custodian attributes
         workers[msg.sender].signer = _signer;
@@ -662,5 +664,26 @@ contract Enigma {
         // The RLP encoded report and signer's address for the specified worker
         require(workers[_custodian].signer != address(0), "Worker not registered");
         return (workers[_custodian].signer, workers[_custodian].report);
+    }
+
+
+    /**
+    * This verifies an IAS report with hard coded modulus and exponent of Intel's certificate.
+    * @param data The report itself
+    * @param signature The signature of the report
+    */
+    function verifyReport(bytes memory data, bytes memory signature)
+    public
+    view
+    returns (uint) {
+        /*
+        this is the modulus and the exponent of intel's certificate, you can extract it using:
+        `openssl x509 -noout -modulus -in intel.cert`
+        and `openssl x509 -in intel.cert  -text`
+        */
+        bytes memory exponent = hex"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010001";
+        bytes memory modulus = hex"A97A2DE0E66EA6147C9EE745AC0162686C7192099AFC4B3F040FAD6DE093511D74E802F510D716038157DCAF84F4104BD3FED7E6B8F99C8817FD1FF5B9B864296C3D81FA8F1B729E02D21D72FFEE4CED725EFE74BEA68FBC4D4244286FCDD4BF64406A439A15BCB4CF67754489C423972B4A80DF5C2E7C5BC2DBAF2D42BB7B244F7C95BF92C75D3B33FC5410678A89589D1083DA3ACC459F2704CD99598C275E7C1878E00757E5BDB4E840226C11C0A17FF79C80B15C1DDB5AF21CC2417061FBD2A2DA819ED3B72B7EFAA3BFEBE2805C9B8AC19AA346512D484CFC81941E15F55881CC127E8F7AA12300CD5AFB5742FA1D20CB467A5BEB1C666CF76A368978B5";
+        
+        return SolRsaVerify.pkcs1Sha256VerifyRaw(data, signature, exponent, modulus);
     }
 }
