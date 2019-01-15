@@ -164,14 +164,15 @@ contract Enigma {
     * @param _signer The signer address, derived from the enclave public key
     * @param _report The RLP encoded report returned by the IAS
     */
-    function register(address _signer, bytes memory _report)
+    function register(address _signer, bytes memory _report, bytes memory _signature)
     public
     {
-        // TODO: consider exit if both signer and custodian as matching
+        // TODO: consider exit if both signer and custodian are matching
         // If the custodian is not already register, we add an index entry
         if (workers[msg.sender].signer == address(0)) {
             workerAddresses.push(msg.sender);
         }
+        require(verifyReport(_report, _signature) == 0, "Verifying signature failed");
 
         // Set the custodian attributes
         workers[msg.sender].signer = _signer;
