@@ -776,7 +776,7 @@ describe('Enigma tests', () => {
 
 
   it('should fail the RPC Server', async () => {
-    expect.assertions(11);
+    expect.assertions(12);
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
         if (err) {
@@ -837,7 +837,7 @@ describe('Enigma tests', () => {
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedEncodedArgs: '1'}, (err, response) => {
+        encryptedFn: '1', encryptedAbiEncodedArgs: '1'}, (err, response) => {
         if (err) {
           reject(err);
         }
@@ -846,7 +846,7 @@ describe('Enigma tests', () => {
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1'}, (err, response) => {
+        encryptedFn: '1', encryptedAbiEncodedArgs: '1', userTaskSig: '1'}, (err, response) => {
         if (err) {
           reject(err);
         }
@@ -855,7 +855,17 @@ describe('Enigma tests', () => {
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1'}, (err, response) => {
+        encryptedFn: '1', encryptedAbiEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1'}, (err, response) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(response);
+      });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
+        encryptedFn: '1', encryptedAbiEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1', gasLimit: 1},
+        (err, response) => {
         if (err) {
           reject(err);
         }
