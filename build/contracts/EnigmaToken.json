@@ -2903,8 +2903,8 @@
         }
       },
       "links": {},
-      "address": "0x79eEcF630FEcC9808940b34D3c51De8b46Ae2bf6",
-      "transactionHash": "0x340a2bb3f27ea9359001f235ca5c7fe0f9ab7dda1f5613ddf8bb373c34ab5239"
+      "address": "0x6C44B45a17B3Ad5245A5Ce23CF92d88A1ab10a87",
+      "transactionHash": "0xfc797d7acc1b3253b9a139e92a5a8e04526339b9beaac747253a5b0c02a1d12f"
     },
     "1532714176943": {
       "events": {},
@@ -2914,5 +2914,5 @@
     }
   },
   "schemaVersion": "3.0.1",
-  "updatedAt": "2019-01-16T01:26:02.047Z"
+  "updatedAt": "2019-01-16T01:38:49.174Z"
 }

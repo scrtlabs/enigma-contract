@@ -101,14 +101,11 @@ describe('Enigma tests', () => {
       if (i === 8) {
         console.log('setting principal node', worker[0]);
       }
-      const report = utils.encodeReport(
-        worker[1],
-        worker[2],
-        worker[3],
-      );
+      const report = '0x' + Array.from(worker[1]).map(c => c.charCodeAt(0).toString(16)).join('');
+      const signature = worker[3];
       // Using the same artificial data for all workers
       let promise = new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.register(worker[0], report)
+        enigma.enigmaContract.methods.register(worker[0], report, signature)
           .send({
             gas: 4712388,
             gasPrice: 100000000000,
@@ -764,6 +761,19 @@ describe('Enigma tests', () => {
     const hashes = await enigma.admin.getStateDeltaHashes(scAddr, 0, 4);
     expect(hashes).toEqual([initStateDeltaHash, stateDeltaHash, stateDeltaHashes[0], stateDeltaHashes[1]]);
   });
+
+  it('should verify the report', async () => {
+    let worker = data.worker;
+
+    let report = '0x' + Array.from(worker[1]).map(c => c.charCodeAt(0).toString(16)).join('');
+    let signature = worker[3];
+    console.log("report: " + report);
+    console.log('sig: ' + signature);
+    const result = await enigma.enigmaContract.methods.verifyReport(report, signature).call();
+
+    expect(result).toEqual("0");
+  }, 40000);
+
 
   it('should fail the RPC Server', async () => {
     expect.assertions(11);
