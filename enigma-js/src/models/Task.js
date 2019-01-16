@@ -19,12 +19,14 @@ export default class Task {
    * @param {string} sender
    * @param {string} userTaskSig
    * @param {Number} nonce
+   * @param {string} preCodeHash
    * @param {boolean} isContractDeploymentTask
    */
   constructor(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, msgId, userPubKey, workerAddress, sender,
-              userTaskSig, nonce, isContractDeploymentTask) {
+              userTaskSig, nonce, preCodeHash, isContractDeploymentTask) {
     // Initial task attributes
-    this.taskIdInputHash = utils.generateTaskIdInputHash(encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, sender);
+    this.inputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs,
+      isContractDeploymentTask ? preCodeHash : scAddr);
     this.scAddr = scAddr;
     this.encryptedFn = encryptedFn;
     this.encryptedAbiEncodedArgs = encryptedAbiEncodedArgs;
@@ -36,6 +38,7 @@ export default class Task {
     this.sender = sender;
     this.userTaskSig = userTaskSig;
     this.nonce = nonce;
+    this.preCodeHash = preCodeHash;
     this.isContractDeploymentTask = isContractDeploymentTask;
 
     // Attributes added to task when task record is created on ETH, most critically, the taskId (a unique value

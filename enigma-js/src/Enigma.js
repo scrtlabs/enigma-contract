@@ -89,16 +89,17 @@ export default class Enigma {
    * @param {Number} gasLimit - ENG gas limit for task computation
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
-   * @param {string} scAddr - Defaults to empty string for the case of a secret contract deployment. For all other
-   * tasks, this will be the secret contract address for which this task belongs
+   * @param {string} scAddrOrPreCodeHash - Either secret contract address or precode hash, depending on if user is
+   * running a contract deployment or regular task
+   * @param {boolean} isContractDeploymentTask - Is this task a contract deployment task (if not, it's a regular task)
    * @return {Task} Task with base attributes to be used for remainder of task lifecycle
    */
-  createTask(fn, args, gasLimit, gasPx, sender, scAddr='') {
+  createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCodeHash, isContractDeploymentTask=false) {
     let emitter = new EventEmitter();
     (async () => {
-      const isContractDeploymentTask = scAddr === '';
       const nonce = parseInt(await this.enigmaContract.methods.userTaskDeployments(sender).call());
-      scAddr = scAddr || utils.generateScAddr(args[0][0], sender, nonce);
+      const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCodeHash;
+      const preCodeHash = isContractDeploymentTask ? scAddrOrPreCodeHash : '';
       const argsTranspose = args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
       const blockNumber = await this.web3.eth.getBlockNumber();
@@ -132,7 +133,7 @@ export default class Enigma {
         );
         const userTaskSig = await this.web3.eth.sign(msg, sender);
         emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-          msgId, publicKey, workerAddress, sender, userTaskSig, nonce, isContractDeploymentTask));
+          msgId, publicKey, workerAddress, sender, userTaskSig, nonce, preCodeHash, isContractDeploymentTask));
       }
     })();
     return emitter;
@@ -164,9 +165,9 @@ export default class Enigma {
         from: task.sender,
       });
       try {
-        if (task.isContractDeploymentTask) {
-          await this.enigmaContract.methods.createDeploymentTaskRecord(task.taskIdInputHash, task.gasLimit, task.gasPx,
-            task.workerAddress, task.scAddr, task.nonce).send({
+        const receipt = task.isContractDeploymentTask ?
+          await this.enigmaContract.methods.createDeploymentTaskRecord(task.inputsHash, task.gasLimit,
+            task.gasPx, task.workerAddress, task.scAddr, task.nonce).send({
             from: task.sender,
           })
             .on('transactionHash', (hash) => {
@@ -176,16 +177,8 @@ export default class Enigma {
             .on('confirmation', (confirmationNumber, receipt) => {
               emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
             })
-            .then((receipt) => {
-              task.taskId = receipt.events.TaskRecordCreated.returnValues.taskId;
-              task.receipt = receipt;
-              task.ethStatus = 1;
-              task.creationBlockNumber = receipt.blockNumber;
-              emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
-              emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
-            });
-        } else {
-          await this.enigmaContract.methods.createTaskRecord(task.taskIdInputHash, task.gasLimit, task.gasPx,
+          :
+          await this.enigmaContract.methods.createTaskRecord(task.inputsHash, task.gasLimit, task.gasPx,
             task.workerAddress, task.scAddr).send({
             from: task.sender,
           })
@@ -195,16 +188,13 @@ export default class Enigma {
             })
             .on('confirmation', (confirmationNumber, receipt) => {
               emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
-            })
-            .then((receipt) => {
-              task.taskId = receipt.events.TaskRecordCreated.returnValues.taskId;
-              task.receipt = receipt;
-              task.ethStatus = 1;
-              task.creationBlockNumber = receipt.blockNumber;
-              emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
-              emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
             });
-        }
+        task.taskId = receipt.events.TaskRecordCreated.returnValues.taskId;
+        task.receipt = receipt;
+        task.ethStatus = 1;
+        task.creationBlockNumber = receipt.blockNumber;
+        emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
+        emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
       }
@@ -226,7 +216,7 @@ export default class Enigma {
   createTaskRecords(tasks) {
     let emitter = new EventEmitter();
     (async () => {
-      const taskIdInputHashes = tasks.map((task) => task.taskIdInputHash);
+      const inputsHashes = tasks.map((task) => task.inputsHash);
       const gasLimits = tasks.map((task) => task.gasLimit);
       const gasPxs = tasks.map((task) => task.gasPx);
       const fees = tasks.map((task) => task.gasLimit * task.gasPx);
@@ -242,7 +232,7 @@ export default class Enigma {
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send({
         from: tasks[0].sender,
       });
-      await this.enigmaContract.methods.createTaskRecords(taskIdInputHashes, gasLimits, gasPxs, tasks[0].workerAddress,
+      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].workerAddress,
         tasks[0].scAddr).send({
         from: tasks[0].sender,
       })
@@ -445,7 +435,7 @@ export default class Enigma {
    */
   static serializeTask(task) {
     return {taskId: task.taskId, creationBlockNumber: task.creationBlockNumber, sender: task.sender,
-      scAddr: task.scAddr, encryptedFn: task.encryptedFn,
+      scAddr: task.scAddr, preCodeHash: task.preCodeHash, encryptedFn: task.encryptedFn,
       encryptedAbiEncodedArgs: task.encryptedAbiEncodedArgs, userTaskSig: task.userTaskSig,
       userPubKey: task.userPubKey, gasLimit: task.gasLimit, gasPx: task.gasPx, msgId: task.msgId};
   }

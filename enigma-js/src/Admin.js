@@ -170,19 +170,18 @@ export default class Admin {
         return;
       }
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send({from: account});
-      await this.enigmaContract.methods.deposit(account, amount).send({from: account})
-        .on('transactionHash', (hash) => {
-          emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
-        })
-        .on('confirmation', (confirmationNumber, receipt) => {
-          emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
-        })
-        .on('receipt', (receipt) => {
-          emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
-        })
-        .on('error', (err) => {
-          emitter.emit(eeConstants.ERROR, err.message);
-        });
+      try {
+        const receipt = await this.enigmaContract.methods.deposit(account, amount).send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
+          });
+        emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
     })();
     return emitter;
   }

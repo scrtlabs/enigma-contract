@@ -24,16 +24,16 @@ export default class RPCServer {
           });
         }
       },
-      sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, encryptedFn, encryptedAbiEncodedArgs,
-                              userTaskSig, userPubKey, gasLimit, gasPx, msgId, callback) {
+      sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, preCodeHash, encryptedFn,
+                              encryptedAbiEncodedArgs, userTaskSig, userPubKey, gasLimit, gasPx, msgId, callback) {
         if (!taskId) {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!creationBlockNumber) {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!sender) {
           callback({"code": -32602, "message": "Invalid params"});
-        // } else if (!scAddr) {
-        //   callback({"code": -32602, "message": "Invalid params"});
+        } else if (!scAddr) {
+          callback({"code": -32602, "message": "Invalid params"});
         } else if (!encryptedFn) {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!encryptedAbiEncodedArgs) {

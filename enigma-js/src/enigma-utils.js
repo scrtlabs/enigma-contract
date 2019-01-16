@@ -168,14 +168,12 @@ const EC = elliptic.ec;
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {string} preCodeHash
  * @param {string} sender
  * @param {Number} nonce
  * @return {string}
  */
-function generateScAddr(preCodeHash, sender, nonce) {
+function generateScAddr(sender, nonce) {
   return web3Utils.soliditySha3(
-    {t: 'bytes', v: preCodeHash},
     {t: 'bytes', v: sender},
     {t: 'uint', v: nonce},
   );
@@ -187,18 +185,14 @@ function generateScAddr(preCodeHash, sender, nonce) {
  *
  * @param {string} encryptedFn
  * @param {string} encryptedAbiEncodedArgs
- * @param {Number} gasLimit
- * @param {Number} gasPx
- * @param {string} sender
+ * @param {string} scAddrOrPreCodeHash
  * @return {string}
  */
-function generateTaskIdInputHash(encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, sender) {
+function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash) {
   return web3Utils.soliditySha3(
     {t: 'bytes', v: encryptedFn},
     {t: 'bytes', v: encryptedAbiEncodedArgs},
-    {t: 'uint', v: gasLimit},
-    {t: 'uint', v: gasPx},
-    {t: 'bytes', v: sender},
+    {t: 'bytes', v: scAddrOrPreCodeHash},
   );
 }
 
@@ -391,7 +385,7 @@ utils.encodeReport = encodeReport;
 utils.test = () => 'hello2';
 // utils.encodeArguments = encodeArguments;
 utils.generateScAddr = generateScAddr;
-utils.generateTaskIdInputHash = generateTaskIdInputHash;
+utils.generateTaskInputsHash = generateTaskInputsHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;

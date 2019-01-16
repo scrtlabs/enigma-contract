@@ -303,19 +303,19 @@ describe('Enigma tests', () => {
     preCodeHash = web3.utils.soliditySha3('9d075ae');
     let scTaskFn = 'deployContract';
     let scTaskArgs = [
-      [preCodeHash, 'bytes32'],
       ['first_sc', 'string'],
       [1, 'uint'],
     ];
     let scTaskGasLimit = 100;
     let scTaskGasPx = utils.toGrains(1);
     scTask = await new Promise((resolve, reject) => {
-      enigma.createTask(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0])
+      enigma.createTask(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCodeHash, true)
         .on(eeConstants.CREATE_TASK, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     expect(scTask).toBeTruthy;
     expect(scTask.scAddr).toBeTruthy;
+    expect(scTask.preCodeHash).not.toEqual('');
     expect(scTask.encryptedFn).toBeTruthy;
     expect(scTask.encryptedAbiEncodedArgs).toBeTruthy;
     expect(scTask.gasLimit).toEqual(scTaskGasLimit);
@@ -419,12 +419,16 @@ describe('Enigma tests', () => {
   });
 
   let codeHash;
+  let initStateDeltaHash;
   it('should simulate the contract deployment', async () => {
     const gasUsed = 25;
     codeHash = web3.utils.soliditySha3('1a2b3c4d');
+    initStateDeltaHash = web3.utils.soliditySha3('initialized');
     const proof = web3.utils.soliditySha3(
-      {t: 'bytes32', v: scTask.scAddr},
+      {t: 'bytes32', v: scTask.inputsHash},
       {t: 'bytes32', v: codeHash},
+      {t: 'bytes32', v: initStateDeltaHash},
+      {t: 'uint', v: gasUsed},
     );
     const sig = utils.sign(data.worker[4], proof);
     const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
@@ -437,8 +441,8 @@ describe('Enigma tests', () => {
       (await enigma.tokenContract.methods.balanceOf(scTask.sender).call())
     );
     const result = await new Promise((resolve, reject) => {
-      enigma.enigmaContract.methods.deploySecretContract(scTask.scAddr, scTask.taskId, preCodeHash, codeHash, gasUsed,
-        sig)
+      enigma.enigmaContract.methods.deploySecretContract(scTask.taskId, scTask.preCodeHash, codeHash,
+        initStateDeltaHash, gasUsed, sig)
         .send({
           gas: 4712388,
           gasPrice: 100000000000,
@@ -483,12 +487,13 @@ describe('Enigma tests', () => {
     let taskGasLimit = 100;
     let taskGasPx = utils.toGrains(1);
     task = await new Promise((resolve, reject) => {
-      enigma.createTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr)
+      enigma.createTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr, false)
         .on(eeConstants.CREATE_TASK, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     expect(task).toBeTruthy;
     expect(task.scAddr).toBeTruthy;
+    expect(task.preCodeHash).toEqual('');
     expect(task.encryptedFn).toBeTruthy;
     expect(task.encryptedAbiEncodedArgs).toBeTruthy;
     expect(task.gasLimit).toEqual(taskGasLimit);
@@ -552,17 +557,19 @@ describe('Enigma tests', () => {
     expect(task.ethStatus).toEqual(1);
   });
 
-  let outStateDelta;
+  let stateDeltaHash;
+  let outputHash;
   it('should simulate the task receipt', async () => {
     const gasUsed = 25;
-    const inStateDelta = '0x0000000000000000000000000000000000000000000000000000000000000000';
-    outStateDelta = web3.utils.soliditySha3('test');
+    stateDeltaHash = web3.utils.soliditySha3('stateDeltaHash1');
+    outputHash = web3.utils.soliditySha3('outputHash1');
     const ethCall = web3.utils.soliditySha3('test');
     const proof = web3.utils.soliditySha3(
-      {t: 'bytes32', v: task.taskId},
-      {t: 'bytes32', v: inStateDelta},
-      {t: 'bytes32', v: outStateDelta},
-      {t: 'bytes', v: ethCall},
+      {t: 'bytes32', v: task.inputsHash},
+      {t: 'bytes32', v: codeHash},
+      {t: 'bytes32', v: stateDeltaHash},
+      {t: 'bytes32', v: outputHash},
+      {t: 'uint', v: gasUsed},
     );
     const sig = utils.sign(data.worker[4], proof);
     const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
@@ -575,7 +582,7 @@ describe('Enigma tests', () => {
       (await enigma.tokenContract.methods.balanceOf(task.sender).call())
     );
     const result = await new Promise((resolve, reject) => {
-      enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, inStateDelta, outStateDelta, gasUsed, ethCall,
+      enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash, gasUsed, ethCall,
         sig)
         .send({
           from: selectedWorkerAddr,
@@ -599,14 +606,12 @@ describe('Enigma tests', () => {
 
   it('should count state deltas', async () => {
     const count = await enigma.admin.countStateDeltas(scAddr);
-    expect(count).toEqual(1);
+    expect(count).toEqual(2);
   });
 
-  let stateDeltaHash;
   it('should get state delta hash', async () => {
-    const delta = await enigma.admin.getStateDeltaHash(scAddr, 0);
-    stateDeltaHash = delta;
-    expect(delta).toBeTruthy;
+    const delta = await enigma.admin.getStateDeltaHash(scAddr, 1);
+    expect(stateDeltaHash).toEqual(delta);
   });
 
   it('should verify state delta', async () => {
@@ -680,6 +685,10 @@ describe('Enigma tests', () => {
     );
     for (let i = 0; i < tasks.length; i++) {
       expect(tasks[i].receipt).toBeTruthy;
+      expect(tasks[i].transactionHash).toBeTruthy;
+      expect(tasks[i].taskId).toBeTruthy;
+      expect(tasks[i].ethStatus).toEqual(1);
+      expect(tasks[i].proof).toBeFalsy;
     }
     expect(endingContractBalance-startingContractBalance).toEqual((tasks[0].gasLimit * tasks[0].gasPx) +
       (tasks[1].gasLimit * tasks[1].gasPx));
@@ -692,27 +701,27 @@ describe('Enigma tests', () => {
     }
   });
 
-  let outStateDeltas;
+  let stateDeltaHashes;
   it('should simulate multiple task receipts', async () => {
     const gasesUsed = [25, 10];
-    const inStateDelta1 = outStateDelta;
-    const outStateDelta1 = web3.utils.soliditySha3('test2');
-    const inStateDelta2 = outStateDelta1;
-    const outStateDelta2 = web3.utils.soliditySha3('test3');
+    const stateDeltaHash2 = web3.utils.soliditySha3('stateDeltaHash2');
+    const stateDeltaHash3 = web3.utils.soliditySha3('stateDeltaHash3');
+    const outputHash2 = web3.utils.soliditySha3('outputHash2');
     const ethCall = web3.utils.soliditySha3('test');
     const taskIds = tasks.map((task) => task.taskId);
+    const inputsHashes = tasks.map((task) => task.inputsHash);
     const proof = web3.utils.soliditySha3(
-      {t: 'bytes32', v: taskIds[0]},
-      {t: 'bytes32', v: taskIds[1]},
-      {t: 'bytes32', v: inStateDelta1},
-      {t: 'bytes32', v: inStateDelta2},
-      {t: 'bytes32', v: outStateDelta1},
-      {t: 'bytes32', v: outStateDelta2},
-      {t: 'bytes', v: ethCall},
+      {t: 'bytes32', v: inputsHashes[0]},
+      {t: 'bytes32', v: inputsHashes[1]},
+      {t: 'bytes32', v: codeHash},
+      {t: 'bytes32', v: stateDeltaHash2},
+      {t: 'bytes32', v: stateDeltaHash3},
+      {t: 'bytes32', v: outputHash2},
+      {t: 'uint', v: gasesUsed[0]},
+      {t: 'uint', v: gasesUsed[1]},
     );
     const sig = utils.sign(data.worker[4], proof);
-    const inStateDeltas = [inStateDelta1, inStateDelta2];
-    outStateDeltas = [outStateDelta1, outStateDelta2];
+    stateDeltaHashes = [stateDeltaHash2, stateDeltaHash3];
     const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
     const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.creationBlockNumber, task.scAddr,
       workerParams, 5))[0];
@@ -723,7 +732,7 @@ describe('Enigma tests', () => {
       (await enigma.tokenContract.methods.balanceOf(task.sender).call())
     );
     const result = await new Promise((resolve, reject) => {
-      enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, inStateDeltas, outStateDeltas, gasesUsed, ethCall,
+      enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, stateDeltaHashes, outputHash2, gasesUsed, ethCall,
         sig)
         .send({
           from: selectedWorkerAddr,
@@ -752,8 +761,8 @@ describe('Enigma tests', () => {
   });
 
   it('should get state delta hash range', async () => {
-    const hashes = await enigma.admin.getStateDeltaHashes(scAddr, 0, 3);
-    expect(hashes).toEqual([outStateDelta, outStateDeltas[0], outStateDeltas[1]]);
+    const hashes = await enigma.admin.getStateDeltaHashes(scAddr, 0, 4);
+    expect(hashes).toEqual([initStateDeltaHash, stateDeltaHash, stateDeltaHashes[0], stateDeltaHashes[1]]);
   });
 
   it('should fail the RPC Server', async () => {
