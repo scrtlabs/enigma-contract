@@ -196,17 +196,17 @@ function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPr
   );
 }
 
-/**
- * RLP encode report parts
- *
- * @param {string} report
- * @param {string} cert
- * @param {string} sig
- * @return {string}
- */
-function encodeReport(report, cert, sig) {
-  return '0x' + RLP.encode([report, cert, sig]).toString('hex');
-}
+// /**
+//  * RLP encode report parts
+//  *
+//  * @param {string} report
+//  * @param {string} cert
+//  * @param {string} sig
+//  * @return {string}
+//  */
+// function encodeReport(report, cert, sig) {
+//   return '0x' + RLP.encode([report, cert, sig]).toString('hex');
+// }
 
 // /**
 //  * Verifies that the specified method signature matches the specs defined
@@ -381,7 +381,7 @@ function toGrains(engValue) {
 let utils = {};
 
 // utils.readCert = readCert;
-utils.encodeReport = encodeReport;
+// utils.encodeReport = encodeReport;
 utils.test = () => 'hello2';
 // utils.encodeArguments = encodeArguments;
 utils.generateScAddr = generateScAddr;
