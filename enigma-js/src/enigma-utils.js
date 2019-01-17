@@ -1,5 +1,5 @@
 import web3Utils from 'web3-utils';
-import RLP from 'rlp';
+// import RLP from 'rlp';
 import forge from 'node-forge';
 import EthCrypto from 'eth-crypto';
 import elliptic from 'elliptic';
