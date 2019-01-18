@@ -392,10 +392,10 @@ describe('Enigma tests', () => {
   });
 
   it('should fail to send corrupted task input to the network', async () => {
-    let corruptedTask = {...scTask, sender: ''};
+    let corruptedTask = {...scTask, preCodeHash: ''};
     await expect(new Promise((resolve, reject) => {
       enigma.sendTaskInput(corruptedTask)
-        .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
+        .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
   });
@@ -403,10 +403,10 @@ describe('Enigma tests', () => {
   it('should send deploy contract task inputs to Enigma Network', async () => {
     const result = await new Promise((resolve, reject) => {
       enigma.sendTaskInput(scTask)
-        .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
+        .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    expect(result.sendTaskResult).toEqual(true);
+    expect(result.deploySentResult).toEqual(true);
   });
 
   it('should get the pending deploy contract task', async () => {
@@ -914,7 +914,7 @@ describe('Enigma tests', () => {
 
 
   it('should fail the RPC Server', async () => {
-    expect.assertions(12);
+    expect.assertions(9);
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
         if (err) {
@@ -940,7 +940,7 @@ describe('Enigma tests', () => {
       });
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1}, (err, response) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', workerAddress: '0x1'}, (err, response) => {
         if (err) {
           reject(err);
         }
@@ -948,7 +948,7 @@ describe('Enigma tests', () => {
       });
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1'}, (err, response) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', workerAddress: '0x1', encryptedFn: '1'}, (err, response) => {
         if (err) {
           reject(err);
         }
@@ -956,7 +956,7 @@ describe('Enigma tests', () => {
       });
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1'},
+      enigma.client.request('sendTaskInput', {taskId: '1', workerAddress: '0x1', encryptedFn: '1', encryptedArgs: '1'},
         (err, response) => {
         if (err) {
           reject(err);
@@ -965,8 +965,8 @@ describe('Enigma tests', () => {
       });
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1'}, (err, response) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', workerAddress: '0x1', encryptedFn: '1', encryptedArgs: '1',
+        contractAddress: '0x1'}, (err, response) => {
         if (err) {
           reject(err);
         }
@@ -974,36 +974,8 @@ describe('Enigma tests', () => {
       });
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedAbiEncodedArgs: '1'}, (err, response) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedAbiEncodedArgs: '1', userTaskSig: '1'}, (err, response) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedAbiEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1'}, (err, response) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', creationBlockNumber: 1, sender: '0x1', scAddr: '0x1',
-        encryptedFn: '1', encryptedAbiEncodedArgs: '1', userTaskSig: '1', userPubKey: '0x1', gasLimit: 1},
-        (err, response) => {
+      enigma.client.request('sendTaskInput', {taskId: '1', workerAddress: '0x1', encryptedFn: '1', encryptedArgs: '1',
+        contractAddress: '0x1'}, (err, response) => {
         if (err) {
           reject(err);
         }

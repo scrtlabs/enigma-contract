@@ -24,27 +24,35 @@ export default class RPCServer {
           });
         }
       },
-      sendTaskInput: function(taskId, creationBlockNumber, sender, scAddr, preCodeHash, encryptedFn,
-                              encryptedAbiEncodedArgs, userTaskSig, userPubKey, gasLimit, gasPx, msgId, callback) {
-        if (!taskId) {
+      deploySecretContract: function(preCode, encryptedArgs, encryptedFn, userDHKey, contractAddress, callback) {
+        if (!preCode) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!creationBlockNumber) {
-          callback({"code": -32602, "message": "Invalid params"});
-        } else if (!sender) {
-          callback({"code": -32602, "message": "Invalid params"});
-        } else if (!scAddr) {
+        } else if (!encryptedArgs) {
           callback({"code": -32602, "message": "Invalid params"});
         } else if (!encryptedFn) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!encryptedAbiEncodedArgs) {
+        } else if (!userDHKey) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!userTaskSig) {
+        } else if (!contractAddress) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!userPubKey) {
+        } else {
+          callback(null, {
+            deploySentResult: true,
+          });
+        }
+      },
+      sendTaskInput: function(taskId, workerAddress, encryptedFn, encryptedArgs, contractAddress, userDHKey, callback) {
+        if (!taskId) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!gasLimit) {
+        } else if (!workerAddress) {
           callback({"code": -32602, "message": "Invalid params"});
-        } else if (!gasPx) {
+        } else if (!encryptedFn) {
+          callback({"code": -32602, "message": "Invalid params"});
+        } else if (!encryptedArgs) {
+          callback({"code": -32602, "message": "Invalid params"});
+        } else if (!contractAddress) {
+          callback({"code": -32602, "message": "Invalid params"});
+        } else if (!userDHKey) {
           callback({"code": -32602, "message": "Invalid params"});
         } else {
           callback(null, {

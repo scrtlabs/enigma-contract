@@ -42,11 +42,10 @@ export default class Enigma {
         .then((response) => {
           if ('error' in response.data) {
             callback(response.data.error, null);
+          } else {
+            let text = JSON.stringify(response.data.result);
+            callback(null, text);
           }
-          return JSON.stringify(response.data.result);
-        })
-        .then((text) => {
-          callback(null, text);
         })
         .catch(function(err) {
           callback(err, null);
@@ -105,35 +104,40 @@ export default class Enigma {
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const workerAddress = await this.selectWorkerGroup(blockNumber, scAddr, workerParams, 5)[0];
-      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-        this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(response);
+      try {
+        const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
+          this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(response);
+          });
         });
-      });
-      const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
-      if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
-        this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
-        emitter.emit(eeConstants.ERROR, {
-          name: 'InvalidWorker',
-          message: 'Invalid worker encryption key + signature combo',
-        });
-      } else {
-        const {publicKey, privateKey} = this.obtainTaskKeyPair();
-        // Generate derived key from worker's encryption key and user's private key
-        const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
-        // Encrypt function and ABI-encoded args
-        const encryptedFn = utils.encryptMessage(derivedKey, fn);
-        const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
-        const msg = this.web3.utils.soliditySha3(
-          {t: 'bytes', v: encryptedFn},
-          {t: 'bytes', v: encryptedAbiEncodedArgs},
-        );
-        const userTaskSig = await this.web3.eth.sign(msg, sender);
-        emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-          msgId, publicKey, workerAddress, sender, userTaskSig, nonce, preCodeHash, isContractDeploymentTask));
+        const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
+        if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
+          this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
+          emitter.emit(eeConstants.ERROR, {
+            name: 'InvalidWorker',
+            message: 'Invalid worker encryption key + signature combo',
+          });
+        } else {
+          const {publicKey, privateKey} = this.obtainTaskKeyPair();
+          // Generate derived key from worker's encryption key and user's private key
+          const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
+          // Encrypt function and ABI-encoded args
+          const encryptedFn = utils.encryptMessage(derivedKey, fn);
+          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
+          const msg = this.web3.utils.soliditySha3(
+            {t: 'bytes', v: encryptedFn},
+            {t: 'bytes', v: encryptedAbiEncodedArgs},
+          );
+          const userTaskSig = await this.web3.eth.sign(msg, sender);
+          emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
+            msgId, publicKey, workerAddress, sender, userTaskSig, nonce, preCodeHash, isContractDeploymentTask));
+        }
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
       }
     })();
     return emitter;
@@ -361,16 +365,26 @@ export default class Enigma {
   sendTaskInput(task) {
     let emitter = new EventEmitter();
     (async () => {
-      const sendTaskInputResult = await new Promise((resolve, reject) => {
-        this.client.request('sendTaskInput', Enigma.serializeTask(task), (err, response) => {
-          if (err) {
-            emitter.emit(eeConstants.ERROR, err);
-          } else {
+      let rpcEndpointName = 'sendTaskInput';
+      let emitName = eeConstants.SEND_TASK_INPUT_RESULT;
+      if (task.isContractDeploymentTask) {
+        rpcEndpointName = 'deploySecretContract';
+        emitName = eeConstants.DEPLOY_SECRET_CONTRACT_RESULT;
+      }
+      try {
+        const sendTaskInputResult = await new Promise((resolve, reject) => {
+          this.client.request(rpcEndpointName, Enigma.serializeTask(task), (err, response) => {
+            if (err) {
+              reject(err);
+              return;
+            }
             resolve(response);
-          }
+          });
         });
-      });
-      emitter.emit(eeConstants.SEND_TASK_INPUT_RESULT, sendTaskInputResult);
+        emitter.emit(emitName, sendTaskInputResult);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
     })();
     return emitter;
   }
@@ -386,6 +400,7 @@ export default class Enigma {
         this.client.request('pollTaskInput', {taskId: task.taskId}, (err, response) => {
           if (err) {
             reject(err);
+            return;
           }
           task.encryptedAbiEncodedOutputs = response.encryptedAbiEncodedOutputs;
           task.workerTaskSig = response.workerTaskSig;
@@ -410,6 +425,8 @@ export default class Enigma {
       if (d.status !== 2) {
         this.innerPollTaskInput(task, generator, emitter);
       }
+    }).catch((err) => {
+      emitter.emit(eeConstants.ERROR, err);
     });
   }
 
@@ -434,10 +451,10 @@ export default class Enigma {
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
-    return {taskId: task.taskId, creationBlockNumber: task.creationBlockNumber, sender: task.sender,
-      scAddr: task.scAddr, preCodeHash: task.preCodeHash, encryptedFn: task.encryptedFn,
-      encryptedAbiEncodedArgs: task.encryptedAbiEncodedArgs, userTaskSig: task.userTaskSig,
-      userPubKey: task.userPubKey, gasLimit: task.gasLimit, gasPx: task.gasPx, msgId: task.msgId};
+    return task.isContractDeploymentTask ? {preCode: task.preCodeHash, encryptedArgs: task.encryptedAbiEncodedArgs,
+      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr} : {taskId: task.taskId,
+      workerAddress: task.workerAddress, encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs,
+      contractAddress: task.scAddr, userDHKey: task.userPubKey};
   }
 
   /**
