@@ -48,7 +48,7 @@ export default class Enigma {
           }
         })
         .catch(function(err) {
-          callback(err, null);
+          callback({code: -32602, message: err.message}, null);
         });
     };
     this.client = jaysonBrowserClient(callServer, {});
@@ -93,7 +93,7 @@ export default class Enigma {
    * @param {boolean} isContractDeploymentTask - Is this task a contract deployment task (if not, it's a regular task)
    * @return {Task} Task with base attributes to be used for remainder of task lifecycle
    */
-  createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCodeHash, isContractDeploymentTask=false) {
+  createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCodeHash, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
       const nonce = parseInt(await this.enigmaContract.methods.userTaskDeployments(sender).call());
@@ -381,7 +381,10 @@ export default class Enigma {
             resolve(response);
           });
         });
-        emitter.emit(emitName, sendTaskInputResult);
+        if (sendTaskInputResult.deploySentResult || sendTaskInputResult.sendTaskResult) {
+          task.engStatus = 1;
+        }
+        emitter.emit(emitName, task);
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
       }
@@ -480,6 +483,88 @@ export default class Enigma {
     return {publicKey, privateKey};
   }
 
+  /**
+   * Create a task to deploy a secret contract - creates base task, creates task record, and sends task to the
+   * Enigma network.
+   *
+   * @param {string} fn - Function name
+   * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
+   *
+   * @param {Number} gasLimit - ENG gas limit for task computation
+   * @param {Number} gasPx - ENG gas price for task computation
+   * @param {string} sender - ETH address for task sender
+   * @param {string} preCodeHash - Precode hash for contract deployment
+   * @return {Task} Task with attributes necessary for task record and Enigma network
+   */
+  deploySecretContract(fn, args, gasLimit, gasPx, sender, preCodeHash) {
+    let emitter = new EventEmitter();
+    (async () => {
+      try {
+        let scTask = await new Promise((resolve, reject) => {
+          this.createTask(fn, args, gasLimit, gasPx, sender, preCodeHash, true)
+            .on(eeConstants.CREATE_TASK, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK, scTask);
+        scTask = await new Promise((resolve, reject) => {
+          this.createTaskRecord(scTask)
+            .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK_RECORD, scTask);
+        await new Promise((resolve, reject) => {
+          this.sendTaskInput(scTask)
+            .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, scTask);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
+   * Create a compute task - creates base task, creates task record, and sends task to the Enigma network.
+   *
+   * @param {string} fn - Function name
+   * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
+   *
+   * @param {Number} gasLimit - ENG gas limit for task computation
+   * @param {Number} gasPx - ENG gas price for task computation
+   * @param {string} sender - ETH address for task sender
+   * @param {string} scAddr - Secret contract address
+   * @return {Task} Task with attributes necessary for task record and Enigma network
+   */
+  computeTask(fn, args, gasLimit, gasPx, sender, scAddr) {
+    let emitter = new EventEmitter();
+    (async () => {
+      try {
+        let task = await new Promise((resolve, reject) => {
+          this.createTask(fn, args, gasLimit, gasPx, sender, scAddr, false)
+            .on(eeConstants.CREATE_TASK, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK, task);
+        task = await new Promise((resolve, reject) => {
+          this.createTaskRecord(task)
+            .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
+        await new Promise((resolve, reject) => {
+          this.sendTaskInput(task)
+            .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.SEND_TASK_INPUT_RESULT, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
+    })();
+    return emitter;
+  }
   /**
    * Return the version number of the library
    *

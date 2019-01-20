@@ -54,6 +54,6 @@ export default class Task {
     // Attributes added to task when computation result is being polled from the ENG network
     this.encryptedAbiEncodedOutputs = '';
     this.workerTaskSig = '';
-    this.engStatus = '';
+    this.engStatus = 0;
   }
 }

@@ -336,15 +336,6 @@ describe('Enigma tests', () => {
       'yielding bad secret contract address');
   });
 
-  it('should fail to create deploy contract task record due to insufficient funds', async () => {
-    let corruptedTask = {...scTask, sender: accounts[9]};
-    await expect(new Promise((resolve, reject) => {
-      enigma.createTaskRecord(corruptedTask)
-        .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
-  });
-
   it('should fail to create deploy contract task record with incorrect worker', async () => {
     let corruptedTask = {...scTask, workerAddress: accounts.filter((account) => account !== scTask.workerAddress)[0]};
     await expect(new Promise((resolve, reject) => {
@@ -401,12 +392,94 @@ describe('Enigma tests', () => {
   });
 
   it('should send deploy contract task inputs to Enigma Network', async () => {
-    const result = await new Promise((resolve, reject) => {
+    scTask = await new Promise((resolve, reject) => {
       enigma.sendTaskInput(scTask)
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    expect(result.deploySentResult).toEqual(true);
+    expect(scTask.engStatus).toEqual(1);
+  });
+
+  it('should fail to create/send deploy contract task using wrapper function because of failed worker encryption ' +
+    'key rpc call', async () => {
+    server.close(true);
+    // Pre-deployed bytecode hash
+    preCodeHash = web3.utils.soliditySha3('9d075ae');
+    let scTaskFn = 'deployContract';
+    let scTaskArgs = [
+      ['first_sc', 'string'],
+      [1, 'uint'],
+    ];
+    let scTaskGasLimit = 100;
+    let scTaskGasPx = utils.toGrains(1);
+    await expect(new Promise((resolve, reject) => {
+      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCodeHash)
+        .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({code: -32602, message: 'Network Error'});
+    server.listen();
+  });
+
+  it('should fail to create/send deploy contract task using wrapper function due to insufficient funds', async () => {
+    // Pre-deployed bytecode hash
+    preCodeHash = web3.utils.soliditySha3('9d075ae');
+    let scTaskFn = 'deployContract';
+    let scTaskArgs = [
+      ['first_sc', 'string'],
+      [1, 'uint'],
+    ];
+    let scTaskGasLimit = 100;
+    let scTaskGasPx = utils.toGrains(1);
+    await expect(new Promise((resolve, reject) => {
+      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[9], preCodeHash)
+        .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
+  });
+
+  it('should create/send deploy contract task using wrapper function', async () => {
+    // Pre-deployed bytecode hash
+    preCodeHash = web3.utils.soliditySha3('9d075ae');
+    let scTaskFn = 'deployContract';
+    let scTaskArgs = [
+      ['first_sc', 'string'],
+      [1, 'uint'],
+    ];
+    let scTaskGasLimit = 100;
+    let scTaskGasPx = utils.toGrains(1);
+    const startingContractBalance = parseInt(
+      await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call()
+    );
+    scTask = await new Promise((resolve, reject) => {
+      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCodeHash)
+        .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    });
+    const endingContractBalance = parseInt(
+      await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call()
+    );
+    expect(scTask).toBeTruthy;
+    expect(scTask.scAddr).toBeTruthy;
+    expect(scTask.preCodeHash).not.toEqual('');
+    expect(scTask.encryptedFn).toBeTruthy;
+    expect(scTask.encryptedAbiEncodedArgs).toBeTruthy;
+    expect(scTask.gasLimit).toEqual(scTaskGasLimit);
+    expect(scTask.gasPx).toEqual(scTaskGasPx);
+    expect(scTask.msgId).toBeTruthy;
+    expect(scTask.sender).toEqual(accounts[0]);
+    const msg = web3.utils.soliditySha3(
+      {t: 'bytes', v: scTask.encryptedFn},
+      {t: 'bytes', v: scTask.encryptedAbiEncodedArgs},
+    );
+    expect(enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig)).toEqual(accounts[0]);
+    expect(scTask.nonce).toEqual(1);
+    expect(scTask.receipt).toBeTruthy;
+    expect(scTask.transactionHash).toBeTruthy;
+    expect(scTask.taskId).toBeTruthy;
+    expect(scTask.ethStatus).toEqual(1);
+    expect(scTask.proof).toBeFalsy;
+    expect(endingContractBalance-startingContractBalance).toEqual(scTask.gasLimit * scTask.gasPx);
+    expect(scTask.engStatus).toEqual(1);
   });
 
   it('should get the pending deploy contract task', async () => {
@@ -506,7 +579,7 @@ describe('Enigma tests', () => {
       {t: 'bytes', v: task.encryptedAbiEncodedArgs},
     );
     expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(accounts[0]);
-    expect(task.nonce).toEqual(1);
+    expect(task.nonce).toEqual(2);
   });
 
   it('should create task record', async () => {
@@ -536,12 +609,107 @@ describe('Enigma tests', () => {
   // });
 
   it('should send task inputs to Enigma network', async () => {
-    const result = await new Promise((resolve, reject) => {
+    task = await new Promise((resolve, reject) => {
       enigma.sendTaskInput(task)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    expect(result.sendTaskResult).toEqual(true);
+    expect(task.engStatus).toEqual(1);
+  });
+
+  it('should fail to create/send compute task using wrapper function because of failed worker encryption ' +
+    'key rpc call', async () => {
+    server.close(true);
+    scAddr = scTask.scAddr;
+    let taskFn = 'medianWealth';
+    let taskArgs = [
+      [200000, 'int32'],
+      [300000, 'int32'],
+    ];
+    let taskGasLimit = 100;
+    let taskGasPx = utils.toGrains(1);
+    await expect(new Promise((resolve, reject) => {
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr)
+        .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({code: -32602, message: 'Network Error'});
+    server.listen();
+  });
+
+  it('should fail to create/send deploy contract task using wrapper function due to insufficient funds', async () => {
+    scAddr = scTask.scAddr;
+    let taskFn = 'medianWealth';
+    let taskArgs = [
+      [200000, 'int32'],
+      [300000, 'int32'],
+    ];
+    let taskGasLimit = 901;
+    let taskGasPx = utils.toGrains(1);
+    await expect(new Promise((resolve, reject) => {
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[1], scAddr)
+        .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
+  });
+
+  it('should create/send compute task using wrapper function', async () => {
+    scAddr = scTask.scAddr;
+    let taskFn = 'medianWealth';
+    let taskArgs = [
+      [200000, 'int32'],
+      [300000, 'int32'],
+    ];
+    let taskGasLimit = 100;
+    let taskGasPx = utils.toGrains(1);
+    const startingContractBalance = parseInt(
+      await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call()
+    );
+    task = await new Promise((resolve, reject) => {
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr)
+        .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    });
+    const endingContractBalance = parseInt(
+      await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call()
+    );
+    expect(task).toBeTruthy;
+    expect(task.scAddr).toBeTruthy;
+    expect(task.preCodeHash).toEqual('');
+    expect(task.encryptedFn).toBeTruthy;
+    expect(task.encryptedAbiEncodedArgs).toBeTruthy;
+    expect(task.gasLimit).toEqual(taskGasLimit);
+    expect(task.gasPx).toEqual(taskGasPx);
+    expect(task.msgId).toBeTruthy;
+    expect(task.sender).toEqual(accounts[0]);
+    const msg = web3.utils.soliditySha3(
+      {t: 'bytes', v: task.encryptedFn},
+      {t: 'bytes', v: task.encryptedAbiEncodedArgs},
+    );
+    expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(accounts[0]);
+    expect(task.nonce).toEqual(3);
+    expect(task.receipt).toBeTruthy;
+    expect(task.transactionHash).toBeTruthy;
+    expect(task.taskId).toBeTruthy;
+    expect(task.ethStatus).toEqual(1);
+    expect(task.proof).toBeFalsy;
+    expect(endingContractBalance-startingContractBalance).toEqual(task.gasLimit * task.gasPx);
+    expect(task.engStatus).toEqual(1);
+  });
+
+  it('should fail to poll the network because of failed rpc call', async () => {
+    server.close(true);
+    let taskStatuses = [];
+    await expect(new Promise((resolve, reject) => {
+      enigma.pollTaskInput(task)
+        .on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
+          taskStatuses.push(result.engStatus);
+          if (result.engStatus === 2) {
+            resolve();
+          }
+        })
+        .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({code: -32602, message: 'Network Error'});
+    server.listen();
   });
 
   it('should poll the network until task confirmed', async () => {
@@ -643,7 +811,22 @@ describe('Enigma tests', () => {
     })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid task status');
   });
 
-  it('should create new task and task record', async () => {
+  it('should fail to create/send compute task using wrapper function due to insufficient funds', async () => {
+    let taskFn = 'medianWealth';
+    let taskArgs = [
+      [200000, 'int32'],
+      [300000, 'int32'],
+    ];
+    let taskGasLimit = 901;
+    let taskGasPx = utils.toGrains(1);
+    await expect(new Promise((resolve, reject) => {
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[1], scAddr)
+        .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
+  });
+
+  it('should create/send a new compute task using wrapper function', async () => {
     let taskFn = 'medianWealth';
     let taskArgs = [
       [200000, 'int32'],
@@ -651,17 +834,12 @@ describe('Enigma tests', () => {
     ];
     let taskGasLimit = 100;
     let taskGasPx = utils.toGrains(1);
-    task = await new Promise((resolve, reject) => {
-      enigma.createTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr, false)
-        .on(eeConstants.CREATE_TASK, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
     const startingContractBalance = parseInt(
       await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call()
     );
     task = await new Promise((resolve, reject) => {
-      enigma.createTaskRecord(task)
-        .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr)
+        .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     const endingContractBalance = parseInt(
@@ -681,13 +859,14 @@ describe('Enigma tests', () => {
       {t: 'bytes', v: task.encryptedAbiEncodedArgs},
     );
     expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(accounts[0]);
-    expect(task.nonce).toEqual(2);
+    expect(task.nonce).toEqual(4);
     expect(task.receipt).toBeTruthy;
     expect(task.transactionHash).toBeTruthy;
     expect(task.taskId).toBeTruthy;
     expect(task.ethStatus).toEqual(1);
     expect(task.proof).toBeFalsy;
     expect(endingContractBalance-startingContractBalance).toEqual(task.gasLimit * task.gasPx);
+    expect(task.engStatus).toEqual(1);
   });
 
   it('should simulate task receipt', async () => {
@@ -765,12 +944,12 @@ describe('Enigma tests', () => {
       [2000000, 'int32'],
     ];
     let taskA = await new Promise((resolve, reject) => {
-      enigma.createTask(taskFn, taskArgsA, taskGasLimit, taskGasPx, accounts[1], scAddr)
+      enigma.createTask(taskFn, taskArgsA, taskGasLimit, taskGasPx, accounts[1], scAddr, false)
         .on(eeConstants.CREATE_TASK, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     let taskB = await new Promise((resolve, reject) => {
-      enigma.createTask(taskFn, taskArgsB, taskGasLimit, taskGasPx, accounts[1], scAddr)
+      enigma.createTask(taskFn, taskArgsB, taskGasLimit, taskGasPx, accounts[1], scAddr, false)
         .on(eeConstants.CREATE_TASK, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
@@ -795,12 +974,12 @@ describe('Enigma tests', () => {
       [2000000, 'int32'],
     ];
     let taskA = await new Promise((resolve, reject) => {
-      enigma.createTask(taskFn, taskArgsA, taskGasLimit, taskGasPx, accounts[0], scAddr)
+      enigma.createTask(taskFn, taskArgsA, taskGasLimit, taskGasPx, accounts[0], scAddr, false)
         .on(eeConstants.CREATE_TASK, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     let taskB = await new Promise((resolve, reject) => {
-      enigma.createTask(taskFn, taskArgsB, taskGasLimit, taskGasPx, accounts[0], scAddr)
+      enigma.createTask(taskFn, taskArgsB, taskGasLimit, taskGasPx, accounts[0], scAddr, false)
         .on(eeConstants.CREATE_TASK, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
@@ -914,7 +1093,7 @@ describe('Enigma tests', () => {
 
 
   it('should fail the RPC Server', async () => {
-    expect.assertions(9);
+    expect.assertions(13);
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
         if (err) {
@@ -922,6 +1101,48 @@ describe('Enigma tests', () => {
         }
         resolve(response);
       });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('deploySecretContract', {}, (err, response) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(response);
+      });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('deploySecretContract', {preCode: '1'}, (err, response) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(response);
+      });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('deploySecretContract', {preCode: '1', encryptedArgs: '1'}, (err, response) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(response);
+      });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('deploySecretContract', {preCode: '1', encryptedArgs: '1', encryptedFn: '1'},
+        (err, response) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(response);
+      });
+    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    await expect(new Promise((resolve, reject) => {
+      enigma.client.request('deploySecretContract', {preCode: '1', encryptedArgs: '1', encryptedFn: '1',
+          userDHKey: '0x1'}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
     })).rejects.toEqual({code: -32602, message: 'Invalid params'});
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('sendTaskInput', {}, (err, response) => {
@@ -958,15 +1179,6 @@ describe('Enigma tests', () => {
     await expect(new Promise((resolve, reject) => {
       enigma.client.request('sendTaskInput', {taskId: '1', workerAddress: '0x1', encryptedFn: '1', encryptedArgs: '1'},
         (err, response) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(response);
-      });
-    })).rejects.toEqual({code: -32602, message: 'Invalid params'});
-    await expect(new Promise((resolve, reject) => {
-      enigma.client.request('sendTaskInput', {taskId: '1', workerAddress: '0x1', encryptedFn: '1', encryptedArgs: '1',
-        contractAddress: '0x1'}, (err, response) => {
         if (err) {
           reject(err);
         }

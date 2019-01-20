@@ -85,6 +85,7 @@ contract Enigma {
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes ethCall, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] _stateDeltaHashes, bytes32 outputHash, bytes ethCall, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes ethCall, bytes sig);
+    event TaskFeeReturned(bytes32 taskId);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash);
@@ -633,8 +634,7 @@ contract Enigma {
     }
 
     /**
-    * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
-    * After this, the task record is finalized and the worker is credited with the task's fee.
+    * Verify the task receipt prior to committing/finalizing it on chain.
     *
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
@@ -670,7 +670,7 @@ contract Enigma {
 
     /**
     * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
-    * After this, the task record is finalized and the worker is credited with the task's fee.
+    * The task record is finalized and the worker is credited with the task's fee.
     *
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
@@ -694,11 +694,14 @@ contract Enigma {
     contractDeployed(_scAddr)
     {
         SecretContract storage secretContract = contracts[_scAddr];
+        // Obtain the last state delta hash the contract is aware of
         bytes32 lastStateDeltaHash = secretContract.stateDeltaHashes[secretContract.stateDeltaHashes.length - 1];
 
+        // Verify the receipt
         verifyReceipt(_scAddr, _taskId, _stateDeltaHash, _gasUsed, msg.sender, _sig);
         bytes32 inputsHash = tasks[_taskId].inputsHash;
 
+        // Append the new state delta hash and set the contract's output hash
         secretContract.stateDeltaHashes.push(_stateDeltaHash);
         secretContract.outputHash = _outputHash;
 
@@ -712,7 +715,7 @@ contract Enigma {
 
     /**
    * Commit the computation task results on chain by first verifying the receipts and then the worker's signature.
-   * After this, the task records are finalized and the worker is credited with the tasks' fees.
+   * The task records are finalized and the worker is credited with the tasks' fees.
    *
    * @param _scAddr Secret contract address
    * @param _taskIds Unique taskId
@@ -736,15 +739,19 @@ contract Enigma {
     {
         bytes32[] memory inputsHashes = new bytes32[](_taskIds.length);
         SecretContract storage secretContract = contracts[_scAddr];
+        // Obtain the last state delta hash the contract is aware of
         bytes32 lastStateDeltaHash = secretContract.stateDeltaHashes[secretContract.stateDeltaHashes.length - 1];
 
         for (uint i = 0; i < _taskIds.length; i++) {
+            // Verify the receipt
             verifyReceipt(_scAddr, _taskIds[i], _stateDeltaHashes[i], _gasesUsed[i], msg.sender, _sig);
             inputsHashes[i] = tasks[_taskIds[i]].inputsHash;
 
+            // Append the new state delta hash
             secretContract.stateDeltaHashes.push(_stateDeltaHashes[i]);
         }
 
+        //  Set the contract's output hash
         secretContract.outputHash = _outputHash;
 
         // Check worker's signature
@@ -818,7 +825,9 @@ contract Enigma {
         // Return the full fee to the task sender
         require(engToken.transfer(task.sender, task.gasLimit.mul(task.gasPx)), "Token transfer failed");
 
-        delete tasks[_taskId];
+        // Set task's status to ReceiptFailed and emit event
+        task.status = TaskStatus.ReceiptFailed;
+        emit TaskFeeReturned(_taskId);
     }
 
     // Verify the signature submitted while reparameterizing workers
