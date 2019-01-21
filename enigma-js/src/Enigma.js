@@ -81,29 +81,29 @@ export default class Enigma {
    * Create a base Task - a wrapper for a task (either contract deployments or regular tasks)
    *
    * @param {string} fn - Function name
-   * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]. For a secret
-   * contract deployment task, the first entry pair in the args list will be [preCodeHash, 'bytes32'] followed by
-   * the constructor args
+   * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
    *
    * @param {Number} gasLimit - ENG gas limit for task computation
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
-   * @param {string} scAddrOrPreCodeHash - Either secret contract address or precode hash, depending on if user is
-   * running a contract deployment or regular task
+   * @param {string} scAddrOrPreCode - Either secret contract address or precode, depending on if user is running a
+   * contract deployment or regular task
    * @param {boolean} isContractDeploymentTask - Is this task a contract deployment task (if not, it's a regular task)
    * @return {Task} Task with base attributes to be used for remainder of task lifecycle
    */
-  createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCodeHash, isContractDeploymentTask) {
+  createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
       const nonce = parseInt(await this.enigmaContract.methods.userTaskDeployments(sender).call());
-      const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCodeHash;
-      const preCodeHash = isContractDeploymentTask ? scAddrOrPreCodeHash : '';
+      const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
+      const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
+      const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
       const argsTranspose = args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
-      const workerAddress = await this.selectWorkerGroup(blockNumber, scAddr, workerParams, 5)[0];
+      const firstBlockNumber = workerParams.firstBlockNumber;
+      const workerAddress = await this.selectWorkerGroup(scAddr, workerParams, 5)[0];
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
@@ -134,7 +134,8 @@ export default class Enigma {
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            msgId, publicKey, workerAddress, sender, userTaskSig, nonce, preCodeHash, isContractDeploymentTask));
+            msgId, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
+            isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
@@ -171,7 +172,7 @@ export default class Enigma {
       try {
         const receipt = task.isContractDeploymentTask ?
           await this.enigmaContract.methods.createDeploymentTaskRecord(task.inputsHash, task.gasLimit,
-            task.gasPx, task.workerAddress, task.scAddr, task.nonce).send({
+            task.gasPx, task.firstBlockNumber, task.scAddr, task.nonce).send({
             from: task.sender,
           })
             .on('transactionHash', (hash) => {
@@ -183,7 +184,7 @@ export default class Enigma {
             })
           :
           await this.enigmaContract.methods.createTaskRecord(task.inputsHash, task.gasLimit, task.gasPx,
-            task.workerAddress, task.scAddr).send({
+            task.firstBlockNumber, task.scAddr).send({
             from: task.sender,
           })
             .on('transactionHash', (hash) => {
@@ -314,14 +315,13 @@ export default class Enigma {
   /**
    * Select the workers weighted-randomly based on the staked token amount that will run the computation task
    *
-   * @param {number} blockNumber - Block number of task record's mining
    * @param {string} scAddr - Secret contract address
    * @param {Object} params - Worker params
    * @param {number} workerGroupSize - Number of workers to be selected for task
    * @return {Array} An array of selected workers where each selected worker is chosen with probability equal to
    * number of staked tokens
    */
-  selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
+  selectWorkerGroup(scAddr, params, workerGroupSize = 5) {
     // Find total number of staked tokens for workers
     let tokenCpt = params.balances.reduce((a, b) => a + b, 0);
     let nonce = 0;
@@ -454,7 +454,7 @@ export default class Enigma {
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
-    return task.isContractDeploymentTask ? {preCode: task.preCodeHash, encryptedArgs: task.encryptedAbiEncodedArgs,
+    return task.isContractDeploymentTask ? {preCode: task.preCode, encryptedArgs: task.encryptedAbiEncodedArgs,
       encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr} : {taskId: task.taskId,
       workerAddress: task.workerAddress, encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs,
       contractAddress: task.scAddr, userDHKey: task.userPubKey};
@@ -471,6 +471,7 @@ export default class Enigma {
     let encodedPrivateKey = window.localStorage.getItem('encodedPrivateKey');
     if (encodedPrivateKey == null) {
       let random = forge.random.createInstance();
+      // TODO: Query user for passphrase
       random.seedFileSync = function(needed) {
         return forge.util.fillString('cupcake', needed);
       };
@@ -493,15 +494,15 @@ export default class Enigma {
    * @param {Number} gasLimit - ENG gas limit for task computation
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
-   * @param {string} preCodeHash - Precode hash for contract deployment
+   * @param {string} preCode - Precode for contract deployment
    * @return {Task} Task with attributes necessary for task record and Enigma network
    */
-  deploySecretContract(fn, args, gasLimit, gasPx, sender, preCodeHash) {
+  deploySecretContract(fn, args, gasLimit, gasPx, sender, preCode) {
     let emitter = new EventEmitter();
     (async () => {
       try {
         let scTask = await new Promise((resolve, reject) => {
-          this.createTask(fn, args, gasLimit, gasPx, sender, preCodeHash, true)
+          this.createTask(fn, args, gasLimit, gasPx, sender, preCode, true)
             .on(eeConstants.CREATE_TASK, (result) => resolve(result))
             .on(eeConstants.ERROR, (error) => reject(error));
         });

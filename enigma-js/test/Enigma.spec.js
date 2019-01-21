@@ -293,11 +293,10 @@ describe('Enigma tests', () => {
   });
 
   let scTask;
-  let preCodeHash;
+  let preCode;
   it('should create deploy contract task', async () => {
-    // Pre-deployed bytecode hash
-    preCodeHash = web3.utils.soliditySha3('9d075ae');
-    let scTaskFn = 'deployContract';
+    preCode = '9d075ae';
+    let scTaskFn = 'deployContract(string,uint)';
     let scTaskArgs = [
       ['first_sc', 'string'],
       [1, 'uint'],
@@ -305,12 +304,13 @@ describe('Enigma tests', () => {
     let scTaskGasLimit = 100;
     let scTaskGasPx = utils.toGrains(1);
     scTask = await new Promise((resolve, reject) => {
-      enigma.createTask(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCodeHash, true)
+      enigma.createTask(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode, true)
         .on(eeConstants.CREATE_TASK, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     expect(scTask).toBeTruthy;
     expect(scTask.scAddr).toBeTruthy;
+    expect(scTask.preCode).not.toEqual('');
     expect(scTask.preCodeHash).not.toEqual('');
     expect(scTask.encryptedFn).toBeTruthy;
     expect(scTask.encryptedAbiEncodedArgs).toBeTruthy;
@@ -337,13 +337,12 @@ describe('Enigma tests', () => {
   });
 
   it('should fail to create deploy contract task record with incorrect worker', async () => {
-    let corruptedTask = {...scTask, workerAddress: accounts.filter((account) => account !== scTask.workerAddress)[0]};
+    let corruptedTask = {...scTask, firstBlockNumber: 0};
     await expect(new Promise((resolve, reject) => {
       enigma.createTaskRecord(corruptedTask)
         .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
-    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not the selected worker ' +
-      'for this task');
+    })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Wrong epoch for this task');
   });
 
   it('should create deploy contract task record', async () => {
@@ -376,14 +375,14 @@ describe('Enigma tests', () => {
     const contractSelectWorkers = await enigma.enigmaContract.methods.getWorkerGroup(scTask.creationBlockNumber,
       scTask.taskId).call();
     const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
-    const group = await enigma.selectWorkerGroup(scTask.creationBlockNumber, scTask.taskId, workerParams, 5);
+    const group = await enigma.selectWorkerGroup(scTask.taskId, workerParams, 5);
     for (let i = 0; i < group.length; i++) {
       expect(group[i]).toEqual(contractSelectWorkers[i]);
     }
   });
 
   it('should fail to send corrupted task input to the network', async () => {
-    let corruptedTask = {...scTask, preCodeHash: ''};
+    let corruptedTask = {...scTask, preCode: ''};
     await expect(new Promise((resolve, reject) => {
       enigma.sendTaskInput(corruptedTask)
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
@@ -403,9 +402,8 @@ describe('Enigma tests', () => {
   it('should fail to create/send deploy contract task using wrapper function because of failed worker encryption ' +
     'key rpc call', async () => {
     server.close(true);
-    // Pre-deployed bytecode hash
-    preCodeHash = web3.utils.soliditySha3('9d075ae');
-    let scTaskFn = 'deployContract';
+    preCode = '9d075ae';
+    let scTaskFn = 'deployContract(string,uint)';
     let scTaskArgs = [
       ['first_sc', 'string'],
       [1, 'uint'],
@@ -413,7 +411,7 @@ describe('Enigma tests', () => {
     let scTaskGasLimit = 100;
     let scTaskGasPx = utils.toGrains(1);
     await expect(new Promise((resolve, reject) => {
-      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCodeHash)
+      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode)
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     })).rejects.toEqual({code: -32602, message: 'Network Error'});
@@ -421,9 +419,8 @@ describe('Enigma tests', () => {
   });
 
   it('should fail to create/send deploy contract task using wrapper function due to insufficient funds', async () => {
-    // Pre-deployed bytecode hash
-    preCodeHash = web3.utils.soliditySha3('9d075ae');
-    let scTaskFn = 'deployContract';
+    preCode = '9d075ae';
+    let scTaskFn = 'deployContract(string,uint)';
     let scTaskArgs = [
       ['first_sc', 'string'],
       [1, 'uint'],
@@ -431,16 +428,15 @@ describe('Enigma tests', () => {
     let scTaskGasLimit = 100;
     let scTaskGasPx = utils.toGrains(1);
     await expect(new Promise((resolve, reject) => {
-      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[9], preCodeHash)
+      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[9], preCode)
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
   });
 
   it('should create/send deploy contract task using wrapper function', async () => {
-    // Pre-deployed bytecode hash
-    preCodeHash = web3.utils.soliditySha3('9d075ae');
-    let scTaskFn = 'deployContract';
+    preCode = '9d075ae';
+    let scTaskFn = 'deployContract(string,uint)';
     let scTaskArgs = [
       ['first_sc', 'string'],
       [1, 'uint'],
@@ -451,7 +447,7 @@ describe('Enigma tests', () => {
       await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call()
     );
     scTask = await new Promise((resolve, reject) => {
-      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCodeHash)
+      enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode)
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
@@ -460,6 +456,7 @@ describe('Enigma tests', () => {
     );
     expect(scTask).toBeTruthy;
     expect(scTask.scAddr).toBeTruthy;
+    expect(scTask.preCode).not.toEqual('');
     expect(scTask.preCodeHash).not.toEqual('');
     expect(scTask.encryptedFn).toBeTruthy;
     expect(scTask.encryptedAbiEncodedArgs).toBeTruthy;
@@ -498,11 +495,11 @@ describe('Enigma tests', () => {
       {t: 'bytes32', v: codeHash},
       {t: 'bytes32', v: initStateDeltaHash},
       {t: 'uint', v: gasUsed},
+      {t: 'bool', v: true},
     );
     const sig = utils.sign(data.worker[4], proof);
     const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
-    const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.creationBlockNumber, scTask.scAddr,
-      workerParams, 5))[0];
+    const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 5))[0];
     const startingWorkerBalance = parseInt(
       (await enigma.enigmaContract.methods.workers(selectedWorkerAddr).call()).balance
     );
@@ -553,7 +550,7 @@ describe('Enigma tests', () => {
   let task;
   it('should create task', async () => {
     scAddr = scTask.scAddr;
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskArgs = [
       [200000, 'int32'],
       [300000, 'int32'],
@@ -567,6 +564,7 @@ describe('Enigma tests', () => {
     });
     expect(task).toBeTruthy;
     expect(task.scAddr).toBeTruthy;
+    expect(task.preCode).toEqual('');
     expect(task.preCodeHash).toEqual('');
     expect(task.encryptedFn).toBeTruthy;
     expect(task.encryptedAbiEncodedArgs).toBeTruthy;
@@ -621,7 +619,7 @@ describe('Enigma tests', () => {
     'key rpc call', async () => {
     server.close(true);
     scAddr = scTask.scAddr;
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskArgs = [
       [200000, 'int32'],
       [300000, 'int32'],
@@ -638,7 +636,7 @@ describe('Enigma tests', () => {
 
   it('should fail to create/send deploy contract task using wrapper function due to insufficient funds', async () => {
     scAddr = scTask.scAddr;
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskArgs = [
       [200000, 'int32'],
       [300000, 'int32'],
@@ -654,7 +652,7 @@ describe('Enigma tests', () => {
 
   it('should create/send compute task using wrapper function', async () => {
     scAddr = scTask.scAddr;
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskArgs = [
       [200000, 'int32'],
       [300000, 'int32'],
@@ -674,6 +672,7 @@ describe('Enigma tests', () => {
     );
     expect(task).toBeTruthy;
     expect(task.scAddr).toBeTruthy;
+    expect(task.preCode).toEqual('');
     expect(task.preCodeHash).toEqual('');
     expect(task.encryptedFn).toBeTruthy;
     expect(task.encryptedAbiEncodedArgs).toBeTruthy;
@@ -744,8 +743,7 @@ describe('Enigma tests', () => {
     );
     const sig = utils.sign(data.worker[4], proof);
     const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
-    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.creationBlockNumber, task.scAddr,
-      workerParams, 5))[0];
+    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 5))[0];
     const startingWorkerBalance = parseInt(
       (await enigma.enigmaContract.methods.workers(selectedWorkerAddr).call()).balance
     );
@@ -798,8 +796,7 @@ describe('Enigma tests', () => {
     );
     const sig = utils.sign(data.worker[4], proof);
     const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
-    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.creationBlockNumber, task.scAddr,
-      workerParams, 5))[0];
+    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 5))[0];
     await expect(new Promise((resolve, reject) => {
       enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash, gasUsed, ethCall,
         sig)
@@ -812,7 +809,7 @@ describe('Enigma tests', () => {
   });
 
   it('should fail to create/send compute task using wrapper function due to insufficient funds', async () => {
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskArgs = [
       [200000, 'int32'],
       [300000, 'int32'],
@@ -827,7 +824,7 @@ describe('Enigma tests', () => {
   });
 
   it('should create/send a new compute task using wrapper function', async () => {
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskArgs = [
       [200000, 'int32'],
       [300000, 'int32'],
@@ -847,6 +844,7 @@ describe('Enigma tests', () => {
     );
     expect(task).toBeTruthy;
     expect(task.scAddr).toBeTruthy;
+    expect(task.preCode).toEqual('');
     expect(task.preCodeHash).toEqual('');
     expect(task.encryptedFn).toBeTruthy;
     expect(task.encryptedAbiEncodedArgs).toBeTruthy;
@@ -883,8 +881,7 @@ describe('Enigma tests', () => {
     );
     const sig = utils.sign(data.worker[4], proof);
     const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
-    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.creationBlockNumber, task.scAddr,
-      workerParams, 5))[0];
+    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 5))[0];
     const startingWorkerBalance = parseInt(
       (await enigma.enigmaContract.methods.workers(selectedWorkerAddr).call()).balance
     );
@@ -932,7 +929,7 @@ describe('Enigma tests', () => {
   });
 
   it('should fail to create task records due to insufficient funds', async () => {
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskGasLimit = 500;
     let taskGasPx = utils.toGrains(1);
     let taskArgsA = [
@@ -962,7 +959,7 @@ describe('Enigma tests', () => {
 
   let tasks;
   it('should create multiple task records', async () => {
-    let taskFn = 'medianWealth';
+    let taskFn = 'medianWealth(int32,int32)';
     let taskGasLimit = 100;
     let taskGasPx = utils.toGrains(1);
     let taskArgsA = [
@@ -1037,8 +1034,7 @@ describe('Enigma tests', () => {
     const sig = utils.sign(data.worker[4], proof);
     stateDeltaHashes = [stateDeltaHash2, stateDeltaHash3];
     const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
-    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.creationBlockNumber, task.scAddr,
-      workerParams, 5))[0];
+    const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 5))[0];
     const startingWorkerBalance = parseInt(
       (await enigma.enigmaContract.methods.workers(selectedWorkerAddr).call()).balance
     );

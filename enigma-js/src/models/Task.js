@@ -15,15 +15,17 @@ export default class Task {
    * @param {Number} gasPx
    * @param {string} msgId
    * @param {string} userPubKey
+   * @param {Number} firstBlockNumber
    * @param {string} workerAddress
    * @param {string} sender
    * @param {string} userTaskSig
    * @param {Number} nonce
+   * @param {string} preCode
    * @param {string} preCodeHash
    * @param {boolean} isContractDeploymentTask
    */
-  constructor(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, msgId, userPubKey, workerAddress, sender,
-              userTaskSig, nonce, preCodeHash, isContractDeploymentTask) {
+  constructor(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, msgId, userPubKey, firstBlockNumber,
+              workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash, isContractDeploymentTask) {
     // Initial task attributes
     this.inputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs,
       isContractDeploymentTask ? preCodeHash : scAddr);
@@ -34,10 +36,12 @@ export default class Task {
     this.gasPx = gasPx;
     this.msgId = msgId;
     this.userPubKey = userPubKey;
+    this.firstBlockNumber = firstBlockNumber;
     this.workerAddress = workerAddress;
     this.sender = sender;
     this.userTaskSig = userTaskSig;
     this.nonce = nonce;
+    this.preCode = preCode;
     this.preCodeHash = preCodeHash;
     this.isContractDeploymentTask = isContractDeploymentTask;
 

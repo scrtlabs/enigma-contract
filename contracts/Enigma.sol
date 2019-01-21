@@ -316,7 +316,7 @@ contract Enigma {
         require(msg.sender == selectedWorker, "Not the selected worker for this task");
 
         // Verify the worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash, _codeHash, _initStateDeltaHash, _gasUsed));
+        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash, _codeHash, _initStateDeltaHash, _gasUsed, true));
         require(msgHash.recover(_sig) == workers[msg.sender].signer, "Invalid signature");
 
         // Set the secret contract's attributes in registry
@@ -485,7 +485,7 @@ contract Enigma {
     * @param _inputsHash Hash of encrypted fn sig, encrypted ABI-encoded args, and predeployed bytecode hash
     * @param _gasLimit ENG gas limit
     * @param _gasPx ENG gas price in grains format (10 ** 8)
-    * @param _selectedWorker Locally-computed selected worker address for task
+    * @param _firstBlockNumber Locally-computed first block number of epoch
     * @param _scAddr Secret contract address for this task
     * @param _nonce Locally-computed nonce value for this deployment
     */
@@ -493,7 +493,7 @@ contract Enigma {
         bytes32 _inputsHash,
         uint _gasLimit,
         uint _gasPx,
-        address _selectedWorker,
+        uint _firstBlockNumber,
         bytes32 _scAddr,
         uint _nonce
     )
@@ -503,8 +503,7 @@ contract Enigma {
         require(userTaskDeployments[msg.sender] == _nonce, "Incorrect nonce yielding bad secret contract address");
 
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        address verifySelectedWorker = getWorkerGroup(block.number, _scAddr)[0];
-        require(_selectedWorker == verifySelectedWorker, "Not the selected worker for this task");
+        require(_firstBlockNumber == getFirstBlockNumber(block.number), "Wrong epoch for this task");
 
         // Transfer fee from sender to contract
         uint fee = _gasLimit.mul(_gasPx);
@@ -536,21 +535,20 @@ contract Enigma {
     * @param _inputsHash Hash of encrypted fn sig, encrypted ABI-encoded args, and contract address
     * @param _gasLimit ENG gas limit
     * @param _gasPx ENG gas price in grains format (10 ** 8)
-    * @param _selectedWorker Locally-computed selected worker address for task
+    * @param _firstBlockNumber Locally-computed first block number of epoch
     * @param _scAddr Secret contract address for this task
     */
     function createTaskRecord(
         bytes32 _inputsHash,
         uint _gasLimit,
         uint _gasPx,
-        address _selectedWorker,
+        uint _firstBlockNumber,
         bytes32 _scAddr
     )
     public
     {
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        address verifySelectedWorker = getWorkerGroup(block.number, _scAddr)[0];
-        require(_selectedWorker == verifySelectedWorker, "Not the selected worker for this task");
+        require(_firstBlockNumber == getFirstBlockNumber(block.number), "Wrong epoch for this task");
 
         // Transfer fee from sender to contract
         uint fee = _gasLimit.mul(_gasPx);
@@ -912,12 +910,24 @@ contract Enigma {
         return uint(index);
     }
 
+    function getParams(uint _blockNumber) internal view returns (WorkersParams memory) {
+        uint index = getWorkerParamsIndex(_blockNumber);
+        return workersParams[index];
+    }
+
+    function getFirstBlockNumber(uint _blockNumber)
+    public
+    view
+    returns (uint) {
+        WorkersParams memory params = getParams(_blockNumber);
+        return params.firstBlockNumber;
+    }
+
     function getWorkerParams(uint _blockNumber)
     public
     view
     returns (uint, uint, address[] memory, uint[] memory) {
-        uint index = getWorkerParamsIndex(_blockNumber);
-        WorkersParams memory params = workersParams[index];
+        WorkersParams memory params = getParams(_blockNumber);
         return (params.firstBlockNumber, params.seed, params.workers, params.balances);
     }
 
@@ -991,24 +1001,6 @@ contract Enigma {
             while (selectedWorkers[it] == address(0));
         }
         return selectedWorkers;
-    }
-
-    /**
-    * The worker parameters corresponding to the specified block number
-    *
-    * @param _blockNumber The reference block number
-    */
-    function getWorkersParams(uint _blockNumber)
-    public
-    view
-    returns (uint, uint, address[] memory, address[] memory)
-    {
-        // TODO: finalize implementation
-        uint firstBlockNumber = 0;
-        uint seed = 0;
-        address[] memory activeWorkers;
-        address[] memory activeContracts;
-        return (firstBlockNumber, seed, activeWorkers, activeContracts);
     }
 
     /**
