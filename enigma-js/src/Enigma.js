@@ -40,7 +40,7 @@ export default class Enigma {
       };
       axios.post(rpcAddr, JSON.parse(request), config)
         .then((response) => {
-          if ('error' in response.data) {
+          if (eeConstants.ERROR in response.data) {
             callback(response.data.error, null);
           } else {
             let text = JSON.stringify(response.data.result);
@@ -228,7 +228,7 @@ export default class Enigma {
       const balance = await this.tokenContract.methods.balanceOf(tasks[0].sender).call();
       const totalFees = fees.reduce((a, b) => a + b, 0);
       if (balance < totalFees) {
-        emitter.emit('error', {
+        emitter.emit(eeConstants.ERROR, {
           name: 'NotEnoughTokens',
           message: 'Not enough tokens to pay the fee',
         });
