@@ -22,15 +22,17 @@ describe('enigma-utils', () => {
   });
 
   it('should generate a task input hash', () => {
-    const encryptedFn = '8bdd418475e41bf245c07a840262cbef265ab8da8b75b2f41b7652960479d10f579f9641fe17da43cccf';
-    const encryptedAbiEncodedArgs = '0ea72be1476aa0e050be0af46de6d948c05e4eadafa567feed3ccbb2197d4b1002e585b09' +
-      'ef29c8b7e9ceeb97a317bb17ee047ed1891ac4cc05600c79cee6840e923778c6b37a5ae0a28c78138dd104879dc948c25e8e5c1' +
-      '290ac337f65e357883bf68aa63c4b38d105652e7d598621430394f2cabc227000de65d01c012a7cb64c391401995a8e83adc337' +
-      'e9d949f61752c995ce8d5bc4a40925f10bfadaf7b6ea1dd0859818c0fabc3da6f7b923b427688122d67daca575f3361a6fc61c9' +
-      'f8f46195645b576f04211a835cf55bba580e005fb7a36bd9ef665de7944f5ab9ad1f76e44bb54ad76d107a93649a51d8fb2a576' +
-      '3ba53c8bea4e51a2385ce4aed633d5a3890662cb40118e73e03bee4a393b6c4b18040bcb010aa303bd8d7a2';
-    const scAddrOrPreCodeHash = '0xd8bba960831bacafe85a45f6e29d3d3cb7f61180cce79dc41d47ab6a18e195dc';
-    const taskInputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash);
-    expect(taskInputsHash).toEqual('0x0dfae176ba41eba5055b9f0cf5bccf15d1da6db024f5ea457b22f34dfb6a5f9f');
+    const encryptedFn = 'de9bc270f30e03de84aca5ea78f18321f50ca886ff522a49d525bc24f6d56cfb2dcb0b1d33b8756196de2' +
+      '89626a442e3dffff97312';
+    const encryptedAbiEncodedArgs = 'c53b8caeb99cbc78e322945d8fdcc25ed2b0a7c4319a09a63e43e63e860de572ce656b3f0' +
+      '3d9ef7763b7b97ecb8e64a625ecbd307a5a41752c0ab2f769dd0054c9dec67373a76b9a26176760c9a819e6d827a4ec052a0ba1' +
+      'd6afc4378c1f4111eb91d059fab824edaf198984277df767ec0db016593c73e40804fc2f92c70dda753ad1d55fbd6b4dfde0bce' +
+      '44b9c8be4724a7cf16eb437462bb45482f175';
+    const scAddrOrPreCodeHash = '0x300c3473734f4fe56d4acb834359a70d47ff2511c4839524c6f078cb28151ff4';
+    const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762' +
+      'e49ec912be61358d5e90bff56a53a0ed42abfe27e3';
+    const taskInputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash,
+      userPubKey);
+    expect(taskInputsHash).toEqual('0x2300c9a68af32dde19c22fd12d9ef6a8dda5e4c03547425d3fe5a5eee8ea9811');
   });
 });

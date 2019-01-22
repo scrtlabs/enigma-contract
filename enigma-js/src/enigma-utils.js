@@ -186,13 +186,15 @@ function generateScAddr(sender, nonce) {
  * @param {string} encryptedFn
  * @param {string} encryptedAbiEncodedArgs
  * @param {string} scAddrOrPreCodeHash
+ * @param {string} userPubKey
  * @return {string}
  */
-function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash) {
+function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash, userPubKey) {
   return web3Utils.soliditySha3(
     {t: 'bytes', v: encryptedFn},
     {t: 'bytes', v: encryptedAbiEncodedArgs},
     {t: 'bytes', v: scAddrOrPreCodeHash},
+    {t: 'bytes', v: userPubKey},
   );
 }
 

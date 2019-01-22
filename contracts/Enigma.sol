@@ -332,7 +332,7 @@ contract Enigma {
         task.proof = _sig;
         task.status = TaskStatus.ReceiptVerified;
 
-        // Credit worker with the fees associated with this deployment task
+        // Credit worker with the fees associated with this task
         workers[msg.sender].balance = workers[msg.sender].balance.add(_gasUsed.mul(task.gasPx));
 
         // Credit the task sender with the unused gas fees
@@ -658,7 +658,7 @@ contract Enigma {
         task.proof = _sig;
         task.status = TaskStatus.ReceiptVerified;
 
-        // Credit worker with the fees associated with this deployment task
+        // Credit worker with the fees associated with this task
         workers[_sender].balance = workers[_sender].balance.add(_gasUsed.mul(task.gasPx));
 
         // Credit the task sender with the unused gas fees
@@ -797,7 +797,7 @@ contract Enigma {
         task.proof = _sig;
         task.status = TaskStatus.ReceiptFailed;
 
-        // Credit worker with the fees associated with this deployment task
+        // Credit worker with the fees associated with this task
         workers[msg.sender].balance = workers[msg.sender].balance.add(_gasUsed.mul(task.gasPx));
 
         // Credit the task sender with the unused gas fees
