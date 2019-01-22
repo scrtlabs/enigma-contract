@@ -1,4 +1,3 @@
-import chai from 'chai';
 import utils from '../src/enigma-utils';
 import forge from 'node-forge';
 

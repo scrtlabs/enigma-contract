@@ -1,5 +1,4 @@
 /* eslint-disable require-jsdoc */
-import chai from 'chai';
 import Enigma from '../src/Enigma';
 import utils from '../src/enigma-utils';
 import forge from 'node-forge';
@@ -414,7 +413,7 @@ describe('Enigma tests', () => {
       enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode)
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
-    })).rejects.toEqual({code: -32602, message: 'Network Error'});
+    })).rejects.toEqual({code: -32000, message: 'Network Error'});
     server.listen();
   });
 
@@ -630,7 +629,7 @@ describe('Enigma tests', () => {
       enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
-    })).rejects.toEqual({code: -32602, message: 'Network Error'});
+    })).rejects.toEqual({code: -32000, message: 'Network Error'});
     server.listen();
   });
 
@@ -707,7 +706,7 @@ describe('Enigma tests', () => {
           }
         })
         .on(eeConstants.ERROR, (error) => reject(error));
-    })).rejects.toEqual({code: -32602, message: 'Network Error'});
+    })).rejects.toEqual({code: -32000, message: 'Network Error'});
     server.listen();
   });
 

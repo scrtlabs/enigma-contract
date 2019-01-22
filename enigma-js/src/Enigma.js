@@ -48,7 +48,7 @@ export default class Enigma {
           }
         })
         .catch(function(err) {
-          callback({code: -32602, message: err.message}, null);
+          callback({code: -32000, message: err.message}, null);
         });
     };
     this.client = jaysonBrowserClient(callServer, {});
@@ -160,7 +160,7 @@ export default class Enigma {
     (async () => {
       const balance = await this.tokenContract.methods.balanceOf(task.sender).call();
       if (balance < (task.gasLimit * task.gasPx)) {
-        emitter.emit('error', {
+        emitter.emit(eeConstants.ERROR, {
           name: 'NotEnoughTokens',
           message: 'Not enough tokens to pay the fee',
         });

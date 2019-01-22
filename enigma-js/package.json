@@ -35,7 +35,6 @@
     "axios": "^0.18.0",
     "body-parser": "^1.18.3",
     "buffer": "^5.1.0",
-    "chai-as-promised": "^7.1.1",
     "connect": "^3.6.6",
     "elliptic": "6.4.0",
     "eth-crypto": "^1.2.2",
