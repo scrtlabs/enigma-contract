@@ -1,5 +1,5 @@
 import web3Utils from 'web3-utils';
-import RLP from 'rlp';
+// import RLP from 'rlp';
 import forge from 'node-forge';
 import EthCrypto from 'eth-crypto';
 import elliptic from 'elliptic';
@@ -154,48 +154,61 @@ const EC = elliptic.ec;
 //   return {verified: true, err: undefined};
 // }
 
+// /**
+//  * Encode secret contract function arguments
+//  *
+//  * @param {Object} args
+//  * @return {string}
+//  */
+// function encodeArguments(args) {
+//   return '0x' + RLP.encode(args).toString('hex');
+// }
+
 /**
- * Encode secret contract function arguments
+ * Generate a taskId using a hash of all inputs
+ * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {Object} args
+ * @param {string} sender
+ * @param {Number} nonce
  * @return {string}
  */
-function encodeArguments(args) {
-  return '0x' + RLP.encode(args).toString('hex');
+function generateScAddr(sender, nonce) {
+  return web3Utils.soliditySha3(
+    {t: 'bytes', v: sender},
+    {t: 'uint', v: nonce},
+  );
 }
 
 /**
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {string} fn
- * @param {Object} args
- * @param {string} scAddr
- * @param {number} blockNumber
+ * @param {string} encryptedFn
+ * @param {string} encryptedAbiEncodedArgs
+ * @param {string} scAddrOrPreCodeHash
  * @param {string} userPubKey
  * @return {string}
  */
-function generateTaskId(fn, args, scAddr, blockNumber, userPubKey) {
+function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash, userPubKey) {
   return web3Utils.soliditySha3(
-    {t: 'string', v: fn},
-    {t: 'bytes', v: encodeArguments(args)},
-    {t: 'bytes', v: scAddr},
-    {t: 'uint256', v: blockNumber},
+    {t: 'bytes', v: encryptedFn},
+    {t: 'bytes', v: encryptedAbiEncodedArgs},
+    {t: 'bytes', v: scAddrOrPreCodeHash},
     {t: 'bytes', v: userPubKey},
   );
 }
 
-/**
- * RLP encode report parts
- *
- * @param {string} report
- * @param {string} cert
- * @param {string} sig
- * @return {string}
- */
-function encodeReport(report, cert, sig) {
-  return '0x' + RLP.encode([report, cert, sig]).toString('hex');
-}
+// /**
+//  * RLP encode report parts
+//  *
+//  * @param {string} report
+//  * @param {string} cert
+//  * @param {string} sig
+//  * @return {string}
+//  */
+// function encodeReport(report, cert, sig) {
+//   return '0x' + RLP.encode([report, cert, sig]).toString('hex');
+// }
 
 // /**
 //  * Verifies that the specified method signature matches the specs defined
@@ -370,10 +383,11 @@ function toGrains(engValue) {
 let utils = {};
 
 // utils.readCert = readCert;
-utils.encodeReport = encodeReport;
+// utils.encodeReport = encodeReport;
 utils.test = () => 'hello2';
-utils.encodeArguments = encodeArguments;
-utils.generateTaskId = generateTaskId;
+// utils.encodeArguments = encodeArguments;
+utils.generateScAddr = generateScAddr;
+utils.generateTaskInputsHash = generateTaskInputsHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;

@@ -25,12 +25,9 @@ export default class Admin {
    * Get the worker's status
    *
    * @param {string} account - Worker's address
-   * @param {Object} options
    * @return {Promise} Resolves to status of worker (0=Unregistered, 1=Registered, 2=LoggedIn, 3=LoggedOut)
    */
-  async getWorkerStatus(account, options = {}) {
-    options = Object.assign({}, this.txDefaults, options);
-    options.from = account;
+  async getWorkerStatus(account) {
     const worker = await this.enigmaContract.methods.workers(account).call();
     return parseInt(worker.status);
   }
@@ -52,7 +49,7 @@ export default class Admin {
    * @return {Promise} - Resolves to the bytecode hash of the deployed secret contract
    */
   async getCodeHash(scAddr) {
-    return await this.enigmaContract.methods.getCodeHash(scAddr).call();
+    return (await this.enigmaContract.methods.contracts(scAddr).call()).codeHash;
   }
 
   /**
@@ -102,50 +99,54 @@ export default class Admin {
   /**
    * Login the selected worker
    *
-   * @param {Object} options
+   * @param {string} account
    * @return {EventEmitter} EventEmitter to be listened to track login transaction
    */
-  login(options = {}) {
-    options = Object.assign({}, this.txDefaults, options);
+  login(account) {
     let emitter = new EventEmitter();
-    this.enigmaContract.methods.login().send(options)
-      .on('transactionHash', (hash) => {
-        emitter.emit(eeConstants.LOGIN_TRANSACTION_HASH, hash);
-      })
-      .on('confirmation', (confirmationNumber, receipt) => {
-        emitter.emit(eeConstants.LOGIN_CONFIRMATION, confirmationNumber, receipt);
-      })
-      .on('receipt', (receipt) => {
-        emitter.emit(eeConstants.LOGIN_RECEIPT, receipt);
-      })
-      .on('error', (err) => {
-        emitter.emit(eeConstants.ERROR, err);
-      });
+    (async () => {
+      try {
+        await this.enigmaContract.methods.login().send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.LOGIN_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.LOGIN_CONFIRMATION, confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit(eeConstants.LOGIN_RECEIPT, receipt);
+          });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
     return emitter;
   }
 
   /**
    * Logout the selected worker
    *
-   * @param {Object} options
+   * @param {string} account
    * @return {EventEmitter} EventEmitter to be listened to track logout transaction
    */
-  logout(options = {}) {
-    options = Object.assign({}, this.txDefaults, options);
+  logout(account) {
     let emitter = new EventEmitter();
-    this.enigmaContract.methods.logout().send(options)
-      .on('transactionHash', (hash) => {
-        emitter.emit(eeConstants.LOGOUT_TRANSACTION_HASH, hash);
-      })
-      .on('confirmation', (confirmationNumber, receipt) => {
-        emitter.emit(eeConstants.LOGOUT_CONFIRMATION, confirmationNumber, receipt);
-      })
-      .on('receipt', (receipt) => {
-        emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
-      })
-      .on('error', (err) => {
-        emitter.emit(eeConstants.ERROR, err);
-      });
+    (async () => {
+      try {
+        await this.enigmaContract.methods.logout().send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.LOGOUT_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.LOGOUT_CONFIRMATION, confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
+          });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
     return emitter;
   }
 
@@ -154,12 +155,9 @@ export default class Admin {
    *
    * @param {string} account - Worker's address
    * @param {number} amount - Number of ENG tokens to deposit, in grains (10**8 multiplier) format
-   * @param {Object} options
    * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
-  deposit(account, amount, options = {}) {
-    options = Object.assign({}, this.txDefaults, options);
-    options.from = account;
+  deposit(account, amount) {
     let emitter = new EventEmitter();
     (async () => {
       const balance = await this.tokenContract.methods.balanceOf(account).call();
@@ -171,27 +169,47 @@ export default class Admin {
         });
         return;
       }
-      await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send(options);
-      const allowance = await this.tokenContract.methods.allowance(account, this.enigmaContract.options.address).call();
-      if (allowance < amount) {
-        const msg = 'Not enough tokens approved: ' + allowance + '<' + amount;
-        emitter.emit('error', {
-          name: 'NotEnoughApprovedTokens',
-          message: msg,
-        });
-        return;
+      await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send({from: account});
+      try {
+        const receipt = await this.enigmaContract.methods.deposit(account, amount).send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
+          });
+        emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
       }
+    })();
+    return emitter;
+  }
 
-      await this.enigmaContract.methods.deposit(account, amount).send(options)
-        .on('transactionHash', (hash) => {
-          emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
-        })
-        .on('confirmation', (confirmationNumber, receipt) => {
-          emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
-        })
-        .on('receipt', (receipt) => {
-          emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
-        });
+  /**
+   * Withdraw ENG tokens from the worker's bank
+   *
+   * @param {string} account - Worker's address
+   * @param {number} amount - Number of ENG tokens to deposit, in grains (10**8 multiplier) format
+   * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
+   */
+  withdraw(account, amount) {
+    let emitter = new EventEmitter();
+    (async () => {
+      try {
+        await this.enigmaContract.methods.withdraw(account, amount).send({from: account})
+          .on('transactionHash', (hash) => {
+            emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
+            emitter.emit(eeConstants.WITHDRAW_CONFIRMATION, confirmationNumber, receipt);
+          })
+          .on('receipt', (receipt) => {
+            emitter.emit(eeConstants.WITHDRAW_RECEIPT, receipt);
+          });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
     })();
     return emitter;
   }
@@ -200,11 +218,9 @@ export default class Admin {
    * Get staked token balance for worker
    *
    * @param {string} account - Worker's address
-   * @param {Object} options
    * @return {Promise} Resolves to staked ENG token balance in grains (10**8 multiplier) format
    */
-  async getStakedBalance(account, options = {}) {
-    const worker = await this.enigmaContract.methods.workers(account).call();
-    return parseInt(worker.balance);
+  async getStakedBalance(account) {
+    return parseInt((await this.enigmaContract.methods.workers(account).call()).balance);
   }
 }

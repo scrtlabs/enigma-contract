@@ -1,5 +1,4 @@
-import chai from 'chai';
-import utils from '../src/enigma-utils'
+import utils from '../src/enigma-utils';
 import forge from 'node-forge';
 
 forge.options.usePureJavaScript = true;
@@ -21,15 +20,18 @@ describe('enigma-utils', () => {
     );
   });
 
-  it('should generate a taskId', () => {
-    const fn = 'medianWealth(int32,int32)';
-    const args = [200000, 300000];
-    const scAddr = '0x9d075ae44d859191c121d7522da0cc3b104b8837';
-    const blockNumber = 1000;
-    const userPubKey = '04f542371d69af8ebe7c8a00bdc5a9d9f39969406d6c1396037' +
-      'ede55515845dda69e42145834e631628c628812d85c805e9da1c56415b32cf99d5ae900f1c1565c';
-
-    const taskId = utils.generateTaskId(fn, args, scAddr, blockNumber, userPubKey);
-    expect(taskId).toBeTruthy();
+  it('should generate a task input hash', () => {
+    const encryptedFn = 'de9bc270f30e03de84aca5ea78f18321f50ca886ff522a49d525bc24f6d56cfb2dcb0b1d33b8756196de2' +
+      '89626a442e3dffff97312';
+    const encryptedAbiEncodedArgs = 'c53b8caeb99cbc78e322945d8fdcc25ed2b0a7c4319a09a63e43e63e860de572ce656b3f0' +
+      '3d9ef7763b7b97ecb8e64a625ecbd307a5a41752c0ab2f769dd0054c9dec67373a76b9a26176760c9a819e6d827a4ec052a0ba1' +
+      'd6afc4378c1f4111eb91d059fab824edaf198984277df767ec0db016593c73e40804fc2f92c70dda753ad1d55fbd6b4dfde0bce' +
+      '44b9c8be4724a7cf16eb437462bb45482f175';
+    const scAddrOrPreCodeHash = '0x300c3473734f4fe56d4acb834359a70d47ff2511c4839524c6f078cb28151ff4';
+    const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762' +
+      'e49ec912be61358d5e90bff56a53a0ed42abfe27e3';
+    const taskInputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash,
+      userPubKey);
+    expect(taskInputsHash).toEqual('0x2300c9a68af32dde19c22fd12d9ef6a8dda5e4c03547425d3fe5a5eee8ea9811');
   });
 });
