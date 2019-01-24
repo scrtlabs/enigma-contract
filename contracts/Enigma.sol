@@ -486,7 +486,6 @@ contract Enigma {
     * @param _gasLimit ENG gas limit
     * @param _gasPx ENG gas price in grains format (10 ** 8)
     * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
     * @param _nonce Locally-computed nonce value for this deployment
     */
     function createDeploymentTaskRecord(
@@ -494,7 +493,6 @@ contract Enigma {
         uint _gasLimit,
         uint _gasPx,
         uint _firstBlockNumber,
-        bytes32 _scAddr,
         uint _nonce
     )
     public
@@ -536,14 +534,12 @@ contract Enigma {
     * @param _gasLimit ENG gas limit
     * @param _gasPx ENG gas price in grains format (10 ** 8)
     * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
     */
     function createTaskRecord(
         bytes32 _inputsHash,
         uint _gasLimit,
         uint _gasPx,
-        uint _firstBlockNumber,
-        bytes32 _scAddr
+        uint _firstBlockNumber
     )
     public
     {
@@ -580,21 +576,18 @@ contract Enigma {
     * @param _inputsHashes Hashes of encrypted fn sig, encrypted ABI-encoded args, and contract address
     * @param _gasLimits ENG gas limit
     * @param _gasPxs ENG gas price in grains format (10 ** 8)
-    * @param _selectedWorker Locally computed selected worker address for task
-    * @param _scAddr Secret contract address for this task
+    * @param _firstBlockNumber Locally-computed first block number of epoch
     */
     function createTaskRecords(
         bytes32[] memory _inputsHashes,
         uint[] memory _gasLimits,
         uint[] memory _gasPxs,
-        address _selectedWorker,
-        bytes32 _scAddr
+        uint _firstBlockNumber
     )
     public
     {
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        address verifySelectedWorker = getWorkerGroup(block.number, _scAddr)[0];
-        require(_selectedWorker == verifySelectedWorker, "Not the selected worker for this task");
+        require(_firstBlockNumber == getFirstBlockNumber(block.number), "Wrong epoch for this task");
 
         bytes32[] memory taskIds = new bytes32[](_inputsHashes.length);
         for (uint i = 0; i < _inputsHashes.length; i++) {

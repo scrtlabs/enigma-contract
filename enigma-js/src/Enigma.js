@@ -172,7 +172,7 @@ export default class Enigma {
       try {
         const receipt = task.isContractDeploymentTask ?
           await this.enigmaContract.methods.createDeploymentTaskRecord(task.inputsHash, task.gasLimit,
-            task.gasPx, task.firstBlockNumber, task.scAddr, task.nonce).send({
+            task.gasPx, task.firstBlockNumber, task.nonce).send({
             from: task.sender,
           })
             .on('transactionHash', (hash) => {
@@ -184,7 +184,7 @@ export default class Enigma {
             })
           :
           await this.enigmaContract.methods.createTaskRecord(task.inputsHash, task.gasLimit, task.gasPx,
-            task.firstBlockNumber, task.scAddr).send({
+            task.firstBlockNumber).send({
             from: task.sender,
           })
             .on('transactionHash', (hash) => {
@@ -237,10 +237,10 @@ export default class Enigma {
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send({
         from: tasks[0].sender,
       });
-      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].workerAddress,
-        tasks[0].scAddr).send({
-        from: tasks[0].sender,
-      })
+      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].firstBlockNumber)
+        .send({
+          from: tasks[0].sender,
+        })
         .on('transactionHash', (hash) => {
           for (let i = 0; i < tasks.length; i++) {
             tasks[i].transactionHash = hash;
