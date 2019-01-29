@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
-import { ERC20 } from "./ERC20.sol";
+import { ERC20 } from "../interfaces/ERC20.sol";
 
 /**
  * @author Enigma

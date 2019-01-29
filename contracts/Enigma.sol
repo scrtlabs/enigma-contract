@@ -14,7 +14,7 @@ import { EnigmaState } from "./impl/EnigmaState.sol";
 import { EnigmaEvents } from "./impl/EnigmaEvents.sol";
 import { EnigmaStorage } from "./impl/EnigmaStorage.sol";
 import { Getters } from "./impl/Getters.sol";
-import { ERC20 } from "./impl/ERC20.sol";
+import { ERC20 } from "./interfaces/ERC20.sol";
 
 contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     using SafeMath for uint256;
