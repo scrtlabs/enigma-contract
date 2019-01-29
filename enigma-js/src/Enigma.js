@@ -94,7 +94,7 @@ export default class Enigma {
   createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
-      const nonce = parseInt(await this.enigmaContract.methods.userTaskDeployments(sender).call());
+      const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
       const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
@@ -237,7 +237,7 @@ export default class Enigma {
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send({
         from: tasks[0].sender,
       });
-      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].workerAddress,
+      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].firstBlockNumber,
         tasks[0].scAddr).send({
         from: tasks[0].sender,
       })
@@ -272,7 +272,7 @@ export default class Enigma {
    * @return {Promise} Resolves to Task wrapper with updated ethStatus and proof properties
    */
   async getTaskRecordStatus(task) {
-    const result = await this.enigmaContract.methods.tasks(task.taskId).call();
+    const result = await this.enigmaContract.methods.getTaskRecord(task.taskId).call();
     task.ethStatus = parseInt(result.status);
     task.proof = result.proof;
     return task;
@@ -298,7 +298,7 @@ export default class Enigma {
    * in at the start of the epoch), and list of active worker balances
    */
   async getWorkerParams(blockNumber) {
-    let epochSize = await this.enigmaContract.methods.epochSize().call();
+    let epochSize = await this.enigmaContract.methods.getEpochSize().call();
     if ((Object.keys(this.workerParamsCache).length === 0) ||
       (blockNumber - this.workerParamsCache.firstBlockNumber >= epochSize)) {
       const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
