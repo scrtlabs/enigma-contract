@@ -2,9 +2,7 @@
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import Admin from './Admin';
-import TaskRecord from './models/TaskRecord';
-import TaskResult from './models/TaskResult';
-import TaskInput from './models/TaskInput';
+import Task from './models/Task';
 import EventEmitter from 'eventemitter3';
 import web3Utils from 'web3-utils';
 import jaysonBrowserClient from 'jayson/lib/client/browser';
@@ -32,6 +30,7 @@ export default class Enigma {
   constructor(web3, enigmaContractAddr, tokenContractAddr, rpcAddr, txDefaults = {}) {
     this.web3 = web3;
     this.txDefaults = txDefaults;
+    // axios callback for jayson rpc client to interface with ENG network
     let callServer = function(request, callback) {
       let config = {
         headers: {
@@ -41,16 +40,15 @@ export default class Enigma {
       };
       axios.post(rpcAddr, JSON.parse(request), config)
         .then((response) => {
-          if ('error' in response.data) {
+          if (eeConstants.ERROR in response.data) {
             callback(response.data.error, null);
+          } else {
+            let text = JSON.stringify(response.data.result);
+            callback(null, text);
           }
-          return JSON.stringify(response.data.result);
-        })
-        .then((text) => {
-          callback(null, text);
         })
         .catch(function(err) {
-          callback(err, null);
+          callback({code: -32000, message: err.message}, null);
         });
     };
     this.client = jaysonBrowserClient(callServer, {});
@@ -80,148 +78,154 @@ export default class Enigma {
   }
 
   /**
-   * Deploy a secret contract to both the Ethereum and Enigma networks
+   * Create a base Task - a wrapper for a task (either contract deployments or regular tasks)
    *
-   * @param {string} compiledBytecodeHash - Hash of the contract bytecode's compiled down to WASM
-   * @param {string} owner - Owner/deployer of secret contract
-   * @param {Array} args - Constructor args used for secret contract initialization
-   * @param {Object} options
-   * @return {EventEmitter}
+   * @param {string} fn - Function name
+   * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
+   *
+   * @param {Number} gasLimit - ENG gas limit for task computation
+   * @param {Number} gasPx - ENG gas price for task computation
+   * @param {string} sender - ETH address for task sender
+   * @param {string} scAddrOrPreCode - Either secret contract address or precode, depending on if user is running a
+   * contract deployment or regular task
+   * @param {boolean} isContractDeploymentTask - Is this task a contract deployment task (if not, it's a regular task)
+   * @return {Task} Task with base attributes to be used for remainder of task lifecycle
    */
-  deploySecretContract(compiledBytecodeHash, owner, args, options = {}) {
-    options = Object.assign({}, this.txDefaults, options);
+  createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
-      const nonce = await this.enigmaContract.methods.userTaskDeployments(owner).call();
-      const scAddr = this.web3.utils.soliditySha3(
-        {t: 'bytes32', v: compiledBytecodeHash},
-        {t: 'address', v: owner},
-        {t: 'uint', v: nonce},
-      );
-      emitter.emit(eeConstants.DEPLOY_SC_ADDR_RESULT, scAddr);
-      const proof = this.web3.utils.soliditySha3(
-        {t: 'bytes', v: compiledBytecodeHash},
-      );
-      const userDeployETHSig = await this.web3.eth.sign(proof, owner);
-
-      this.enigmaContract.methods.deploySecretContract(scAddr, compiledBytecodeHash, owner, userDeployETHSig)
-        .send(options)
-        .on('transactionHash', (hash) => {
-          emitter.emit(eeConstants.DEPLOY_SC_ETH_TRANSACTION_HASH, hash);
-        })
-        .on('confirmation', (confirmationNumber, receipt) => {
-          emitter.emit(eeConstants.DEPLOY_SC_ETH_CONFIRMATION, confirmationNumber, receipt);
-        })
-        .on('receipt', (receipt) => {
-          emitter.emit(eeConstants.DEPLOY_SC_ETH_RECEIPT, receipt);
-        })
-        .on('error', (err) => emitter.emit(eeConstants.ERROR, err));
-
+      const nonce = parseInt(await this.enigmaContract.methods.userTaskDeployments(sender).call());
+      const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
+      const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
+      const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
+      const argsTranspose = args[0].map((col, i) => args.map((row) => row[i]));
+      const abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
-      const workerAddress = await this.selectWorkerGroup(blockNumber, scAddr, workerParams, 5)[0];
-      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-        this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(response);
-        });
-      });
-      const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
-      if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
-        this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
-        emitter.emit(eeConstants.ERROR, {
-          name: 'InvalidWorker',
-          message: 'Invalid worker encryption key + signature combo',
-        });
-        return;
-      }
-      const {publicKey, privateKey} = this.obtainTaskKeyPair();
-      console.log('public key', publicKey);
-      const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
-      const encodedArgs = utils.encodeArguments(args);
-      const encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
-      const msg = this.web3.utils.soliditySha3(
-        {t: 'bytes', v: compiledBytecodeHash},
-        {t: 'bytes', v: encryptedEncodedArgs},
-      );
-      const userDeployENGSig = await this.web3.eth.sign(msg, owner);
-      const deploySecretContractResult = await new Promise((resolve, reject) => {
-        this.client.request('deploySecretContract', {compiledBytecodeHash, encryptedEncodedArgs, userDeployENGSig,
-          msgId},
-          (err, response) => {
+      const firstBlockNumber = workerParams.firstBlockNumber;
+      const workerAddress = await this.selectWorkerGroup(scAddr, workerParams, 5)[0];
+      try {
+        const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
+          this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
             if (err) {
               reject(err);
+              return;
             }
             resolve(response);
           });
-      });
-      emitter.emit(eeConstants.DEPLOY_SC_ENG_RECEIPT, deploySecretContractResult);
+        });
+        const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
+        if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
+          this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
+          emitter.emit(eeConstants.ERROR, {
+            name: 'InvalidWorker',
+            message: 'Invalid worker encryption key + signature combo',
+          });
+        } else {
+          const {publicKey, privateKey} = this.obtainTaskKeyPair();
+          // Generate derived key from worker's encryption key and user's private key
+          const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
+          // Encrypt function and ABI-encoded args
+          const encryptedFn = utils.encryptMessage(derivedKey, fn);
+          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
+          const msg = this.web3.utils.soliditySha3(
+            {t: 'bytes', v: encryptedFn},
+            {t: 'bytes', v: encryptedAbiEncodedArgs},
+          );
+          const userTaskSig = await this.web3.eth.sign(msg, sender);
+          emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
+            msgId, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
+            isContractDeploymentTask));
+        }
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
     })();
     return emitter;
   }
 
   /**
-   * Create and store a task record on chain. Task records are necessary for collecting the ENG computation fee and
-   * storing the immutable task id. Thus, task records have important implications for task ordering, fee payments,
-   * and verification.
+   * Create and store a task record on chain (ETH). Task records are necessary for collecting the ENG computation fee
+   * and computing the immutable taskId (a unique value for each task computed from hash(hash(encrypted function
+   * signature, encrypted ABI-encoded arguments, gas limit, gas price, user's public key), user's nonce value
+   * monotonically increasing for every task deployment). Thus, task records have important implications for task
+   * ordering, fee payments, and verification.
    *
-   * @param {Object} taskInput - The task input wrapper from which the record will be created
-   * @returns {EventEmitter} EventEmitter to be listened to track creation of TaskRecord
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @returns {EventEmitter} EventEmitter to be listened to track creation of task record. Emits a Task with task
+   * record creation attributes to be used for remainder of task lifecycle
    */
-  createTaskRecord(taskInput) {
+  createTaskRecord(task) {
     let emitter = new EventEmitter();
     (async () => {
-      let taskRecord = new TaskRecord(taskInput.taskId, taskInput.fee);
-      const balance = await this.tokenContract.methods.balanceOf(taskInput.sender).call();
-      if (balance < taskInput.fee) {
-        emitter.emit('error', {
+      const balance = await this.tokenContract.methods.balanceOf(task.sender).call();
+      if (balance < (task.gasLimit * task.gasPx)) {
+        emitter.emit(eeConstants.ERROR, {
           name: 'NotEnoughTokens',
           message: 'Not enough tokens to pay the fee',
         });
         return;
       }
-      await this.tokenContract.methods.approve(this.enigmaContract.options.address, taskInput.fee)
-        .send(this.txDefaults);
-      await this.enigmaContract.methods.createTaskRecord(taskInput.taskId, taskInput.fee).send(this.txDefaults)
-        .on('transactionHash', (hash) => {
-          taskRecord.transactionHash = hash;
-          emitter.emit(eeConstants.CREATE_TASK_RECORD_TRANSACTION_HASH, hash);
-        })
-        .on('confirmation', (confirmationNumber, receipt) => {
-          emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
-        })
-        .then((receipt) => {
-          taskRecord.receipt = receipt;
-          taskRecord.status = 1;
-          emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
-          emitter.emit(eeConstants.CREATE_TASK_RECORD, taskRecord);
-        });
+      await this.tokenContract.methods.approve(this.enigmaContract.options.address, task.gasLimit * task.gasPx).send({
+        from: task.sender,
+      });
+      try {
+        const receipt = task.isContractDeploymentTask ?
+          await this.enigmaContract.methods.createDeploymentTaskRecord(task.inputsHash, task.gasLimit,
+            task.gasPx, task.firstBlockNumber, task.nonce).send({
+            from: task.sender,
+          })
+            .on('transactionHash', (hash) => {
+              task.transactionHash = hash;
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_TRANSACTION_HASH, hash);
+            })
+            .on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
+            })
+          :
+          await this.enigmaContract.methods.createTaskRecord(task.inputsHash, task.gasLimit, task.gasPx,
+            task.firstBlockNumber).send({
+            from: task.sender,
+          })
+            .on('transactionHash', (hash) => {
+              task.transactionHash = hash;
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_TRANSACTION_HASH, hash);
+            })
+            .on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
+            });
+        task.taskId = receipt.events.TaskRecordCreated.returnValues.taskId;
+        task.receipt = receipt;
+        task.ethStatus = 1;
+        task.creationBlockNumber = receipt.blockNumber;
+        emitter.emit(eeConstants.CREATE_TASK_RECORD_RECEIPT, receipt);
+        emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
     })();
     return emitter;
   }
 
   /**
-   * Create and store multiple task records on chain. Task records are necessary for collecting the ENG computation fee
-   * and storing the immutable task id. Thus, task records have important implications for task ordering, fee payments,
-   * and verification.
+   * Create and store task records on chain (ETH). Task records are necessary for collecting the ENG computation fee
+   * and computing the immutable taskId (a unique value for each task computed from hash(hash(encrypted function
+   * signature, encrypted ABI-encoded arguments, gas limit, gas price, user's public key), user's nonce value
+   * monotonically increasing for every task deployment). Thus, task records have important implications for task
+   * ordering, fee payments, and verification.
    *
-   * @param {Array} taskInputs - The task input wrappers from which the record will be created
-   * @returns {EventEmitter} EventEmitter to be listened to track creation of TaskRecords
+   * @param {Array} tasks - Task wrappers for contract deployment and regular tasks
+   * @returns {EventEmitter} EventEmitter to be listened to track creation of task records. Emits Tasks with task
+   * record creation attributes to be used for remainder of task lifecycle
    */
-  createTaskRecords(taskInputs) {
+  createTaskRecords(tasks) {
     let emitter = new EventEmitter();
     (async () => {
-      let taskIds = [];
-      let fees = [];
-      let taskRecords = [];
-      taskInputs.forEach((taskInput) => {
-        taskIds.push(taskInput.taskId);
-        fees.push(taskInput.fee);
-        taskRecords.push(new TaskRecord(taskInput.taskId, taskInput.fee));
-      });
-      const balance = await this.tokenContract.methods.balanceOf(this.txDefaults.from).call();
+      const inputsHashes = tasks.map((task) => task.inputsHash);
+      const gasLimits = tasks.map((task) => task.gasLimit);
+      const gasPxs = tasks.map((task) => task.gasPx);
+      const fees = tasks.map((task) => task.gasLimit * task.gasPx);
+      const balance = await this.tokenContract.methods.balanceOf(tasks[0].sender).call();
       const totalFees = fees.reduce((a, b) => a + b, 0);
       if (balance < totalFees) {
         emitter.emit(eeConstants.ERROR, {
@@ -230,11 +234,16 @@ export default class Enigma {
         });
         return;
       }
-      await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send(this.txDefaults);
-      await this.enigmaContract.methods.createTaskRecords(taskIds, fees).send(this.txDefaults)
+      await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send({
+        from: tasks[0].sender,
+      });
+      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].firstBlockNumber)
+        .send({
+          from: tasks[0].sender,
+        })
         .on('transactionHash', (hash) => {
-          for (let i = 0; i < taskRecords.length; i++) {
-            taskRecords[i].transactionHash = hash;
+          for (let i = 0; i < tasks.length; i++) {
+            tasks[i].transactionHash = hash;
           }
           emitter.emit(eeConstants.CREATE_TASK_RECORDS_TRANSACTION_HASH, hash);
         })
@@ -242,32 +251,36 @@ export default class Enigma {
           emitter.emit(eeConstants.CREATE_TASK_RECORDS_CONFIRMATION, confirmationNumber, receipt);
         })
         .then((receipt) => {
-          for (let i = 0; i < taskRecords.length; i++) {
-            taskRecords[i].receipt = receipt;
-            taskRecords[i].status = 1;
+          const taskIds = receipt.events.TaskRecordsCreated.returnValues.taskIds;
+          for (let i = 0; i < tasks.length; i++) {
+            tasks[i].taskId = taskIds[i];
+            tasks[i].receipt = receipt;
+            tasks[i].ethStatus = 1;
+            tasks[i].creationBlockNumber = receipt.blockNumber;
           }
           emitter.emit(eeConstants.CREATE_TASK_RECORDS_RECEIPT, receipt);
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS, taskRecords);
+          emitter.emit(eeConstants.CREATE_TASK_RECORDS, tasks);
         });
     })();
     return emitter;
   }
 
   /**
-   * Get the task record's status from Ethereum
+   * Get the Task's task record status from Ethereum
    *
-   * @param {TaskRecord} taskRecord - A task record wrapper stored on Ethereum
-   * @return {Promise} Resolves to TaskRecord wrapper with updated status and proof properties
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {Promise} Resolves to Task wrapper with updated ethStatus and proof properties
    */
-  async getTaskRecordStatus(taskRecord) {
-    const result = await this.enigmaContract.methods.tasks(taskRecord.taskId).call();
-    taskRecord.status = parseInt(result.status);
-    taskRecord.proof = result.proof;
-    return taskRecord;
+  async getTaskRecordStatus(task) {
+    const result = await this.enigmaContract.methods.tasks(task.taskId).call();
+    task.ethStatus = parseInt(result.status);
+    task.proof = result.proof;
+    return task;
   }
 
   /**
    * Find SGX report
+   *
    * @param {string} custodian - Worker's address
    * @return {Promise} Resolves to SGX report for the worker
    */
@@ -276,9 +289,10 @@ export default class Enigma {
   }
 
   /**
-   * Given the current block number, obtain the worker parameters. These parameters remain the same for a given secret
+   * Given a block number, obtain the worker parameters. These parameters remain the same for a given secret
    * contract and epoch (fixed number of blocks). These parameters are cached until the epoch changes.
-   * @param {int} blockNumber
+   *
+   * @param {int} blockNumber - Block number of task record's mining
    * @return {Promise} Resolves to the worker params, which includes a seed (random int generated from the principal
    * node), first block number for the epoch, list of active work addresses (ordered list of workers that were logged
    * in at the start of the epoch), and list of active worker balances
@@ -300,28 +314,31 @@ export default class Enigma {
 
   /**
    * Select the workers weighted-randomly based on the staked token amount that will run the computation task
-   * @param {number} blockNumber - Current block number
+   *
    * @param {string} scAddr - Secret contract address
    * @param {Object} params - Worker params
    * @param {number} workerGroupSize - Number of workers to be selected for task
    * @return {Array} An array of selected workers where each selected worker is chosen with probability equal to
    * number of staked tokens
    */
-  selectWorkerGroup(blockNumber, scAddr, params, workerGroupSize = 5) {
+  selectWorkerGroup(scAddr, params, workerGroupSize = 5) {
+    // Find total number of staked tokens for workers
     let tokenCpt = params.balances.reduce((a, b) => a + b, 0);
     let nonce = 0;
     let selectedWorkers = [];
     do {
+      // Unique hash for epoch, secret contract address, and nonce
       const hash = web3Utils.soliditySha3(
-        {t: 'uint256', v: blockNumber},
         {t: 'uint256', v: params.seed},
-        {t: 'uint256', v: params.firstBlockNumber},
         {t: 'bytes32', v: scAddr},
-        {t: 'uint256', v: tokenCpt},
         {t: 'uint256', v: nonce},
       );
+      // Find random number between [0, tokenCpt)
       let randVal = (web3Utils.toBN(hash).mod(web3Utils.toBN(tokenCpt))).toNumber();
       let selectedWorker = params.workers[params.workers.length - 1];
+      // Loop through each worker, subtracting worker's balance from the random number computed above. Once the
+      // decrementing randVal becomes negative, add the worker whose balance caused this to the list of selected
+      // workers. If worker has already been selected, increase nonce by one, resulting in a new hash computed above.
       for (let i = 0; i < params.workers.length; i++) {
         randVal -= params.balances[i];
         if (randVal <= 0) {
@@ -339,75 +356,38 @@ export default class Enigma {
   }
 
   /**
-   * Create a TaskInput, a collection of attributes, to be submitted to the Enigma network
+   * Send Task to Enigma p2p network for computation
    *
-   * @param {string} fn - ABI compliant signature of the function
-   * @param {Array} args - Inputs for function
-   * @param {string} scAddr - Address of secret contract
-   * @param {string} sender - Ethereum address of dApp user
-   * @param {string} userPubKey - Associated public key of dApp user used for encryption of task inputs
-   * @param {Number} fee - ENG fee for task computation
-   * @return {EventEmitter} EventEmitter to be listened to track creation of TaskInput
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {EventEmitter} EventEmitter to be listened to track submission of Task to Enigma p2p network. Emits
+   * a response from the ENG network indicating whether client is ready to track the remainder of the task lifecycle
    */
-  createTaskInput(fn, args, scAddr, sender, userPubKey, fee) {
+  sendTaskInput(task) {
     let emitter = new EventEmitter();
     (async () => {
-      const creationBlockNumber = await this.web3.eth.getBlockNumber();
-      let taskInput = new TaskInput(creationBlockNumber, sender, scAddr, fn, args, userPubKey, fee);
-      const workerParams = await this.getWorkerParams(creationBlockNumber);
-      const workerAddress = await this.selectWorkerGroup(creationBlockNumber, scAddr, workerParams, 5)[0];
-      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-        this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(response);
-        });
-      });
-      const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
-      taskInput.msgId = msgId;
-      if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
-        this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
-        emitter.emit(eeConstants.ERROR, {
-          name: 'InvalidWorker',
-          message: 'Invalid worker encryption key + signature combo',
-        });
-      } else {
-        const {publicKey, privateKey} = this.obtainTaskKeyPair();
-        console.log('public key', publicKey);
-        const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
-        const encodedArgs = utils.encodeArguments(args);
-        taskInput.encryptedFn = utils.encryptMessage(derivedKey, fn);
-        taskInput.encryptedEncodedArgs = utils.encryptMessage(derivedKey, encodedArgs);
-        const msg = this.web3.utils.soliditySha3(
-          {t: 'bytes', v: taskInput.encryptedFn},
-          {t: 'bytes', v: taskInput.encryptedEncodedArgs},
-        );
-        taskInput.userTaskSig = await this.web3.eth.sign(msg, sender);
-        emitter.emit(eeConstants.CREATE_TASK_INPUT, taskInput);
+      let rpcEndpointName = 'sendTaskInput';
+      let emitName = eeConstants.SEND_TASK_INPUT_RESULT;
+      if (task.isContractDeploymentTask) {
+        rpcEndpointName = 'deploySecretContract';
+        emitName = eeConstants.DEPLOY_SECRET_CONTRACT_RESULT;
       }
-    })();
-    return emitter;
-  }
-
-  /**
-   * Send TaskInput to Enigma p2p network for computation
-   *
-   * @param {TaskInput} taskInput - Task input wrapper
-   * @return {EventEmitter} EventEmitter to be listened to track submission of TaskInput to Enigma p2p network
-   */
-  sendTaskInput(taskInput) {
-    let emitter = new EventEmitter();
-    (async () => {
-      const sendTaskInputResult = await new Promise((resolve, reject) => {
-        this.client.request('sendTaskInput', Enigma.serializeTaskInput(taskInput), (err, response) => {
-          if (err) {
-            emitter.emit(eeConstants.ERROR, err);
-          }
-          resolve(response);
+      try {
+        const sendTaskInputResult = await new Promise((resolve, reject) => {
+          this.client.request(rpcEndpointName, Enigma.serializeTask(task), (err, response) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(response);
+          });
         });
-      });
-      emitter.emit(eeConstants.SEND_TASK_INPUT_RESULT, sendTaskInputResult);
+        if (sendTaskInputResult.deploySentResult || sendTaskInputResult.sendTaskResult) {
+          task.engStatus = 1;
+        }
+        emitter.emit(emitName, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
     })();
     return emitter;
   }
@@ -415,17 +395,20 @@ export default class Enigma {
   /**
    * Generator function for polling the Enigma p2p network for task status
    *
-   * @param {TaskInput} taskInput - Task input wrapper
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
    */
-  * pollTaskInputGen(taskInput) {
+  * pollTaskInputGen(task) {
     while (true) {
       yield new Promise((resolve, reject) => {
-        this.client.request('pollTaskInput', {taskId: taskInput.taskId}, (err, response) => {
+        this.client.request('pollTaskInput', {taskId: task.taskId}, (err, response) => {
           if (err) {
             reject(err);
+            return;
           }
-          resolve(new TaskResult(response.taskId, response.encryptedEncodedOutputs, response.sig,
-            response.status));
+          task.encryptedAbiEncodedOutputs = response.encryptedAbiEncodedOutputs;
+          task.workerTaskSig = response.workerTaskSig;
+          task.engStatus = response.engStatus;
+          resolve(task);
         });
       });
     }
@@ -434,44 +417,47 @@ export default class Enigma {
   /**
    * Inner poll status function that continues to poll the Enigma p2p network until the task has been verified
    *
-   * @param {TaskInput} taskInput - Task input wrapper
-   * @param {pollTaskInputGen} generator - Generator function for polling Enigma p2p network for task status
-   * @param {EventEmitter} emitter - EventEmitter to track Enigma p2p network polling for TaskInput status
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {pollTaskGen} generator - Generator function for polling Enigma p2p network for task status
+   * @param {EventEmitter} emitter - EventEmitter to track Enigma p2p network polling for Task status
    */
-  innerPollTaskInput(taskInput, generator, emitter) {
+  innerPollTaskInput(task, generator, emitter) {
     let p = generator.next();
     p.value.then((d) => {
       emitter.emit(eeConstants.POLL_TASK_INPUT_RESULT, d);
       if (d.status !== 2) {
-        this.innerPollTaskInput(taskInput, generator, emitter);
+        this.innerPollTaskInput(task, generator, emitter);
       }
+    }).catch((err) => {
+      emitter.emit(eeConstants.ERROR, err);
     });
   }
 
   /**
    * Poll the Enigma p2p network for a TaskInput's status
    *
-   * @param {TaskInput} taskInput - A task input wrapper
-   * @return {EventEmitter} EventEmitter to be listened to track polling the Enigma p2p network for a TaskInput status
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {EventEmitter} EventEmitter to be listened to track polling the Enigma p2p network for a Task status.
+   * Emits a Task with task result attributes
    */
-  pollTaskInput(taskInput) {
+  pollTaskInput(task) {
     let emitter = new EventEmitter();
-    let generator = this.pollTaskInputGen(taskInput);
-    this.innerPollTaskInput(taskInput, generator, emitter);
+    let generator = this.pollTaskInputGen(task);
+    this.innerPollTaskInput(task, generator, emitter);
     return emitter;
   }
 
   /**
-   * Serialize TaskInput for submission to the Enigma p2p network
+   * Serialize Task for submission to the Enigma p2p network
    *
-   * @param {TaskInput} taskInput - A task input wrapper
-   * @return {Object} Serialized TaskInput for submission to the Enigma p2p network
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
-  static serializeTaskInput(taskInput) {
-    return {taskId: taskInput.taskId, creationBlockNumber: taskInput.creationBlockNumber, sender: taskInput.sender,
-      scAddr: taskInput.scAddr, encryptedFn: taskInput.encryptedFn,
-      encryptedEncodedArgs: taskInput.encryptedEncodedArgs, userTaskSig: taskInput.userTaskSig,
-      userPubKey: taskInput.userPubKey, fee: taskInput.fee, msgId: taskInput.msgId};
+  static serializeTask(task) {
+    return task.isContractDeploymentTask ? {preCode: task.preCode, encryptedArgs: task.encryptedAbiEncodedArgs,
+      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr} : {taskId: task.taskId,
+      workerAddress: task.workerAddress, encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs,
+      contractAddress: task.scAddr, userDHKey: task.userPubKey};
   }
 
   /**
@@ -485,6 +471,7 @@ export default class Enigma {
     let encodedPrivateKey = window.localStorage.getItem('encodedPrivateKey');
     if (encodedPrivateKey == null) {
       let random = forge.random.createInstance();
+      // TODO: Query user for passphrase
       random.seedFileSync = function(needed) {
         return forge.util.fillString('cupcake', needed);
       };
@@ -497,6 +484,88 @@ export default class Enigma {
     return {publicKey, privateKey};
   }
 
+  /**
+   * Create a task to deploy a secret contract - creates base task, creates task record, and sends task to the
+   * Enigma network.
+   *
+   * @param {string} fn - Function name
+   * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
+   *
+   * @param {Number} gasLimit - ENG gas limit for task computation
+   * @param {Number} gasPx - ENG gas price for task computation
+   * @param {string} sender - ETH address for task sender
+   * @param {string} preCode - Precode for contract deployment
+   * @return {Task} Task with attributes necessary for task record and Enigma network
+   */
+  deploySecretContract(fn, args, gasLimit, gasPx, sender, preCode) {
+    let emitter = new EventEmitter();
+    (async () => {
+      try {
+        let scTask = await new Promise((resolve, reject) => {
+          this.createTask(fn, args, gasLimit, gasPx, sender, preCode, true)
+            .on(eeConstants.CREATE_TASK, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK, scTask);
+        scTask = await new Promise((resolve, reject) => {
+          this.createTaskRecord(scTask)
+            .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK_RECORD, scTask);
+        await new Promise((resolve, reject) => {
+          this.sendTaskInput(scTask)
+            .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, scTask);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
+   * Create a compute task - creates base task, creates task record, and sends task to the Enigma network.
+   *
+   * @param {string} fn - Function name
+   * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
+   *
+   * @param {Number} gasLimit - ENG gas limit for task computation
+   * @param {Number} gasPx - ENG gas price for task computation
+   * @param {string} sender - ETH address for task sender
+   * @param {string} scAddr - Secret contract address
+   * @return {Task} Task with attributes necessary for task record and Enigma network
+   */
+  computeTask(fn, args, gasLimit, gasPx, sender, scAddr) {
+    let emitter = new EventEmitter();
+    (async () => {
+      try {
+        let task = await new Promise((resolve, reject) => {
+          this.createTask(fn, args, gasLimit, gasPx, sender, scAddr, false)
+            .on(eeConstants.CREATE_TASK, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK, task);
+        task = await new Promise((resolve, reject) => {
+          this.createTaskRecord(task)
+            .on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
+        await new Promise((resolve, reject) => {
+          this.sendTaskInput(task)
+            .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
+            .on(eeConstants.ERROR, (error) => reject(error));
+        });
+        emitter.emit(eeConstants.SEND_TASK_INPUT_RESULT, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
+    })();
+    return emitter;
+  }
   /**
    * Return the version number of the library
    *

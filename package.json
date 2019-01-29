@@ -27,7 +27,7 @@
     "eth-crypto": "^1.2.2",
     "ethereumjs-abi": "^0.6.5",
     "node-forge": "^0.7.5",
-    "openzeppelin-solidity": "OpenZeppelin/openzeppelin-solidity#release-v2.1.0-solc-0.5",
+    "openzeppelin-solidity": "2.1",
     "rlp": "2.1.0",
     "truffle-contract": "^4.0.0",
     "web3": "^1.0.0-beta.37",
