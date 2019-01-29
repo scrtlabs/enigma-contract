@@ -117,7 +117,7 @@ describe('Enigma tests', () => {
     // Using the account as the signer for testing purposes
     const registerWorkersResults = await Promise.all(promises);
     expect(registerWorkersResults.length).toEqual(9);
-  });
+  }, 10000);
 
   it('should get the worker report', async () => {
     const report = await enigma.getReport(accounts[0]);

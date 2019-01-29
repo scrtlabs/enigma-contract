@@ -2,17 +2,78 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../utils/SolRsaVerify.sol";
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
+import "../utils/SolRsaVerify.sol";
+import "../utils/Base64.sol";
 
+/**
+ * @author Enigma
+ *
+ * Library that maintains functionality associated with workers
+ */
 library WorkersImpl {
     using SafeMath for uint256;
 
     event Registered(address custodian, address signer);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
+
+    uint constant internal WORD_SIZE = 32;
+
+    // Borrowed from https://github.com/ethereum/solidity-examples/blob/cb43c26d17617d7dad34936c34dd8f423453c1cf/src/unsafe/Memory.sol#L57
+    // Copy 'len' bytes from memory address 'src', to address 'dest'.
+    // This function does not check the or destination, it only copies
+    // the bytes.
+    function copy(uint src, uint dest, uint len) internal pure {
+        // Copy word-length chunks while possible
+        for (; len >= WORD_SIZE; len -= WORD_SIZE) {
+            assembly {
+                mstore(dest, mload(src))
+            }
+            dest += WORD_SIZE;
+            src += WORD_SIZE;
+        }
+
+        // Copy remaining bytes
+        uint mask = 256 ** (WORD_SIZE - len) - 1;
+        assembly {
+            let srcpart := and(mload(src), not(mask))
+            let destpart := and(mload(dest), mask)
+            mstore(dest, or(destpart, srcpart))
+        }
+    }
+
+    function extract_element(bytes memory src, uint offset, uint len) internal pure returns (bytes memory) {
+        bytes memory o = new bytes(len);
+        uint srcptr;
+        uint destptr;
+        assembly{
+            srcptr := add(add(src,32), offset)
+            destptr := add(o,32)
+        }
+        copy(srcptr, destptr, len);
+        return o;
+    }
+
+    // Borrowed from https://ethereum.stackexchange.com/questions/15350/how-to-convert-an-bytes-to-address-in-solidity
+    function bytesToAddress (bytes memory b) internal pure returns (address) {
+        uint result = 0;
+        for (uint i = 0; i < b.length; i++) {
+            uint8 c = uint8(b[i]);
+            if (c >= 48 && c <= 57) {
+                result = result * 16 + (c - 48);
+            }
+            if(c >= 65 && c<= 90) {
+                result = result * 16 + (c - 55);
+            }
+            if(c >= 97 && c<= 122) {
+                result = result * 16 + (c - 87);
+            }
+        }
+        return address(result);
+    }
 
     function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
         bytes memory _signature)
@@ -25,7 +86,36 @@ library WorkersImpl {
         }
         require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
 
-        // Set the custodian attributes
+        uint i = 0;
+        // find the word "Body" in the _report
+        while( i < _report.length && !(
+            _report[i] == 0x42 &&
+            _report[i+1] == 0x6f &&
+            _report[i+2] == 0x64 &&
+            _report[i+3] == 0x79
+        )) {
+            i++;
+        }
+        require( i < _report.length, "isvEnclaveQuoteBody not found in report");
+
+        // Add the length of 'Body":"'' to find where the quote starts
+        i=i+7;
+
+        // 576 bytes is the length of the quote
+        bytes memory quoteBody = extract_element(_report, i, 576);
+
+        bytes memory quoteDecoded = Base64.decode(quoteBody);
+
+        // extract the needed fields. For reference see, pages 21-23
+        // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
+        bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
+        bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
+        bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+        bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
+        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
+        address signerQuote = bytesToAddress(reportData);
+
+//        require(signerQuote == _signer, "Signer does not match contents of quote");
 
         worker.signer = _signer;
         worker.balance = 0;
@@ -35,11 +125,6 @@ library WorkersImpl {
         emit Registered(msg.sender, _signer);
     }
 
-    /**
-    * The RLP encoded report returned by the IAS server
-    *
-    * @param _custodian The worker's custodian address
-    */
     function getReportImpl(EnigmaState.State storage state, address _custodian)
     public
     view
@@ -51,11 +136,6 @@ library WorkersImpl {
         return (worker.signer, worker.report);
     }
 
-    /**
-    * This verifies an IAS report with hard coded modulus and exponent of Intel's certificate.
-    * @param _data The report itself
-    * @param _signature The signature of the report
-    */
     function verifyReportImpl(bytes memory _data, bytes memory _signature)
     public
     view
@@ -71,27 +151,14 @@ library WorkersImpl {
         return SolRsaVerify.pkcs1Sha256VerifyRaw(_data, _signature, exponent, modulus);
     }
 
-    /**
-    * Login worker. Worker must be registered to do so, and must be logged in at start of epoch to be part of worker
-    * selection process.
-    */
     function loginImpl(EnigmaState.State storage state) public {
         state.workers[msg.sender].status = EnigmaCommon.WorkerStatus.LoggedIn;
     }
 
-    /**
-    * Logout worker. Worker must be logged in to do so.
-    */
     function logoutImpl(EnigmaState.State storage state) public {
         state.workers[msg.sender].status = EnigmaCommon.WorkerStatus.LoggedOut;
     }
 
-    /**
-    * Deposits ENG stake into contract from worker. Worker must be registered to do so.
-    *
-    * @param _custodian The worker's ETH address
-    * @param _amount The amount of ENG, in grains format (10 ** 8), to deposit
-    */
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)
     public
     {
@@ -104,12 +171,6 @@ library WorkersImpl {
         emit DepositSuccessful(_custodian, _amount);
     }
 
-    /**
-    * Withdraws ENG stake from contract back to worker. Worker must be registered to do so.
-    *
-    * @param _custodian The worker's ETH address
-    * @param _amount The amount of ENG, in grains format (10 ** 8), to deposit
-    */
     function withdrawImpl(EnigmaState.State storage state, address _custodian, uint _amount)
     public
     {
@@ -130,7 +191,9 @@ library WorkersImpl {
         // The workers parameters for a given block number
         int8 index = - 1;
         for (uint i = 0; i < state.workersParams.length; i++) {
-            if (state.workersParams[i].firstBlockNumber <= _blockNumber && (index == - 1 || state.workersParams[i].firstBlockNumber > state.workersParams[uint(index)].firstBlockNumber)) {
+            if (state.workersParams[i].firstBlockNumber <= _blockNumber &&
+                (index == - 1 ||
+                state.workersParams[i].firstBlockNumber > state.workersParams[uint(index)].firstBlockNumber)) {
                 index = int8(i);
             }
         }
@@ -138,7 +201,10 @@ library WorkersImpl {
         return uint(index);
     }
 
-    function getParams(EnigmaState.State storage state, uint _blockNumber) internal view returns (EnigmaCommon.WorkersParams memory) {
+    function getParams(EnigmaState.State storage state, uint _blockNumber)
+    internal
+    view
+    returns (EnigmaCommon.WorkersParams memory) {
         uint index = getWorkerParamsIndex(state, _blockNumber);
         return state.workersParams[index];
     }
@@ -159,14 +225,6 @@ library WorkersImpl {
         return (params.firstBlockNumber, params.seed, params.workers, params.balances);
     }
 
-    /**
-    * Select a worker for the computation task pseudorandomly based on the epoch, secret contract address, and nonce
-    *
-    * @param _paramIndex Param index
-    * @param _scAddr Secret contract address
-    * @param _nonce Counter
-    * @return Selected worker's address
-    */
     function selectWeightedRandomWorker(EnigmaState.State storage state, uint _paramIndex, bytes32 _scAddr, uint _nonce)
     internal
     view
@@ -192,14 +250,6 @@ library WorkersImpl {
         return params.workers[params.workers.length - 1];
     }
 
-    /**
-    * Select a group of workers for the computation task given the block number of the task record (implies the epoch)
-    * and the secret contract address.
-    *
-    * @param _blockNumber Block number the task record was mined
-    * @param _scAddr Secret contract address
-    * @return Selected workers' addresses
-    */
     function getWorkerGroupImpl(EnigmaState.State storage state, uint _blockNumber, bytes32 _scAddr)
     public
     view

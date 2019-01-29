@@ -1,6 +1,11 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
+/**
+ * @author Enigma
+ *
+ * ERC20 interface to wrap the EnigmaToken contract
+ */
 contract ERC20 {
     function allowance(address owner, address spender) public view returns (uint256);
 

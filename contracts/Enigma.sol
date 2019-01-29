@@ -96,6 +96,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     *
     * @param _signer The signer address, derived from the enclave public key
     * @param _report The RLP encoded report returned by the IAS
+    * @param _signature Signature
     */
     function register(address _signer, bytes memory _report, bytes memory _signature)
     public
@@ -176,44 +177,35 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     {
         return SecretContractImpl.isDeployedImpl(state, _scAddr);
     }
-//
-//    /**
-//    * Check if secret contract has been deployed
-//    *
-//    * @return  Number of deployed secret contracts
-//    */
-//    function countSecretContracts()
-//    public
-//    view
-//    returns (uint)
-//    {
-//        return scAddresses.length;
-//    }
-//
-//    /**
-//    * Get deployed secret contract addresses within a range
-//    *
-//    * @param _start Start of range
-//    * @param _stop End of range
-//    * @return Subset of deployed secret contract addresses
-//    */
-//    function getSecretContractAddresses(uint _start, uint _stop)
-//    public
-//    view
-//    returns (bytes32[] memory)
-//    {
-//        if (_stop == 0) {
-//            _stop = scAddresses.length;
-//        }
-//        bytes32[] memory addresses = new bytes32[](_stop.sub(_start));
-//        uint pos = 0;
-//        for (uint i = _start; i < _stop; i++) {
-//            addresses[pos] = scAddresses[i];
-//            pos++;
-//        }
-//        return addresses;
-//    }
-//
+
+    /**
+    * Check if secret contract has been deployed
+    *
+    * @return  Number of deployed secret contracts
+    */
+    function countSecretContracts()
+    public
+    view
+    returns (uint)
+    {
+        return SecretContractImpl.countSecretContractsImpl(state);
+    }
+
+    /**
+    * Get deployed secret contract addresses within a range
+    *
+    * @param _start Start of range
+    * @param _stop End of range
+    * @return Subset of deployed secret contract addresses
+    */
+    function getSecretContractAddresses(uint _start, uint _stop)
+    public
+    view
+    returns (bytes32[] memory)
+    {
+        return SecretContractImpl.getSecretContractAddressesImpl(state, _start, _stop);
+    }
+
     /**
     * Count state deltas for a deployed secret contract
     *
@@ -350,7 +342,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     {
         TaskImpl.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber, _scAddr);
     }
-//
+
 //    // Execute the encoded function in the specified contract
 //    function executeCall(address _to, uint256 _value, bytes memory _data)
 //    internal
@@ -439,7 +431,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     {
         TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _ethCall, _sig);
     }
-//
+
 //    function returnFeesForTask(bytes32 _taskId) public taskWaiting(_taskId) {
 //        TaskRecord storage task = tasks[_taskId];
 //

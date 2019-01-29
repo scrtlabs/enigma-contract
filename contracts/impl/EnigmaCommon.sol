@@ -1,7 +1,13 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
+/**
+ * @author Enigma
+ *
+ * This library contains the common structs and enums used throughout the Enigma codebase
+ */
 library EnigmaCommon {
+
     // ========================================== Structs ==========================================
 
     struct TaskRecord {
@@ -37,8 +43,8 @@ library EnigmaCommon {
         address owner; // Owner who deployed secret contract
         bytes32 preCodeHash; // Predeployed bytecode hash
         bytes32 codeHash; // Deployed bytecode hash
-        bytes32[] stateDeltaHashes;
-        bytes32 outputHash;
+        bytes32[] stateDeltaHashes; // Array of state delta hashes
+        bytes32 outputHash; // Hash of output
         SecretContractStatus status; // Undefined: 0, Deployed: 1
         // TODO: consider keeping an index of taskIds
     }

@@ -4,6 +4,11 @@ pragma experimental ABIEncoderV2;
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { ERC20 } from "./ERC20.sol";
 
+/**
+ * @author Enigma
+ *
+ * Maintains the state of the Enigma contract (and the associated libraries)
+ */
 library EnigmaState {
     struct State {
         // The interface of the deployed ENG ERC20 token contract

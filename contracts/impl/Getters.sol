@@ -1,9 +1,14 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import "./EnigmaStorage.sol";
 import { EnigmaCommon } from "./EnigmaCommon.sol";
+import { EnigmaStorage } from "./EnigmaStorage.sol";
 
+/**
+ * @author Enigma
+ *
+ * Getter functions to be used by Enigma library to access state variables
+ */
 contract Getters is EnigmaStorage {
     function getWorker(address _worker) public view returns (EnigmaCommon.Worker memory) {
         return state.workers[_worker];

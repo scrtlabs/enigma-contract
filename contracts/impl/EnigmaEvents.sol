@@ -1,6 +1,12 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
+/**
+ * @author Enigma
+ *
+ * Registers events to be emitted by the various functionalities of the Enigma codebase (need to be detailed here
+ * as well as in the individual library as well
+ */
 contract EnigmaEvents {
     event Registered(address custodian, address signer);
     event ValidatedSig(bytes sig, bytes32 hash, address workerAddr);

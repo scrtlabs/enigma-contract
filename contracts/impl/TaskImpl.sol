@@ -3,12 +3,17 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
-import "../utils/SolRsaVerify.sol";
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
 import { WorkersImpl } from "./WorkersImpl.sol";
+import "../utils/SolRsaVerify.sol";
 
+/**
+ * @author Enigma
+ *
+ * Library that maintains functionality associated with tasks
+ */
 library TaskImpl {
     using SafeMath for uint256;
     using ECDSA for bytes32;
@@ -20,20 +25,6 @@ library TaskImpl {
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] _stateDeltaHashes, bytes32 outputHash, bytes ethCall, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes ethCall, bytes sig);
 
-    /**
-    * Create task record for contract deployment. This is necessary for transferring task fee from sender to contract,
-    * generating the unique taskId, saving the block number when the record was mined, and incrementing the user's
-    * task deployment counter nonce. We revert the process if the locally-generated nonce value does not match
-    * the on-chain-computed nonce since this indicates that the secret contract address the user has generated is
-    * invalid.
-    *
-    * @param _inputsHash Hash of encrypted fn sig, encrypted ABI-encoded args, and predeployed bytecode hash
-    * @param _gasLimit ENG gas limit
-    * @param _gasPx ENG gas price in grains format (10 ** 8)
-    * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
-    * @param _nonce Locally-computed nonce value for this deployment
-    */
     function createDeploymentTaskRecordImpl(
         EnigmaState.State storage state,
         bytes32 _inputsHash,
@@ -73,16 +64,6 @@ library TaskImpl {
         emit TaskRecordCreated(taskId, _gasLimit, _gasPx, msg.sender);
     }
 
-    /**
-    * Deploy secret contract from user, called by the worker.
-    *
-    * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
-    * @param _preCodeHash Predeployed bytecode hash
-    * @param _codeHash Deployed bytecode hash
-    * @param _initStateDeltaHash Initial state delta hash as a result of the contract's constructor
-    * @param _gasUsed Gas used for task
-    * @param _sig Worker's signature for deployment
-    */
     function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
         bytes32 _codeHash, bytes32 _initStateDeltaHash, uint _gasUsed, bytes memory _sig)
     public
@@ -131,17 +112,6 @@ library TaskImpl {
             "Token transfer failed");
     }
 
-    /**
-    * Create task record for task for regular tasks. This is necessary for transferring task fee from sender to
-    * contract, generating the unique taskId, saving the block number when the record was mined, and incrementing
-    * the user's task deployment counter nonce.
-    *
-    * @param _inputsHash Hash of encrypted fn sig, encrypted ABI-encoded args, and contract address
-    * @param _gasLimit ENG gas limit
-    * @param _gasPx ENG gas price in grains format (10 ** 8)
-    * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
-    */
     function createTaskRecordImpl(
         EnigmaState.State storage state,
         bytes32 _inputsHash,
@@ -177,16 +147,6 @@ library TaskImpl {
         emit TaskRecordCreated(taskId, _gasLimit, _gasPx, msg.sender);
     }
 
-    /**
-    * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
-    * After this, the task record is finalized and the worker is credited with the task's fee.
-    *
-    * @param _scAddr Secret contract address
-    * @param _taskId Unique taskId
-    * @param _gasUsed Gas used for task computation
-    * @param _ethCall Eth call
-    * @param _sig Worker's signature
-    */
     function commitTaskFailureImpl(
         EnigmaState.State storage state,
         bytes32 _scAddr,
@@ -225,16 +185,6 @@ library TaskImpl {
         emit ReceiptFailed(_taskId, _ethCall, _sig);
     }
 
-    /**
-    * Verify the task receipt prior to committing/finalizing it on chain.
-    *
-    * @param _scAddr Secret contract address
-    * @param _taskId Unique taskId
-    * @param _stateDeltaHash Input state delta hash
-    * @param _gasUsed Gas used for task computation
-    * @param _sender Worker address
-    * @param _sig Worker's signature
-    */
     function verifyReceipt(EnigmaState.State storage state, bytes32 _scAddr, bytes32 _taskId, bytes32 _stateDeltaHash, uint _gasUsed, address _sender,
         bytes memory _sig)
     internal
@@ -255,18 +205,6 @@ library TaskImpl {
         transferFundsAfterTask(state, _sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
     }
 
-    /**
-    * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
-    * The task record is finalized and the worker is credited with the task's fee.
-    *
-    * @param _scAddr Secret contract address
-    * @param _taskId Unique taskId
-    * @param _stateDeltaHash Input state delta hash
-    * @param _outputHash Output state hash
-    * @param _gasUsed Gas used for task computation
-    * @param _ethCall Eth call
-    * @param _sig Worker's signature
-    */
     function commitReceiptImpl(
         EnigmaState.State storage state,
         bytes32 _scAddr,
@@ -299,17 +237,6 @@ library TaskImpl {
         emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _ethCall, _sig);
     }
 
-    /**
-    * Create task records for tasks (either contract deployment or regular tasks). This is necessary for
-    * transferring task fee from sender to contract, generating the unique taskId, saving the block number
-    * when the record was mined, and incrementing the user's task deployment counter nonce.
-    *
-    * @param _inputsHashes Hashes of encrypted fn sig, encrypted ABI-encoded args, and contract address
-    * @param _gasLimits ENG gas limit
-    * @param _gasPxs ENG gas price in grains format (10 ** 8)
-    * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
-    */
     function createTaskRecordsImpl(
         EnigmaState.State storage state,
         bytes32[] memory _inputsHashes,
@@ -348,17 +275,6 @@ library TaskImpl {
         emit TaskRecordsCreated(taskIds, _gasLimits, _gasPxs, msg.sender);
     }
 
-    /**
-   * Commit the computation task results on chain by first verifying the receipts and then the worker's signature.
-   * The task records are finalized and the worker is credited with the tasks' fees.
-   *
-   * @param _scAddr Secret contract address
-   * @param _taskIds Unique taskId
-   * @param _stateDeltaHashes Input state delta hashes
-   * @param _outputHash Output state hashes
-   * @param _ethCall Eth call
-   * @param _sig Worker's signature
-   */
     function commitReceiptsImpl(
         EnigmaState.State storage state,
         bytes32 _scAddr,
