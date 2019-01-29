@@ -22,7 +22,7 @@ library TaskImpl {
     event TaskRecordsCreated(bytes32[] taskIds, uint[] gasLimits, uint[] gasPxs, address sender);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes ethCall, bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] _stateDeltaHashes, bytes32 outputHash, bytes ethCall, bytes sig);
+    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32 outputHash, bytes ethCall, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes ethCall, bytes sig);
 
     function createDeploymentTaskRecordImpl(
@@ -31,7 +31,6 @@ library TaskImpl {
         uint _gasLimit,
         uint _gasPx,
         uint _firstBlockNumber,
-        bytes32 _scAddr,
         uint _nonce
     )
     public
@@ -117,8 +116,7 @@ library TaskImpl {
         bytes32 _inputsHash,
         uint _gasLimit,
         uint _gasPx,
-        uint _firstBlockNumber,
-        bytes32 _scAddr
+        uint _firstBlockNumber
     )
     public
     {
@@ -242,8 +240,7 @@ library TaskImpl {
         bytes32[] memory _inputsHashes,
         uint[] memory _gasLimits,
         uint[] memory _gasPxs,
-        uint _firstBlockNumber,
-        bytes32 _scAddr
+        uint _firstBlockNumber
     )
     public
     {

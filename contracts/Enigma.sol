@@ -280,7 +280,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _gasLimit ENG gas limit
     * @param _gasPx ENG gas price in grains format (10 ** 8)
     * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
     * @param _nonce Locally-computed nonce value for this deployment
     */
     function createDeploymentTaskRecord(
@@ -288,13 +287,11 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         uint _gasLimit,
         uint _gasPx,
         uint _firstBlockNumber,
-        bytes32 _scAddr,
         uint _nonce
     )
     public
     {
-        TaskImpl.createDeploymentTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber,
-            _scAddr, _nonce);
+        TaskImpl.createDeploymentTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber, _nonce);
     }
 
     /**
@@ -306,18 +303,16 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _gasLimit ENG gas limit
     * @param _gasPx ENG gas price in grains format (10 ** 8)
     * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
     */
     function createTaskRecord(
         bytes32 _inputsHash,
         uint _gasLimit,
         uint _gasPx,
-        uint _firstBlockNumber,
-        bytes32 _scAddr
+        uint _firstBlockNumber
     )
     public
     {
-        TaskImpl.createTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber, _scAddr);
+        TaskImpl.createTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber);
     }
 
     /**
@@ -329,18 +324,16 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _gasLimits ENG gas limit
     * @param _gasPxs ENG gas price in grains format (10 ** 8)
     * @param _firstBlockNumber Locally-computed first block number of epoch
-    * @param _scAddr Secret contract address for this task
     */
     function createTaskRecords(
         bytes32[] memory _inputsHashes,
         uint[] memory _gasLimits,
         uint[] memory _gasPxs,
-        uint _firstBlockNumber,
-        bytes32 _scAddr
+        uint _firstBlockNumber
     )
     public
     {
-        TaskImpl.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber, _scAddr);
+        TaskImpl.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber);
     }
 
 //    // Execute the encoded function in the specified contract
