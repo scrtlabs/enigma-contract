@@ -39,6 +39,11 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should check that worker is registered', async () => {
+    status = await enigma.admin.getWorkerStatus(accounts[0])
+    expect(status).toEqual(1);
+  }
+
   const workerAddress='0x627ba9fa45cfd609edfb10ead0666124a429c2ae';
   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec'+
     '912be61358d5e90bff56a53a0ed42abfe27e3';
