@@ -3,8 +3,8 @@ import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
+// import EnigmaContract from '../../../build/contracts/Enigma';
+// import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
 import data from '../data';
 
 forge.options.usePureJavaScript = true;
