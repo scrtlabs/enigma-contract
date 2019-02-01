@@ -45,6 +45,8 @@ describe('Enigma tests', () => {
     }
     expect(workerStatuses).toEqual([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     workerAddress = await enigma.admin.getWorkerSignerAddr(accounts[0]);
+    workerAddress = workerAddress.toLowerCase();
+    console.log('WorkerAddress is '+workerAddress);
   });
 
   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec'+
