@@ -6,8 +6,6 @@ import utils from '../../src/enigma-utils';
 import EnigmaContract from '../../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
 import data from '../data';
-import TaskInput from "../../src/models/TaskInput";
-import TaskRecord from "../../src/models/TaskRecord";
 
 forge.options.usePureJavaScript = true;
 
@@ -39,12 +37,15 @@ describe('Enigma tests', () => {
     });
   });
 
-  it('should check that worker is registered', async () => {
-    status = await enigma.admin.getWorkerStatus(accounts[0])
-    expect(status).toEqual(1);
-  }
+  it('should check that one worker, and only one worker, is registered', async () => {
+    let workerStatuses = [];
+    for (let i = 0; i < accounts.length; i++) {
+      workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
+    }
+    expect(workerStatuses).toEqual([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  });
 
-  const workerAddress='0x627ba9fa45cfd609edfb10ead0666124a429c2ae';
+  const workerAddress='0x6fa9caad3974e16aae8869997f2fe690a452069b';
   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec'+
     '912be61358d5e90bff56a53a0ed42abfe27e3';
   it('should create getTaskEncryptionKey from core (with call to P2P)', async () => {
