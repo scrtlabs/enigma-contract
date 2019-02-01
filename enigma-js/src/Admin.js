@@ -223,4 +223,14 @@ export default class Admin {
   async getStakedBalance(account) {
     return parseInt((await this.enigmaContract.methods.getWorker(account).call()).balance);
   }
+
+  /**
+   * Get worker's signer address
+   *
+   * @param {string} account - Worker's address
+   * @return {Promise} Resolves to worker's signer address
+   */
+  async getWorkerSignerAddr(account) {
+    return (await this.enigmaContract.methods.getWorker(account).call()).signer;
+  }
 }

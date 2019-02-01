@@ -103,7 +103,8 @@ export default class Enigma {
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
-      const workerAddress = await this.selectWorkerGroup(scAddr, workerParams, 5)[0];
+      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 5)[0];
+      const workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {

@@ -152,16 +152,27 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _preCodeHash Predeployed bytecode hash
     * @param _codeHash Deployed bytecode hash
     * @param _initStateDeltaHash Initial state delta hash as a result of the contract's constructor
+    * @param _optionalEthereumData Initial state delta hash as a result of the contract's constructor
+    * @param _optionalEthereumContractAddress Initial state delta hash as a result of the contract's constructor
     * @param _gasUsed Gas used for task
     * @param _sig Worker's signature for deployment
     */
-    function deploySecretContract(bytes32 _taskId, bytes32 _preCodeHash, bytes32 _codeHash, bytes32 _initStateDeltaHash,
-        uint _gasUsed, bytes memory _sig)
+    function deploySecretContract(
+        bytes32 _taskId,
+        bytes32 _preCodeHash,
+        bytes32 _codeHash,
+        bytes32 _initStateDeltaHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
+        uint _gasUsed,
+        bytes memory _sig
+    )
     public
     workerLoggedIn(msg.sender)
     contractUndefined(_taskId)
     {
-        TaskImpl.deploySecretContractImpl(state, _taskId, _preCodeHash, _codeHash, _initStateDeltaHash, _gasUsed, _sig);
+        TaskImpl.deploySecretContractImpl(state, _taskId, _preCodeHash, _codeHash, _initStateDeltaHash,
+            _optionalEthereumData, _optionalEthereumContractAddress, _gasUsed, _sig);
     }
 
     /**
@@ -354,8 +365,9 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _taskId Unique taskId
     * @param _stateDeltaHash Input state delta hash
     * @param _outputHash Output state hash
+    * @param _optionalEthereumData Output state hash
+    * @param _optionalEthereumContractAddress Output state hash
     * @param _gasUsed Gas used for task computation
-    * @param _ethCall Eth call
     * @param _sig Worker's signature
     */
     function commitReceipt(
@@ -363,15 +375,17 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32 _taskId,
         bytes32 _stateDeltaHash,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint _gasUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _gasUsed, _ethCall, _sig);
+        TaskImpl.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _gasUsed, _sig);
     }
 
     /**
@@ -382,7 +396,9 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
    * @param _taskIds Unique taskId
    * @param _stateDeltaHashes Input state delta hashes
    * @param _outputHash Output state hashes
-   * @param _ethCall Eth call
+   * @param _optionalEthereumData Output state hashes
+   * @param _optionalEthereumContractAddress Output state hashes
+   * @param _gasesUsed Output state hashes
    * @param _sig Worker's signature
    */
     function commitReceipts(
@@ -390,15 +406,17 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32[] memory _taskIds,
         bytes32[] memory _stateDeltaHashes,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint[] memory _gasesUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHash, _gasesUsed, _ethCall, _sig);
+        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _gasesUsed, _sig);
     }
 //
     /**

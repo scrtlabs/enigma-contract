@@ -21,8 +21,10 @@ library TaskImpl {
     event TaskRecordCreated(bytes32 taskId, uint gasLimit, uint gasPx, address sender);
     event TaskRecordsCreated(bytes32[] taskIds, uint[] gasLimits, uint[] gasPxs, address sender);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes ethCall, bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32 outputHash, bytes ethCall, bytes sig);
+    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes _optionalEthereumData,
+        address _optionalEthereumContractAddress, bytes sig);
+    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32 outputHash,
+        bytes _optionalEthereumData, address _optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes ethCall, bytes sig);
 
     function createDeploymentTaskRecordImpl(
@@ -64,7 +66,8 @@ library TaskImpl {
     }
 
     function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
-        bytes32 _codeHash, bytes32 _initStateDeltaHash, uint _gasUsed, bytes memory _sig)
+        bytes32 _codeHash, bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress, uint _gasUsed, bytes memory _sig)
     public
     {
         // Index into task records based on _taskId to find corresponding deployment task
@@ -79,7 +82,8 @@ library TaskImpl {
         require(msg.sender == selectedWorker, "Not the selected worker for this task");
 
         // Verify the worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash, _codeHash, _initStateDeltaHash, _gasUsed, true));
+        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash, _codeHash, _initStateDeltaHash,
+            _optionalEthereumData, _optionalEthereumContractAddress, _gasUsed, true));
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         // Set the secret contract's attributes in registry
@@ -94,6 +98,11 @@ library TaskImpl {
         // Finalize task record for deployment task
         task.proof = _sig;
         task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
+
+        if (_optionalEthereumContractAddress != address(0)) {
+            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
+            require(success, "Ethereum call failed");
+        }
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
@@ -209,8 +218,9 @@ library TaskImpl {
         bytes32 _taskId,
         bytes32 _stateDeltaHash,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint _gasUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
@@ -229,10 +239,16 @@ library TaskImpl {
 
         // Check worker's signature
         bytes32 msgHash = keccak256(abi.encodePacked(inputsHash, secretContract.codeHash, _stateDeltaHash,
-            _outputHash, _gasUsed, lastStateDeltaHash, true));
+            _outputHash, _optionalEthereumData, _optionalEthereumContractAddress, _gasUsed, lastStateDeltaHash, true));
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _ethCall, _sig);
+        if (_optionalEthereumContractAddress != address(0)) {
+            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
+            require(success, "Ethereum call failed");
+        }
+
+        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _sig);
     }
 
     function createTaskRecordsImpl(
@@ -278,8 +294,9 @@ library TaskImpl {
         bytes32[] memory _taskIds,
         bytes32[] memory _stateDeltaHashes,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint[] memory _gasesUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
@@ -303,9 +320,16 @@ library TaskImpl {
 
         // Check worker's signature
         bytes32 msgHash = keccak256(abi.encodePacked(inputsHashes, secretContract.codeHash, _stateDeltaHashes,
-            _outputHash, _gasesUsed, lastStateDeltaHash, true));
+            _outputHash, _optionalEthereumData, _optionalEthereumContractAddress, _gasesUsed, lastStateDeltaHash,
+            true));
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHash, _ethCall, _sig);
+        if (_optionalEthereumContractAddress != address(0)) {
+            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
+            require(success, "Ethereum call failed");
+        }
+
+        emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _sig);
     }
 }
