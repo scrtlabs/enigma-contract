@@ -17,6 +17,7 @@ const WorkersImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.
   artifacts.require('./impl/WorkersImpl-Simulation.sol') :
   artifacts.require('./impl/WorkersImpl.sol');
 
+
 async function deployProtocol(deployer) {
   await Promise.all([
     deployer.deploy(EnigmaToken),
@@ -50,6 +51,18 @@ async function deployProtocol(deployer) {
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal);
   await deployer.deploy(Sample);
+
+  // Writing enigma contracts to a file for other processes to retrieve
+  fs.writeFile('enigmacontract.txt', Enigma.address, 'utf8', function(err) {
+    if(err) {
+      return console.log(err);
+    }
+  });
+  fs.writeFile('enigmatokencontract.txt', EnigmaToken.address, 'utf8', function(err) {
+    if(err) {
+      return console.log(err);
+    }
+  });
 }
 
 async function doMigration(deployer) {
