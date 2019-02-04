@@ -23,6 +23,7 @@ library EnigmaCommon {
     struct Worker {
         address signer; // Enclave address
         WorkerStatus status; // Unregistered: 0, Registered: 1, LoggedIn: 2, LoggedOut: 3
+        uint statusUpdateBlockNumber; // Block number for status update
         bytes report; // Decided to store this as one  RLP encoded attribute for easier external storage in the future
         uint256 balance; // ENG balance
     }

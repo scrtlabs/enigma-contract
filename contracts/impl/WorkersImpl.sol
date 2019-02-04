@@ -121,6 +121,7 @@ library WorkersImpl {
         worker.balance = 0;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.Registered;
+        worker.statusUpdateBlockNumber = block.number;
 
         emit Registered(msg.sender, _signer);
     }
@@ -152,11 +153,15 @@ library WorkersImpl {
     }
 
     function loginImpl(EnigmaState.State storage state) public {
-        state.workers[msg.sender].status = EnigmaCommon.WorkerStatus.LoggedIn;
+        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        worker.status = EnigmaCommon.WorkerStatus.LoggedIn;
+        worker.statusUpdateBlockNumber = block.number;
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
-        state.workers[msg.sender].status = EnigmaCommon.WorkerStatus.LoggedOut;
+        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
+        worker.statusUpdateBlockNumber = block.number;
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)

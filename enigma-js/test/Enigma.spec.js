@@ -129,7 +129,6 @@ describe('Enigma tests', () => {
 
   it('should get the worker report', async () => {
     const report = await enigma.getReport(accounts[0]);
-    console.log('SIGNER!!', await enigma.admin.getWorkerSignerAddr(accounts[0]));
     expect(report).toBeTruthy;
   });
 
@@ -248,6 +247,7 @@ describe('Enigma tests', () => {
     }
   });
 
+  let statusUpdateBlockNumber;
   it('should logout, fail to logout again, and log back in a worker', async () => {
     await new Promise((resolve, reject) => {
       enigma.admin.logout(accounts[0])
@@ -276,7 +276,17 @@ describe('Enigma tests', () => {
         });
     });
     workerStatus = await enigma.admin.getWorkerStatus(accounts[0]);
+    statusUpdateBlockNumber = (await enigma.enigmaContract.methods.getWorker(accounts[0]).call())
+      .statusUpdateBlockNumber;
     expect(workerStatus).toEqual(2);
+  });
+
+  it('should get active workers before a specified block number', async () => {
+    let workerAddressesBase = (await enigma.enigmaContract.methods.getActiveWorkers(statusUpdateBlockNumber + 1)
+      .call())['0'];
+    let workerAddressesFin = (await enigma.enigmaContract.methods.getActiveWorkers(statusUpdateBlockNumber)
+      .call())['0'];
+    expect(workerAddressesBase.filter((workerAddress) => workerAddress != accounts[0])).toEqual(workerAddressesFin);
   });
 
   it('should set the worker parameters (principal only)', async () => {

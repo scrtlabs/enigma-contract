@@ -63,4 +63,34 @@ library PrincipalImpl {
             workerParams.balances, state.userTaskDeployments[msg.sender]);
         state.userTaskDeployments[msg.sender]++;
     }
+
+    function getActiveWorkersImpl(EnigmaState.State storage state, uint _blockNumber)
+    public
+    view
+    returns (address[] memory, uint[] memory)
+    {
+        uint maxLength = state.workerAddresses.length;
+        uint[] memory activeWorkerIndices = new uint[](maxLength);
+        uint filteredCount;
+
+        for (uint i = 0; i < maxLength; i++) {
+            EnigmaCommon.Worker memory worker = state.workers[state.workerAddresses[i]];
+            if ((worker.status == EnigmaCommon.WorkerStatus.LoggedIn) && (worker.statusUpdateBlockNumber < _blockNumber)) {
+                activeWorkerIndices[filteredCount] = i;
+                filteredCount++;
+            }
+        }
+
+        address[] memory activeWorkerAddresses = new address[](filteredCount);
+        uint[] memory activeWorkerBalances = new uint[](filteredCount);
+
+        for (uint ic = 0; ic < filteredCount; ic++) {
+            address workerAddress = state.workerAddresses[activeWorkerIndices[ic]];
+            EnigmaCommon.Worker memory worker = state.workers[workerAddress];
+            activeWorkerAddresses[ic] = workerAddress;
+            activeWorkerBalances[ic] = worker.balance;
+        }
+
+        return (activeWorkerAddresses, activeWorkerBalances);
+    }
 }

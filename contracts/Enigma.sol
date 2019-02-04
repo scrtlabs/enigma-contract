@@ -482,6 +482,20 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         PrincipalImpl.setWorkersParamsImpl(state, _seed, _sig);
     }
 
+    /**
+    * Get active workers before a certain block number
+    *
+    * @param _blockNumber Block number
+    */
+    function getActiveWorkers(uint _blockNumber)
+    public
+    view
+    workerRegistered(msg.sender)
+    returns (address[] memory, uint[] memory)
+    {
+        return PrincipalImpl.getActiveWorkersImpl(state, _blockNumber);
+    }
+
     function getFirstBlockNumber(uint _blockNumber)
     public
     view
