@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 contract Sample {
     uint public stateInt;
     bool public stateBool;
+    uint public counter;
 
     constructor() public {
         stateInt = 1;
@@ -13,5 +14,9 @@ contract Sample {
     function setStateVar(uint _stateInt, bool _stateBool) public {
         stateInt = _stateInt;
         stateBool = _stateBool;
+    }
+
+    function incrementCounter() public {
+        counter++;
     }
 }

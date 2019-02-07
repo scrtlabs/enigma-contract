@@ -12,15 +12,16 @@ async function deployProtocol(deployer) {
       deployer.deploy(EnigmaToken),
       deployer.deploy(SolRsaVerify),
       deployer.deploy(WorkersImpl),
-      deployer.deploy(PrincipalImpl),
       deployer.deploy(SecretContractImpl),
   ]);
 
   await Promise.all([
       TaskImpl.link('WorkersImpl', WorkersImpl.address),
+      PrincipalImpl.link('WorkersImpl', WorkersImpl.address),
   ]);
   await Promise.all([
       deployer.deploy(TaskImpl),
+      deployer.deploy(PrincipalImpl),
   ]);
 
   await Promise.all([
