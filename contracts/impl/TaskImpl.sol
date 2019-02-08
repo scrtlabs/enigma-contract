@@ -18,12 +18,16 @@ library TaskImpl {
     using SafeMath for uint256;
     using ECDSA for bytes32;
 
-    event TaskRecordCreated(bytes32 taskId, uint gasLimit, uint gasPx, address sender);
-    event TaskRecordsCreated(bytes32[] taskIds, uint[] gasLimits, uint[] gasPxs, address sender);
-    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes ethCall, bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32 outputHash, bytes ethCall, bytes sig);
-    event ReceiptFailed(bytes32 taskId, bytes ethCall, bytes sig);
+    event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint gasLimit, uint gasPx, address sender,
+        uint blockNumber);
+    event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint[] gasLimits, uint[] gasPxs, address sender,
+        uint blockNumber);
+    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
+    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes optionalEthereumData,
+        address optionalEthereumContractAddress, bytes sig);
+    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32 outputHash,
+        bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
+    event ReceiptFailed(bytes32 taskId, bytes sig);
 
     function createDeploymentTaskRecordImpl(
         EnigmaState.State storage state,
@@ -60,26 +64,75 @@ library TaskImpl {
         // Increment user task deployment nonce
         state.userTaskDeployments[msg.sender]++;
 
-        emit TaskRecordCreated(taskId, _gasLimit, _gasPx, msg.sender);
+        emit TaskRecordCreated(taskId, _inputsHash, _gasLimit, _gasPx, msg.sender, block.number);
     }
 
-    function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
-        bytes32 _codeHash, bytes32 _initStateDeltaHash, uint _gasUsed, bytes memory _sig)
+    function deploySecretContractFailureImpl(EnigmaState.State storage state, bytes32 _taskId, uint _gasUsed,
+        bytes memory _sig)
     public
     {
-        // Index into task records based on _taskId to find corresponding deployment task
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
-        require(task.status == EnigmaCommon.TaskStatus.RecordCreated, "Invalid task status");
+        require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
+
+        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
+        require(msg.sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
+            "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
         require(task.gasLimit >= _gasUsed, "Too much gas used for task");
 
-        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        address selectedWorker = WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0];
-        require(msg.sender == selectedWorker, "Not the selected worker for this task");
+        // Update proof and status attributes of TaskRecord
+        task.proof = _sig;
+        task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
+
+        transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
         // Verify the worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash, _codeHash, _initStateDeltaHash, _gasUsed, true));
+        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash,
+            _gasUsed,
+            bytes1(0x00)));
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
+
+        emit ReceiptFailed(_taskId, _sig);
+    }
+
+    function verifyDeployReceipt(EnigmaState.State storage state, bytes32 _taskId, uint _gasUsed, address _sender,
+        bytes memory _sig)
+    internal
+    {
+        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
+        require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
+
+        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
+        require(_sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
+            "Not the selected worker for this task");
+
+        // Check that worker isn't charging the user too high of a fee
+        require(task.gasLimit >= _gasUsed, "Too much gas used for task");
+
+        // Update proof and status attributes of TaskRecord
+        task.proof = _sig;
+        task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
+
+        transferFundsAfterTask(state, _sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
+    }
+
+    function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
+        bytes32 _codeHash, bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress, uint _gasUsed, bytes memory _sig)
+    public
+    {
+        verifyDeployReceipt(state, _taskId, _gasUsed, msg.sender, _sig);
+        EnigmaCommon.TaskRecord memory task = state.tasks[_taskId];
+
+        // Verify the worker's signature
+        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash,
+            _codeHash,
+            _initStateDeltaHash,
+            _gasUsed,
+            uint64(_optionalEthereumData.length), _optionalEthereumData,
+            uint64(20), _optionalEthereumContractAddress,
+            bytes1(0x01)));
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         // Set the secret contract's attributes in registry
@@ -91,13 +144,12 @@ library TaskImpl {
         secretContract.stateDeltaHashes.push(_initStateDeltaHash);
         state.scAddresses.push(_taskId);
 
-        // Finalize task record for deployment task
-        task.proof = _sig;
-        task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
+        if (_optionalEthereumContractAddress != address(0)) {
+            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
+            require(success, "Ethereum call failed");
+        }
 
-        transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
-
-        emit SecretContractDeployed(_taskId, _codeHash);
+        emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash);
     }
 
     function transferFundsAfterTask(EnigmaState.State storage state, address _worker, address _user, uint _gasUsed,
@@ -142,7 +194,7 @@ library TaskImpl {
         // Increment user task deployment nonce
         state.userTaskDeployments[msg.sender]++;
 
-        emit TaskRecordCreated(taskId, _gasLimit, _gasPx, msg.sender);
+        emit TaskRecordCreated(taskId, _inputsHash, _gasLimit, _gasPx, msg.sender, block.number);
     }
 
     function commitTaskFailureImpl(
@@ -150,19 +202,18 @@ library TaskImpl {
         bytes32 _scAddr,
         bytes32 _taskId,
         uint _gasUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
     {
-        EnigmaCommon.SecretContract storage secretContract = state.contracts[_scAddr];
-        bytes32 lastStateDeltaHash = secretContract.stateDeltaHashes[secretContract.stateDeltaHashes.length - 1];
+        EnigmaCommon.SecretContract memory secretContract = state.contracts[_scAddr];
 
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
         require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
 
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(msg.sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0], "Not the selected worker for this task");
+        require(msg.sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
+            "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
         require(task.gasLimit >= _gasUsed, "Too much gas used for task");
@@ -173,14 +224,14 @@ library TaskImpl {
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
-        bytes32 inputsHash = state.tasks[_taskId].inputsHash;
-
-        // Check worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(inputsHash, secretContract.codeHash, _gasUsed, lastStateDeltaHash,
-            false));
+        // Verify the worker's signature
+        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash,
+            secretContract.codeHash,
+            _gasUsed,
+            bytes1(0x00)));
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptFailed(_taskId, _ethCall, _sig);
+        emit ReceiptFailed(_taskId, _sig);
     }
 
     function verifyReceipt(EnigmaState.State storage state, bytes32 _scAddr, bytes32 _taskId, bytes32 _stateDeltaHash, uint _gasUsed, address _sender,
@@ -209,8 +260,9 @@ library TaskImpl {
         bytes32 _taskId,
         bytes32 _stateDeltaHash,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint _gasUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
@@ -221,18 +273,31 @@ library TaskImpl {
 
         // Verify the receipt
         verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _gasUsed, msg.sender, _sig);
-        bytes32 inputsHash = state.tasks[_taskId].inputsHash;
 
         // Append the new state delta hash and set the contract's output hash
         secretContract.stateDeltaHashes.push(_stateDeltaHash);
         secretContract.outputHash = _outputHash;
 
-        // Check worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(inputsHash, secretContract.codeHash, _stateDeltaHash,
-            _outputHash, _gasUsed, lastStateDeltaHash, true));
+        // Verify the worker's signature
+        bytes32 msgHash = keccak256(abi.encodePacked(secretContract.codeHash,
+            state.tasks[_taskId].inputsHash,
+            lastStateDeltaHash,
+            _stateDeltaHash,
+            _outputHash,
+            _gasUsed,
+            uint64(_optionalEthereumData.length), _optionalEthereumData,
+            uint64(20), _optionalEthereumContractAddress,
+            bytes1(0x01)));
+
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _ethCall, _sig);
+        if (_optionalEthereumContractAddress != address(0)) {
+            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
+            require(success, "Ethereum call failed");
+        }
+
+        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _sig);
     }
 
     function createTaskRecordsImpl(
@@ -269,7 +334,7 @@ library TaskImpl {
             // Increment user task deployment nonce
             state.userTaskDeployments[msg.sender]++;
         }
-        emit TaskRecordsCreated(taskIds, _gasLimits, _gasPxs, msg.sender);
+        emit TaskRecordsCreated(taskIds, _inputsHashes, _gasLimits, _gasPxs, msg.sender, block.number);
     }
 
     function commitReceiptsImpl(
@@ -278,8 +343,9 @@ library TaskImpl {
         bytes32[] memory _taskIds,
         bytes32[] memory _stateDeltaHashes,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint[] memory _gasesUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
@@ -301,11 +367,25 @@ library TaskImpl {
         //  Set the contract's output hash
         secretContract.outputHash = _outputHash;
 
-        // Check worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(inputsHashes, secretContract.codeHash, _stateDeltaHashes,
-            _outputHash, _gasesUsed, lastStateDeltaHash, true));
+        // Verify the worker's signature
+        bytes32 msgHash = keccak256(abi.encodePacked(secretContract.codeHash,
+            inputsHashes,
+            lastStateDeltaHash,
+            _stateDeltaHashes,
+            _outputHash,
+            _gasesUsed,
+            uint64(_optionalEthereumData.length), _optionalEthereumData,
+            uint64(20), _optionalEthereumContractAddress,
+            bytes1(0x01)));
+
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHash, _ethCall, _sig);
+        if (_optionalEthereumContractAddress != address(0)) {
+            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
+            require(success, "Ethereum call failed");
+        }
+
+        emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _sig);
     }
 }

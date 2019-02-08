@@ -118,9 +118,9 @@ library WorkersImpl {
 //        require(signerQuote == _signer, "Signer does not match contents of quote");
 
         worker.signer = _signer;
-        worker.balance = 0;
         worker.report = _report;
-        worker.status = EnigmaCommon.WorkerStatus.Registered;
+        worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
+        worker.statusUpdateBlockNumber = block.number;
 
         emit Registered(msg.sender, _signer);
     }
@@ -152,11 +152,16 @@ library WorkersImpl {
     }
 
     function loginImpl(EnigmaState.State storage state) public {
-        state.workers[msg.sender].status = EnigmaCommon.WorkerStatus.LoggedIn;
+        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        worker.status = EnigmaCommon.WorkerStatus.LoggedIn;
+        worker.statusUpdateBlockNumber = block.number;
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
-        state.workers[msg.sender].status = EnigmaCommon.WorkerStatus.LoggedOut;
+        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
+        worker.statusUpdateBlockNumber = block.number;
+        worker.stake = 0;
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)
@@ -222,7 +227,7 @@ library WorkersImpl {
     view
     returns (uint, uint, address[] memory, uint[] memory) {
         EnigmaCommon.WorkersParams memory params = getParams(state, _blockNumber);
-        return (params.firstBlockNumber, params.seed, params.workers, params.balances);
+        return (params.firstBlockNumber, params.seed, params.workers, params.stakes);
     }
 
     function selectWeightedRandomWorker(EnigmaState.State storage state, uint _paramIndex, bytes32 _scAddr, uint _nonce)
@@ -234,14 +239,14 @@ library WorkersImpl {
         uint tokenCpt = 0;
         for (uint i = 0; i < params.workers.length; i++) {
             if (params.workers[i] != address(0)) {
-                tokenCpt = tokenCpt.add(params.balances[i]);
+                tokenCpt = tokenCpt.add(params.stakes[i]);
             }
         }
         bytes32 randHash = keccak256(abi.encodePacked(params.seed, _scAddr, _nonce));
         int randVal = int256(uint256(randHash) % tokenCpt);
         for (uint k = 0; k < params.workers.length; k++) {
             if (params.workers[k] != address(0)) {
-                randVal -= int256(params.balances[k]);
+                randVal -= int256(params.stakes[k]);
                 if (randVal <= 0) {
                     return params.workers[k];
                 }

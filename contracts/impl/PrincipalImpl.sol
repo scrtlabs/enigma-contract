@@ -2,9 +2,11 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
+import { WorkersImpl } from "./WorkersImpl.sol";
 
 /**
  * @author Enigma
@@ -13,10 +15,12 @@ import { EnigmaState } from "./EnigmaState.sol";
  */
 library PrincipalImpl {
     using SafeMath for uint256;
+    using ECDSA for bytes32;
 
-    event WorkersParameterized(uint seed, uint256 blockNumber, address[] workers, uint[] balances, uint nonce);
+    event WorkersParameterized(uint seed, uint256 firstBlockNumber, uint256 inclusionBlockNumber, address[] workers,
+        uint[] stakes, uint nonce);
 
-    function setWorkersParamsImpl(EnigmaState.State storage state, uint _seed, bytes memory _sig)
+    function setWorkersParamsImpl(EnigmaState.State storage state, uint _blockNumber, uint _seed, bytes memory _sig)
     public
     {
         // Reparameterizing workers with a new seed
@@ -24,7 +28,8 @@ library PrincipalImpl {
 
         // We assume that the Principal is always the first registered node
         require(state.workers[msg.sender].signer == state.principal, "Only the Principal can update the seed");
-        // TODO: verify the principal sig
+        require(_blockNumber - WorkersImpl.getFirstBlockNumberImpl(state, _blockNumber) >= state.epochSize,
+            "Already called during this epoch");
 
         // Create a new workers parameters item for the specified seed.
         // The workers parameters list is a sort of cache, it never grows beyond its limit.
@@ -44,23 +49,51 @@ library PrincipalImpl {
         workerParams.seed = _seed;
         workerParams.nonce = state.userTaskDeployments[msg.sender];
 
-        // Copy the current worker list
-        uint workerIndex = 0;
-        for (uint wi = 0; wi < state.workerAddresses.length; wi++) {
-            EnigmaCommon.Worker memory worker = state.workers[state.workerAddresses[wi]];
-            if ((worker.balance >= state.stakingThreshold) && (worker.signer != state.principal) &&
-                (worker.status == EnigmaCommon.WorkerStatus.LoggedIn)) {
-                workerParams.workers.length++;
-                workerParams.workers[workerIndex] = state.workerAddresses[wi];
+        (workerParams.workers, workerParams.stakes) = getActiveWorkersImpl(state, _blockNumber);
 
-                workerParams.balances.length++;
-                workerParams.balances[workerIndex] = worker.balance;
+        // Check worker's signature
+        bytes32 msgHash = keccak256(abi.encodePacked(_seed, state.userTaskDeployments[msg.sender], workerParams.workers,
+            workerParams.stakes));
+        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
 
-                workerIndex = workerIndex.add(1);
+        for (uint wi = 0; wi < workerParams.workers.length; wi++) {
+            EnigmaCommon.Worker storage worker = state.workers[workerParams.workers[wi]];
+            worker.stake = worker.balance;
+        }
+        emit WorkersParameterized(_seed, block.number, _blockNumber, workerParams.workers,
+            workerParams.stakes, state.userTaskDeployments[msg.sender]);
+        state.userTaskDeployments[msg.sender]++;
+    }
+
+    function getActiveWorkersImpl(EnigmaState.State storage state, uint _blockNumber)
+    public
+    view
+    returns (address[] memory, uint[] memory)
+    {
+        uint maxLength = state.workerAddresses.length;
+        uint[] memory activeWorkerIndices = new uint[](maxLength);
+        uint filteredCount;
+
+        for (uint i = 0; i < maxLength; i++) {
+            EnigmaCommon.Worker memory worker = state.workers[state.workerAddresses[i]];
+            if ((worker.status == EnigmaCommon.WorkerStatus.LoggedIn) &&
+                (worker.statusUpdateBlockNumber <= _blockNumber) &&
+                (worker.signer != state.principal))
+            {
+                activeWorkerIndices[filteredCount] = i;
+                filteredCount++;
             }
         }
-        emit WorkersParameterized(_seed, block.number, workerParams.workers,
-            workerParams.balances, state.userTaskDeployments[msg.sender]);
-        state.userTaskDeployments[msg.sender]++;
+
+        address[] memory activeWorkerAddresses = new address[](filteredCount);
+        uint[] memory activeWorkerStakes = new uint[](filteredCount);
+        for (uint ic = 0; ic < filteredCount; ic++) {
+            address workerAddress = state.workerAddresses[activeWorkerIndices[ic]];
+            EnigmaCommon.Worker memory worker = state.workers[workerAddress];
+            activeWorkerAddresses[ic] = workerAddress;
+            activeWorkerStakes[ic] = worker.stake;
+        }
+
+        return (activeWorkerAddresses, activeWorkerStakes);
     }
 }

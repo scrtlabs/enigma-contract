@@ -5,21 +5,23 @@ const WorkersImpl = artifacts.require('./impl/WorkersImpl.sol');
 const PrincipalImpl = artifacts.require('./impl/PrincipalImpl.sol');
 const TaskImpl = artifacts.require('./impl/TaskImpl.sol');
 const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
+const Sample = artifacts.require('Sample.sol');
 
 async function deployProtocol(deployer) {
   await Promise.all([
       deployer.deploy(EnigmaToken),
       deployer.deploy(SolRsaVerify),
       deployer.deploy(WorkersImpl),
-      deployer.deploy(PrincipalImpl),
       deployer.deploy(SecretContractImpl),
   ]);
 
   await Promise.all([
       TaskImpl.link('WorkersImpl', WorkersImpl.address),
+      PrincipalImpl.link('WorkersImpl', WorkersImpl.address),
   ]);
   await Promise.all([
       deployer.deploy(TaskImpl),
+      deployer.deploy(PrincipalImpl),
   ]);
 
   await Promise.all([
@@ -32,6 +34,7 @@ async function deployProtocol(deployer) {
   const principal = '0xc44205c3aFf78e99049AfeAE4733a3481575CD26';
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal);
+  await deployer.deploy(Sample);
 }
 
 async function doMigration(deployer) {

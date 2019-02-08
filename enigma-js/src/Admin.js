@@ -215,12 +215,32 @@ export default class Admin {
   }
 
   /**
-   * Get staked token balance for worker
+   * Get token balance for worker
+   *
+   * @param {string} account - Worker's address
+   * @return {Promise} Resolves to ENG token balance in grains (10**8 multiplier) format
+   */
+  async getBalance(account) {
+    return parseInt((await this.enigmaContract.methods.getWorker(account).call()).balance);
+  }
+
+  /**
+   * Get token stake for worker
    *
    * @param {string} account - Worker's address
    * @return {Promise} Resolves to staked ENG token balance in grains (10**8 multiplier) format
    */
-  async getStakedBalance(account) {
-    return parseInt((await this.enigmaContract.methods.getWorker(account).call()).balance);
+  async getStake(account) {
+    return parseInt((await this.enigmaContract.methods.getWorker(account).call()).stake);
+  }
+
+  /**
+   * Get worker's signer address
+   *
+   * @param {string} account - Worker's address
+   * @return {Promise} Resolves to worker's signer address
+   */
+  async getWorkerSignerAddr(account) {
+    return (await this.enigmaContract.methods.getWorker(account).call()).signer;
   }
 }

@@ -24,7 +24,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
 
     constructor(address _tokenAddress, address _principal) public {
         state.engToken = ERC20(_tokenAddress);
-        state.epochSize = 100;
+        state.epochSize = 10;
         state.taskTimeoutSize = 200;
         state.principal = _principal;
         state.stakingThreshold = 1;
@@ -54,6 +54,30 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     modifier workerLoggedIn(address _user) {
         EnigmaCommon.Worker memory worker = state.workers[_user];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedIn, "Worker not logged in");
+        _;
+    }
+
+    /**
+    * Checks if the custodian wallet is logged in as a worker
+    *
+    * @param _user The custodian address of the worker
+    */
+    modifier workerLoggedOut(address _user) {
+        EnigmaCommon.Worker memory worker = state.workers[_user];
+        require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not logged out");
+        _;
+    }
+
+    /**
+    * Checks if the custodian wallet is logged in as a worker
+    *
+    * @param _user The custodian address of the worker
+    */
+    modifier canLogIn(address _user) {
+        EnigmaCommon.Worker memory worker = state.workers[_user];
+        require(getFirstBlockNumber(block.number) != 0, "Principal node has not been initialized");
+        require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
+        require(worker.balance >= state.stakingThreshold, "Worker's balance is not sufficient");
         _;
     }
 
@@ -125,7 +149,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     */
     function withdraw(address _custodian, uint _amount)
     public
-    workerRegistered(_custodian)
+    workerLoggedOut(_custodian)
     {
         WorkersImpl.withdrawImpl(state, _custodian, _amount);
     }
@@ -134,7 +158,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * Login worker. Worker must be registered to do so, and must be logged in at start of epoch to be part of worker
     * selection process.
     */
-    function login() public workerRegistered(msg.sender) {
+    function login() public canLogIn(msg.sender) {
         WorkersImpl.loginImpl(state);
     }
 
@@ -149,19 +173,49 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * Deploy secret contract from user, called by the worker.
     *
     * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
-    * @param _preCodeHash Predeployed bytecode hash
-    * @param _codeHash Deployed bytecode hash
-    * @param _initStateDeltaHash Initial state delta hash as a result of the contract's constructor
     * @param _gasUsed Gas used for task
     * @param _sig Worker's signature for deployment
     */
-    function deploySecretContract(bytes32 _taskId, bytes32 _preCodeHash, bytes32 _codeHash, bytes32 _initStateDeltaHash,
-        uint _gasUsed, bytes memory _sig)
+    function deploySecretContractFailure(
+        bytes32 _taskId,
+        uint _gasUsed,
+        bytes memory _sig
+    )
     public
     workerLoggedIn(msg.sender)
     contractUndefined(_taskId)
     {
-        TaskImpl.deploySecretContractImpl(state, _taskId, _preCodeHash, _codeHash, _initStateDeltaHash, _gasUsed, _sig);
+        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _gasUsed, _sig);
+    }
+
+    /**
+    * Deploy secret contract from user, called by the worker.
+    *
+    * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
+    * @param _preCodeHash Predeployed bytecode hash
+    * @param _codeHash Deployed bytecode hash
+    * @param _initStateDeltaHash Initial state delta hash as a result of the contract's constructor
+    * @param _optionalEthereumData Initial state delta hash as a result of the contract's constructor
+    * @param _optionalEthereumContractAddress Initial state delta hash as a result of the contract's constructor
+    * @param _gasUsed Gas used for task
+    * @param _sig Worker's signature for deployment
+    */
+    function deploySecretContract(
+        bytes32 _taskId,
+        bytes32 _preCodeHash,
+        bytes32 _codeHash,
+        bytes32 _initStateDeltaHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
+        uint _gasUsed,
+        bytes memory _sig
+    )
+    public
+    workerLoggedIn(msg.sender)
+    contractUndefined(_taskId)
+    {
+        TaskImpl.deploySecretContractImpl(state, _taskId, _preCodeHash, _codeHash, _initStateDeltaHash,
+            _optionalEthereumData, _optionalEthereumContractAddress, _gasUsed, _sig);
     }
 
     /**
@@ -354,8 +408,9 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _taskId Unique taskId
     * @param _stateDeltaHash Input state delta hash
     * @param _outputHash Output state hash
+    * @param _optionalEthereumData Output state hash
+    * @param _optionalEthereumContractAddress Output state hash
     * @param _gasUsed Gas used for task computation
-    * @param _ethCall Eth call
     * @param _sig Worker's signature
     */
     function commitReceipt(
@@ -363,15 +418,17 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32 _taskId,
         bytes32 _stateDeltaHash,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint _gasUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _gasUsed, _ethCall, _sig);
+        TaskImpl.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _gasUsed, _sig);
     }
 
     /**
@@ -382,7 +439,9 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
    * @param _taskIds Unique taskId
    * @param _stateDeltaHashes Input state delta hashes
    * @param _outputHash Output state hashes
-   * @param _ethCall Eth call
+   * @param _optionalEthereumData Output state hashes
+   * @param _optionalEthereumContractAddress Output state hashes
+   * @param _gasesUsed Output state hashes
    * @param _sig Worker's signature
    */
     function commitReceipts(
@@ -390,15 +449,17 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32[] memory _taskIds,
         bytes32[] memory _stateDeltaHashes,
         bytes32 _outputHash,
+        bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress,
         uint[] memory _gasesUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHash, _gasesUsed, _ethCall, _sig);
+        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _gasesUsed, _sig);
     }
 //
     /**
@@ -408,21 +469,19 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
     * @param _gasUsed Gas used for task computation
-    * @param _ethCall Eth call
     * @param _sig Worker's signature
     */
     function commitTaskFailure(
         bytes32 _scAddr,
         bytes32 _taskId,
         uint _gasUsed,
-        bytes memory _ethCall,
         bytes memory _sig
     )
     public
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _ethCall, _sig);
+        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
     }
 
 //    function returnFeesForTask(bytes32 _taskId) public taskWaiting(_taskId) {
@@ -457,11 +516,25 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * @param _seed The random integer generated by the enclave
     * @param _sig The random integer signed by the the principal node's enclave
     */
-    function setWorkersParams(uint _seed, bytes memory _sig)
+    function setWorkersParams(uint _blockNumber, uint _seed, bytes memory _sig)
     public
     workerRegistered(msg.sender)
     {
-        PrincipalImpl.setWorkersParamsImpl(state, _seed, _sig);
+        PrincipalImpl.setWorkersParamsImpl(state, _blockNumber, _seed, _sig);
+    }
+
+    /**
+    * Get active workers before a certain block number
+    *
+    * @param _blockNumber Block number
+    */
+    function getActiveWorkers(uint _blockNumber)
+    public
+    view
+    workerRegistered(msg.sender)
+    returns (address[] memory, uint[] memory)
+    {
+        return PrincipalImpl.getActiveWorkersImpl(state, _blockNumber);
     }
 
     function getFirstBlockNumber(uint _blockNumber)
