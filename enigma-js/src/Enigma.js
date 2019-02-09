@@ -94,16 +94,18 @@ export default class Enigma {
   createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
-      const nonce = parseInt(await this.enigmaContract.methods.userTaskDeployments(sender).call());
+      const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
       const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
-      const argsTranspose = args[0].map((col, i) => args.map((row) => row[i]));
+      const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
+        args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
-      const workerAddress = await this.selectWorkerGroup(scAddr, workerParams, 5)[0];
+      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 5)[0];
+      const workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
@@ -272,7 +274,7 @@ export default class Enigma {
    * @return {Promise} Resolves to Task wrapper with updated ethStatus and proof properties
    */
   async getTaskRecordStatus(task) {
-    const result = await this.enigmaContract.methods.tasks(task.taskId).call();
+    const result = await this.enigmaContract.methods.getTaskRecord(task.taskId).call();
     task.ethStatus = parseInt(result.status);
     task.proof = result.proof;
     return task;
@@ -298,7 +300,7 @@ export default class Enigma {
    * in at the start of the epoch), and list of active worker balances
    */
   async getWorkerParams(blockNumber) {
-    let epochSize = await this.enigmaContract.methods.epochSize().call();
+    let epochSize = await this.enigmaContract.methods.getEpochSize().call();
     if ((Object.keys(this.workerParamsCache).length === 0) ||
       (blockNumber - this.workerParamsCache.firstBlockNumber >= epochSize)) {
       const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
@@ -306,7 +308,7 @@ export default class Enigma {
         firstBlockNumber: parseInt(getWorkerParamsResult[0]),
         seed: parseInt(getWorkerParamsResult[1]),
         workers: getWorkerParamsResult[2],
-        balances: getWorkerParamsResult[3].map((x) => parseInt(x)),
+        stakes: getWorkerParamsResult[3].map((x) => parseInt(x)),
       };
     }
     return this.workerParamsCache;
@@ -323,7 +325,7 @@ export default class Enigma {
    */
   selectWorkerGroup(scAddr, params, workerGroupSize = 5) {
     // Find total number of staked tokens for workers
-    let tokenCpt = params.balances.reduce((a, b) => a + b, 0);
+    let tokenCpt = params.stakes.reduce((a, b) => a + b, 0);
     let nonce = 0;
     let selectedWorkers = [];
     do {
@@ -340,7 +342,7 @@ export default class Enigma {
       // decrementing randVal becomes negative, add the worker whose balance caused this to the list of selected
       // workers. If worker has already been selected, increase nonce by one, resulting in a new hash computed above.
       for (let i = 0; i < params.workers.length; i++) {
-        randVal -= params.balances[i];
+        randVal -= params.stakes[i];
         if (randVal <= 0) {
           selectedWorker = params.workers[i];
           break;
@@ -454,10 +456,11 @@ export default class Enigma {
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
-    return task.isContractDeploymentTask ? {preCode: task.preCode, encryptedArgs: task.encryptedAbiEncodedArgs,
-      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr} : {taskId: task.taskId,
-      workerAddress: task.workerAddress, encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs,
-      contractAddress: task.scAddr, userDHKey: task.userPubKey};
+    return task.isContractDeploymentTask ? {workerAddress: task.workerAddress, preCode: task.preCode,
+      encryptedArgs: task.encryptedAbiEncodedArgs, encryptedFn: task.encryptedFn, userDHKey: task.userPubKey,
+      contractAddress: task.scAddr} : {taskId: task.taskId, workerAddress: task.workerAddress,
+      encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs, contractAddress: task.scAddr,
+      userDHKey: task.userPubKey};
   }
 
   /**
