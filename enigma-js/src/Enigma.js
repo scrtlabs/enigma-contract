@@ -6,11 +6,15 @@ import Task from './models/Task';
 import EventEmitter from 'eventemitter3';
 import web3Utils from 'web3-utils';
 import jaysonBrowserClient from 'jayson/lib/client/browser';
+import msgpack from 'msgpack-lite';
 import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
 import EthCrypto from 'eth-crypto';
 import * as eeConstants from './emitterConstants';
+
+import elliptic from 'elliptic';
+const EC = elliptic.ec;
 
 
 /**
@@ -104,11 +108,13 @@ export default class Enigma {
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
-      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 5)[0];
-      const workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
+      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; //TODO: tmp fix 1 worker
+      let workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
+      workerAddress = workerAddress.toLowerCase();
+      const {publicKey, privateKey} = this.obtainTaskKeyPair();
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-          this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
+          this.client.request('getWorkerEncryptionKey', {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
             if (err) {
               reject(err);
               return;
@@ -116,27 +122,64 @@ export default class Enigma {
             resolve(response);
           });
         });
-        const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
-        if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
-          this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
+        const {result, id} = getWorkerEncryptionKeyResult;
+        const {workerEncryptionKey, workerSig} = result;
+
+        let key = [];
+        for (var n = 0; n < workerEncryptionKey.length; n += 2) {
+          key.push(parseInt(workerEncryptionKey.substr(n, 2), 16));
+        }
+
+        let buffer = msgpack.encode({"prefix": 'Enigma User Message'.split ('').map (function (c) { return c.charCodeAt (0); }), 
+                                     "pubkey": key});
+        console.log(buffer);
+
+        // let b = ''
+        // for(let a=0; a<buffer.length; a++){
+        //   b += buffer[a]+' ';
+        // }
+        // console.log(b);
+
+        // let c = '0x'+buffer.toString('hex');
+        // console.log(c);
+
+        // console.log(this.web3.utils.soliditySha3({t: 'bytes', value: c}));
+        // console.log(this.web3.utils.soliditySha3(buffer));
+        // console.log(EthCrypto.hash.keccak256({type: 'bytes32', value: buffer}));
+
+        let recAddress = utils.recover('0x'+workerSig, EthCrypto.hash.keccak256({type: 'bytes32', value: buffer}));
+        console.log(recAddress);
+
+        // recAddress = utils.recover('0x'+workerSig, this.web3.utils.soliditySha3(c));  // <--- same as a above
+        // console.log(recAddress);
+
+        // recAddress = utils.recover(workerSig, this.web3.utils.soliditySha3({t: 'bytes', value: c}));  // <-- Different value
+        // console.log(recAddress);
+
+        console.log(workerAddress);
+
+        if (workerAddress !== recAddress ) {
           emitter.emit(eeConstants.ERROR, {
             name: 'InvalidWorker',
             message: 'Invalid worker encryption key + signature combo',
           });
         } else {
-          const {publicKey, privateKey} = this.obtainTaskKeyPair();
           // Generate derived key from worker's encryption key and user's private key
-          const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
+          const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);  
+          console.log(derivedKey);
+          console.log(workerEncryptionKey);
           // Encrypt function and ABI-encoded args
-          const encryptedFn = utils.encryptMessage(derivedKey, fn);
-          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
+          //const encryptedFn = utils.encryptMessage(derivedKey, fn);
+          //const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
+          const encryptedFn = utils.encryptMessage(workerEncryptionKey, fn);
+          const encryptedAbiEncodedArgs = utils.encryptMessage(workerEncryptionKey, abiEncodedArgs);
           const msg = this.web3.utils.soliditySha3(
             {t: 'bytes', v: encryptedFn},
             {t: 'bytes', v: encryptedAbiEncodedArgs},
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            msgId, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
+            id, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
             isContractDeploymentTask));
         }
       } catch (err) {
@@ -456,11 +499,10 @@ export default class Enigma {
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
-    return task.isContractDeploymentTask ? {workerAddress: task.workerAddress, preCode: task.preCode,
-      encryptedArgs: task.encryptedAbiEncodedArgs, encryptedFn: task.encryptedFn, userDHKey: task.userPubKey,
-      contractAddress: task.scAddr} : {taskId: task.taskId, workerAddress: task.workerAddress,
-      encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs, contractAddress: task.scAddr,
-      userDHKey: task.userPubKey};
+    return task.isContractDeploymentTask ? {preCode: task.preCode, encryptedArgs: task.encryptedAbiEncodedArgs,
+      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr, workerAddress: task.workerAddress} : {taskId: task.taskId,
+      workerAddress: task.workerAddress, encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs,
+      contractAddress: task.scAddr, userDHKey: task.userPubKey};
   }
 
   /**
