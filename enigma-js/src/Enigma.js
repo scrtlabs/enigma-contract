@@ -95,7 +95,7 @@ export default class Enigma {
     let emitter = new EventEmitter();
     (async () => {
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
-      const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
+      const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce).slice(-64) : scAddrOrPreCode.slice(-64);
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
       const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
@@ -106,7 +106,7 @@ export default class Enigma {
       const firstBlockNumber = workerParams.firstBlockNumber;
       const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
       let workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
-      workerAddress = workerAddress.toLowerCase();
+      workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present;
       const {publicKey, privateKey} = this.obtainTaskKeyPair();
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
@@ -132,23 +132,8 @@ export default class Enigma {
         });
         let buffer = msgpack.encode({'prefix': prefix, 'pubkey': key});
 
-        // let b = ''
-        // for(let a=0; a<buffer.length; a++){
-        //   b += buffer[a]+' ';
-        // }
-        // console.log(b);
-
-        // let c = '0x'+buffer.toString('hex');
-        // console.log(c);
-
-        // console.log(this.web3.utils.soliditySha3({t: 'bytes', value: c}));
-        // console.log(this.web3.utils.soliditySha3(buffer));
-        // console.log(EthCrypto.hash.keccak256({type: 'bytes32', value: buffer}));
-
-        let recAddress = utils.recover('0x'+workerSig, EthCrypto.hash.keccak256({type: 'bytes32', value: buffer}));
-        console.log(recAddress);
-
-        console.log(workerAddress);
+        let recAddress = EthCrypto.recover('0x'+workerSig, this.web3.utils.soliditySha3({t: 'bytes', value: buffer.toString('hex')}));
+        recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present;
 
         if (workerAddress !== recAddress ) {
           emitter.emit(eeConstants.ERROR, {
@@ -158,13 +143,9 @@ export default class Enigma {
         } else {
           // Generate derived key from worker's encryption key and user's private key
           const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
-          console.log(derivedKey);
-          console.log(workerEncryptionKey);
           // Encrypt function and ABI-encoded args
-          // const encryptedFn = utils.encryptMessage(derivedKey, fn);
-          // const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
-          const encryptedFn = utils.encryptMessage(workerEncryptionKey, fn);
-          const encryptedAbiEncodedArgs = utils.encryptMessage(workerEncryptionKey, abiEncodedArgs);
+          const encryptedFn = utils.encryptMessage(derivedKey, fn);
+          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
           const msg = this.web3.utils.soliditySha3(
             {t: 'bytes', v: encryptedFn},
             {t: 'bytes', v: encryptedAbiEncodedArgs},

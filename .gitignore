@@ -68,3 +68,5 @@ coverage.lcov
 .idea/
 
 build
+enigmacontract.txt
+enigmatokencontract.txt
