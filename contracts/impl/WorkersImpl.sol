@@ -57,22 +57,11 @@ library WorkersImpl {
         return o;
     }
 
-    // Borrowed from https://ethereum.stackexchange.com/questions/15350/how-to-convert-an-bytes-to-address-in-solidity
-    function bytesToAddress (bytes memory b) internal pure returns (address) {
-        uint result = 0;
-        for (uint i = 0; i < b.length; i++) {
-            uint8 c = uint8(b[i]);
-            if (c >= 48 && c <= 57) {
-                result = result * 16 + (c - 48);
-            }
-            if(c >= 65 && c<= 90) {
-                result = result * 16 + (c - 55);
-            }
-            if(c >= 97 && c<= 122) {
-                result = result * 16 + (c - 87);
-            }
+    // Borrowed from https://ethereum.stackexchange.com/a/50528/24704
+    function bytesToAddress(bytes memory bys) internal pure returns (address addr) {
+        assembly {
+          addr := mload(add(bys,20))
         }
-        return address(result);
     }
 
     function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
@@ -115,7 +104,7 @@ library WorkersImpl {
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
         address signerQuote = bytesToAddress(reportData);
 
-//        require(signerQuote == _signer, "Signer does not match contents of quote");
+        require(signerQuote == _signer, "Signer does not match contents of quote");
 
         worker.signer = _signer;
         worker.report = _report;
