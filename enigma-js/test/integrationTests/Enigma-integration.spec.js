@@ -101,10 +101,11 @@ describe('Enigma tests', () => {
     });
     let workerAddresses = getActiveWorkersResult['0'];
     let workerBalances = getActiveWorkersResult['1'];
+    const nonce = parseInt(await enigma.enigmaContract.methods.getUserTaskDeployments(accounts[9]).call());
     const seed = Math.floor(Math.random() * 100000);
     const hash = web3.utils.soliditySha3(
       {t: 'uint', v: seed},
-      {t: 'uint', v: 0},
+      {t: 'uint', v: nonce},
       {t: 'address[]', v: workerAddresses},
       {t: 'uint[]', v: workerBalances},
     );
@@ -185,10 +186,11 @@ describe('Enigma tests', () => {
     });
     let workerAddresses = getActiveWorkersResult['0'];
     let workerBalances = getActiveWorkersResult['1'];
+    const nonce = parseInt(await enigma.enigmaContract.methods.getUserTaskDeployments(accounts[9]).call());
     const seed = Math.floor(Math.random() * 100000);
     const hash = web3.utils.soliditySha3(
       {t: 'uint', v: seed},
-      {t: 'uint', v: 0},
+      {t: 'uint', v: nonce},
       {t: 'address[]', v: workerAddresses},
       {t: 'uint[]', v: workerBalances},
     );
@@ -224,15 +226,16 @@ describe('Enigma tests', () => {
     }
   });
 
-  it('should set the worker parameters (principal only) a second time to pick up on new stakes', async () => {
+  it('MOCK should set the worker parameters (principal only) a second time to pick up on new stakes', async () => {
     const blockNumber = await web3.eth.getBlockNumber();
     let getActiveWorkersResult = await enigma.enigmaContract.methods.getActiveWorkers(blockNumber).call();
     let workerAddresses = getActiveWorkersResult['0'];
     let workerBalances = getActiveWorkersResult['1'];
+    const nonce = parseInt(await enigma.enigmaContract.methods.getUserTaskDeployments(accounts[9]).call());
     const seed = Math.floor(Math.random() * 100000);
     const hash = web3.utils.soliditySha3(
       {t: 'uint', v: seed},
-      {t: 'uint', v: 2},
+      {t: 'uint', v: nonce},
       {t: 'address[]', v: workerAddresses},
       {t: 'uint[]', v: workerBalances},
     );
