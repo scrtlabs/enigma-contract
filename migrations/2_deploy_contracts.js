@@ -31,7 +31,7 @@ async function deployProtocol(deployer) {
       Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
 
-  const principal = '0xc44205c3aFf78e99049AfeAE4733a3481575CD26';
+  const principal = '0x4800e3f00f9cdbc4420ce4b299855c39455a7bab';
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal);
   await deployer.deploy(Sample);

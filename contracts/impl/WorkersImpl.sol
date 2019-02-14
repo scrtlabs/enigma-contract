@@ -57,22 +57,11 @@ library WorkersImpl {
         return o;
     }
 
-    // Borrowed from https://ethereum.stackexchange.com/questions/15350/how-to-convert-an-bytes-to-address-in-solidity
-    function bytesToAddress (bytes memory b) internal pure returns (address) {
-        uint result = 0;
-        for (uint i = 0; i < b.length; i++) {
-            uint8 c = uint8(b[i]);
-            if (c >= 48 && c <= 57) {
-                result = result * 16 + (c - 48);
-            }
-            if(c >= 65 && c<= 90) {
-                result = result * 16 + (c - 55);
-            }
-            if(c >= 97 && c<= 122) {
-                result = result * 16 + (c - 87);
-            }
+    // Borrowed from https://ethereum.stackexchange.com/a/50528/24704
+    function bytesToAddress(bytes memory bys) internal pure returns (address addr) {
+        assembly {
+          addr := mload(add(bys,20))
         }
-        return address(result);
     }
 
     function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
@@ -115,12 +104,11 @@ library WorkersImpl {
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
         address signerQuote = bytesToAddress(reportData);
 
-//        require(signerQuote == _signer, "Signer does not match contents of quote");
+        require(signerQuote == _signer, "Signer does not match contents of quote");
 
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
-        worker.statusUpdateBlockNumber = block.number;
 
         emit Registered(msg.sender, _signer);
     }
@@ -154,14 +142,21 @@ library WorkersImpl {
     function loginImpl(EnigmaState.State storage state) public {
         EnigmaCommon.Worker storage worker = state.workers[msg.sender];
         worker.status = EnigmaCommon.WorkerStatus.LoggedIn;
-        worker.statusUpdateBlockNumber = block.number;
+        worker.workerLogs.push(EnigmaCommon.WorkerLog({
+            workerEventType: EnigmaCommon.WorkerLogType.LogIn,
+            blockNumber: block.number,
+            balance: worker.balance
+        }));
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
         EnigmaCommon.Worker storage worker = state.workers[msg.sender];
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
-        worker.statusUpdateBlockNumber = block.number;
-        worker.stake = 0;
+        worker.workerLogs.push(EnigmaCommon.WorkerLog({
+            workerEventType: EnigmaCommon.WorkerLogType.LogOut,
+            blockNumber: block.number,
+            balance: worker.balance
+        }));
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)
@@ -263,10 +258,12 @@ library WorkersImpl {
         // Compile a list of selected workers for the block number and
         // secret contract.
         uint paramIndex = getWorkerParamsIndex(state, _blockNumber);
+        uint fullWorkerGroupSize = state.workersParams[paramIndex].workers.length;
+        uint workerGroupSize = fullWorkerGroupSize < state.workerGroupSize ? fullWorkerGroupSize : state.workerGroupSize;
 
-        address[] memory selectedWorkers = new address[](state.workerGroupSize);
+        address[] memory selectedWorkers = new address[](workerGroupSize);
         uint nonce = 0;
-        for (uint it = 0; it < state.workerGroupSize; it++) {
+        for (uint it = 0; it < workerGroupSize; it++) {
             do {
                 address worker = selectWeightedRandomWorker(state, paramIndex, _scAddr, nonce);
                 bool dup = false;
@@ -286,4 +283,18 @@ library WorkersImpl {
         return selectedWorkers;
     }
 
+    function getLatestWorkerLogImpl(EnigmaState.State storage state, EnigmaCommon.Worker memory worker,
+        uint _blockNumber)
+    public
+    view
+    returns (EnigmaCommon.WorkerLog memory) {
+        EnigmaCommon.WorkerLog memory workerLog;
+        for (uint i = worker.workerLogs.length; i > 0; i--) {
+            if (worker.workerLogs[i - 1].blockNumber < _blockNumber) {
+                workerLog = worker.workerLogs[i - 1];
+                break;
+            }
+        }
+        return workerLog;
+    }
 }
