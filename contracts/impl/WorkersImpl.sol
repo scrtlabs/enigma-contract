@@ -109,7 +109,6 @@ library WorkersImpl {
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
-        worker.statusUpdateBlockNumber = block.number;
 
         emit Registered(msg.sender, _signer);
     }
@@ -143,14 +142,21 @@ library WorkersImpl {
     function loginImpl(EnigmaState.State storage state) public {
         EnigmaCommon.Worker storage worker = state.workers[msg.sender];
         worker.status = EnigmaCommon.WorkerStatus.LoggedIn;
-        worker.statusUpdateBlockNumber = block.number;
+        worker.workerLogs.push(EnigmaCommon.WorkerLog({
+            workerEventType: EnigmaCommon.WorkerLogType.LogIn,
+            blockNumber: block.number,
+            balance: worker.balance
+        }));
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
         EnigmaCommon.Worker storage worker = state.workers[msg.sender];
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
-        worker.statusUpdateBlockNumber = block.number;
-        worker.stake = 0;
+        worker.workerLogs.push(EnigmaCommon.WorkerLog({
+            workerEventType: EnigmaCommon.WorkerLogType.LogOut,
+            blockNumber: block.number,
+            balance: worker.balance
+        }));
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)
@@ -252,10 +258,12 @@ library WorkersImpl {
         // Compile a list of selected workers for the block number and
         // secret contract.
         uint paramIndex = getWorkerParamsIndex(state, _blockNumber);
+        uint fullWorkerGroupSize = state.workersParams[paramIndex].workers.length;
+        uint workerGroupSize = fullWorkerGroupSize < state.workerGroupSize ? fullWorkerGroupSize : state.workerGroupSize;
 
-        address[] memory selectedWorkers = new address[](state.workerGroupSize);
+        address[] memory selectedWorkers = new address[](workerGroupSize);
         uint nonce = 0;
-        for (uint it = 0; it < state.workerGroupSize; it++) {
+        for (uint it = 0; it < workerGroupSize; it++) {
             do {
                 address worker = selectWeightedRandomWorker(state, paramIndex, _scAddr, nonce);
                 bool dup = false;
@@ -275,4 +283,18 @@ library WorkersImpl {
         return selectedWorkers;
     }
 
+    function getLatestWorkerLogImpl(EnigmaState.State storage state, EnigmaCommon.Worker memory worker,
+        uint _blockNumber)
+    public
+    view
+    returns (EnigmaCommon.WorkerLog memory) {
+        EnigmaCommon.WorkerLog memory workerLog;
+        for (uint i = worker.workerLogs.length; i > 0; i--) {
+            if (worker.workerLogs[i - 1].blockNumber < _blockNumber) {
+                workerLog = worker.workerLogs[i - 1];
+                break;
+            }
+        }
+        return workerLog;
+    }
 }

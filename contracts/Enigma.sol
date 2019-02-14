@@ -28,10 +28,8 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         state.taskTimeoutSize = 200;
         state.principal = _principal;
         state.stakingThreshold = 1;
-        state.workerGroupSize = 5;
+        state.workerGroupSize = 1;
     }
-
-    //TODO: break down these methods into services for upgradability
 
     // ========================================== Modifiers ==========================================
 
