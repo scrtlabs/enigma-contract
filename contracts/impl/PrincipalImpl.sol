@@ -51,16 +51,16 @@ library PrincipalImpl {
         (workerParams.workers, workerParams.stakes) = getActiveWorkersImpl(state, _blockNumber);
 
         // Check worker's signature
-        bytes32 msgHash = keccak256(abi.encode(_seed, state.userTaskDeployments[msg.sender], workerParams.workers,
+        bytes32 msgHash = keccak256(abi.encodePacked(_seed, state.userTaskDeployments[msg.sender], workerParams.workers,
             workerParams.stakes));
-//        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
+        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
 
         for (uint wi = 0; wi < workerParams.workers.length; wi++) {
             EnigmaCommon.Worker storage worker = state.workers[workerParams.workers[wi]];
             worker.workerLogs.push(EnigmaCommon.WorkerLog({
                 workerEventType: EnigmaCommon.WorkerLogType.Compound,
                 blockNumber: block.number,
-                balance: worker.balance
+                balance: workerParams.stakes[wi]
             }));
         }
 
