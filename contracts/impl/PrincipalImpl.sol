@@ -60,7 +60,7 @@ library PrincipalImpl {
             worker.workerLogs.push(EnigmaCommon.WorkerLog({
                 workerEventType: EnigmaCommon.WorkerLogType.Compound,
                 blockNumber: block.number,
-                balance: workerParams.stakes[wi]
+                balance: worker.balance
             }));
         }
 

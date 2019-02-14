@@ -56,7 +56,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-    * Checks if the custodian wallet is logged in as a worker
+    * Checks if the custodian wallet is logged out as a worker
     *
     * @param _user The custodian address of the worker
     */
@@ -67,7 +67,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-    * Checks if the custodian wallet is logged in as a worker
+    * Checks if worker can log in
     *
     * @param _user The custodian address of the worker
     */
@@ -76,6 +76,22 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         require(getFirstBlockNumber(block.number) != 0, "Principal node has not been initialized");
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
         require(worker.balance >= state.stakingThreshold, "Worker's balance is not sufficient");
+        _;
+    }
+
+    /**
+    * Checks if the worker can withdraw
+    *
+    * @param _user The custodian address of the worker
+    */
+    modifier canWithdraw(address _user) {
+        EnigmaCommon.Worker memory worker = state.workers[_user];
+        require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
+        EnigmaCommon.WorkerLog memory workerLog = WorkersImpl.getLatestWorkerLogImpl(state, worker, block.number);
+        require(workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogOut,
+            "Worker's last log is not of LogOut type");
+        require(getFirstBlockNumber(block.number) > workerLog.blockNumber,
+            "Cannot withdraw in same epoch as log out event");
         _;
     }
 
@@ -147,7 +163,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     */
     function withdraw(address _custodian, uint _amount)
     public
-    workerLoggedOut(_custodian)
+    canWithdraw(_custodian)
     {
         WorkersImpl.withdrawImpl(state, _custodian, _amount);
     }
