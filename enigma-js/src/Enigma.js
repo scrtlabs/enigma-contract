@@ -9,6 +9,7 @@ import jaysonBrowserClient from 'jayson/lib/client/browser';
 import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
+import * as abi from 'ethereumjs-abi';
 import EthCrypto from 'eth-crypto';
 import * as eeConstants from './emitterConstants';
 
@@ -330,11 +331,11 @@ export default class Enigma {
     let selectedWorkers = [];
     do {
       // Unique hash for epoch, secret contract address, and nonce
-      const hash = web3Utils.soliditySha3(
-        {t: 'uint256', v: params.seed},
-        {t: 'bytes32', v: scAddr},
-        {t: 'uint256', v: nonce},
+      const msg = abi.rawEncode(
+        ['uint256', 'bytes32', 'uint256'],
+        [params.seed, scAddr, nonce],
       );
+      const hash = web3Utils.keccak256(msg);
       // Find random number between [0, tokenCpt)
       let randVal = (web3Utils.toBN(hash).mod(web3Utils.toBN(tokenCpt))).toNumber();
       let selectedWorker = params.workers[params.workers.length - 1];

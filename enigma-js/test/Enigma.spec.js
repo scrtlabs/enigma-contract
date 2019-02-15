@@ -121,14 +121,13 @@ describe('Enigma tests', () => {
       from: accounts[8],
     });
     let workerAddresses = getActiveWorkersResult['0'];
-    let workerBalances = getActiveWorkersResult['1'];
+    let workerStakes = getActiveWorkersResult['1'];
     const seed = Math.floor(Math.random() * 100000);
-    const hash = web3.utils.soliditySha3(
-      {t: 'uint', v: seed},
-      {t: 'uint', v: 0},
-      {t: 'address[]', v: workerAddresses},
-      {t: 'uint[]', v: workerBalances},
+    const msg = web3.eth.abi.encodeParameters(
+      ['uint256', 'uint256', 'address[]', 'uint256[]'],
+      [seed, 0, workerAddresses, workerStakes],
     );
+    const hash = web3.utils.keccak256(msg);
     const sig = utils.sign(data.principal[4], hash);
 
     const receipt = await new Promise((resolve, reject) => {
@@ -415,12 +414,11 @@ describe('Enigma tests', () => {
     let workerAddresses = getActiveWorkersResult['0'];
     let workerStakes = getActiveWorkersResult['1'];
     const seed = Math.floor(Math.random() * 100000);
-    const hash = web3.utils.soliditySha3(
-      {t: 'uint', v: seed},
-      {t: 'uint', v: 1},
-      {t: 'address[]', v: workerAddresses},
-      {t: 'uint[]', v: workerStakes},
+    const msg = web3.eth.abi.encodeParameters(
+      ['uint256', 'uint256', 'address[]', 'uint256[]'],
+      [seed, 1, workerAddresses, workerStakes],
     );
+    const hash = web3.utils.keccak256(msg);
     const sig = utils.sign(data.principal[4], hash);
 
     const receipt = await new Promise((resolve, reject) => {

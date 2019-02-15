@@ -237,7 +237,7 @@ library WorkersImpl {
                 tokenCpt = tokenCpt.add(params.stakes[i]);
             }
         }
-        bytes32 randHash = keccak256(abi.encodePacked(params.seed, _scAddr, _nonce));
+        bytes32 randHash = keccak256(abi.encode(params.seed, _scAddr, _nonce));
         int randVal = int256(uint256(randHash) % tokenCpt);
         for (uint k = 0; k < params.workers.length; k++) {
             if (params.workers[k] != address(0)) {
