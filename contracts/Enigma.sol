@@ -545,7 +545,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     function getActiveWorkers(uint _blockNumber)
     public
     view
-    workerRegistered(msg.sender)
     returns (address[] memory, uint[] memory)
     {
         return PrincipalImpl.getActiveWorkersImpl(state, _blockNumber);
