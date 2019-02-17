@@ -33,7 +33,7 @@ async function deployProtocol(deployer) {
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
 
-  let principal = '0x99633d9b595b3dcf0480c1719c1ef7a78c0d65d7';
+  let principal = '0x4800e3f00f9cdbc4420ce4b299855c39455a7bab';
   const homedir = require('os').homedir();
   const principalSignAddrFile = path.join(homedir, '.enigma', 'principal-sign-addr.txt');
   if (fs.existsSync(principalSignAddrFile)) {
