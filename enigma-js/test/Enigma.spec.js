@@ -174,14 +174,13 @@ describe('Enigma tests', () => {
         from: accounts[8],
       });
       let workerAddresses = getActiveWorkersResult['0'];
-      let workerBalances = getActiveWorkersResult['1'];
+      let workerStakes = getActiveWorkersResult['1'];
       const seed = Math.floor(Math.random() * 100000);
-      const hash = web3.utils.soliditySha3(
-        {t: 'uint', v: seed},
-        {t: 'uint', v: 1},
-        {t: 'address[]', v: workerAddresses},
-        {t: 'uint[]', v: workerBalances},
+      const msg = web3.eth.abi.encodeParameters(
+        ['uint256', 'uint256', 'address[]', 'uint256[]'],
+        [seed, 1, workerAddresses, workerStakes],
       );
+      const hash = web3.utils.keccak256(msg);
       const sig = utils.sign(data.principal[4], hash);
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
