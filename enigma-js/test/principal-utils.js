@@ -21,6 +21,9 @@ exports.execInContainer = (enigma, commandOption) => {
           stream.on('data', (line) => {
             out += line;
           });
+          stream.on('error', (err) => {
+            out += err;
+          });
           stream.on('end', () => {
             const txFrom = out.lastIndexOf('0x');
             const txLen = out.length - txFrom;
