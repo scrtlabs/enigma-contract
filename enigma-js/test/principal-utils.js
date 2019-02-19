@@ -2,7 +2,7 @@ import Docker from 'dockerode';
 
 const docker = new Docker();
 exports.execInContainer = (enigma, commandOption) => {
-  let container = docker.getContainer('enigma-core');
+  let container = docker.getContainer(process.env.PRINCIPAL_CONTAINER);
   return new Promise((resolve, reject) => {
     let contractAddress = enigma.enigmaContract.options.address.substring(2);
     container.exec(
