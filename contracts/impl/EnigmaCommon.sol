@@ -23,10 +23,9 @@ library EnigmaCommon {
     struct Worker {
         address signer; // Enclave address
         WorkerStatus status; // Unregistered: 0, Registered: 1, LoggedIn: 2, LoggedOut: 3
-        uint statusUpdateBlockNumber; // Block number for status update
         bytes report; // Decided to store this as one  RLP encoded attribute for easier external storage in the future
         uint256 balance; // ENG balance
-        uint256 stake; // ENG stake
+        WorkerLog[] workerLogs;
     }
 
     /**
@@ -38,7 +37,12 @@ library EnigmaCommon {
         address[] workers;
         uint[] stakes;
         uint seed;
-        uint nonce;
+    }
+
+    struct WorkerLog {
+        WorkerLogType workerEventType;
+        uint blockNumber;
+        uint balance;
     }
 
     struct SecretContract {
@@ -58,4 +62,6 @@ library EnigmaCommon {
     enum WorkerStatus {Unregistered, LoggedIn, LoggedOut}
 
     enum SecretContractStatus {Undefined, Deployed}
+
+    enum WorkerLogType {Undefined, LogIn, LogOut, Compound}
 }
