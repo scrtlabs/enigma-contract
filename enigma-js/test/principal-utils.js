@@ -5,9 +5,11 @@ exports.execInContainer = (enigma, commandOption) => {
   let container = docker.getContainer(process.env.PRINCIPAL_CONTAINER);
   return new Promise((resolve, reject) => {
     let contractAddress = enigma.enigmaContract.options.address.substring(2);
+    let cmd = ['bash', '-c', `./enigma-principal-app ${commandOption} --contract-address ${contractAddress}`];
+    console.log('Calling:', cmd.join(' '));
     container.exec(
       {
-        Cmd: ['bash', '-c', `./enigma-principal-app ${commandOption} --contract-address ${contractAddress}`],
+        Cmd: cmd,
         AttachStdin: true,
         AttachStdout: true,
         WorkingDir: '/root/src/enigma-principal/bin',
