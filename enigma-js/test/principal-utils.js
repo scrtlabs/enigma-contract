@@ -7,7 +7,7 @@ exports.execInContainer = (enigma, commandOption) => {
     const contractAddress = enigma.enigmaContract.options.address.substring(2);
     const cmd = ['bash', '-c', `./enigma-principal-app ${commandOption} --contract-address ${contractAddress}`];
     const cmdStr = cmd.join(' ');
-    console.log('Calling:', cmdStr);
+    console.log('Calling:\n', cmdStr);
     container.exec(
       {
         Cmd: cmd,
