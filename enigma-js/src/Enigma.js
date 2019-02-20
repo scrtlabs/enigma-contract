@@ -92,7 +92,7 @@ export default class Enigma {
   createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
-      //TODO: never larger that 53-bit?
+      // TODO: never larger that 53-bit?
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
