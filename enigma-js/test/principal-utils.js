@@ -4,9 +4,10 @@ const docker = new Docker();
 exports.execInContainer = (enigma, commandOption) => {
   let container = docker.getContainer(process.env.PRINCIPAL_CONTAINER);
   return new Promise((resolve, reject) => {
-    let contractAddress = enigma.enigmaContract.options.address.substring(2);
-    let cmd = ['bash', '-c', `./enigma-principal-app ${commandOption} --contract-address ${contractAddress}`];
-    console.log('Calling:', cmd.join(' '));
+    const contractAddress = enigma.enigmaContract.options.address.substring(2);
+    const cmd = ['bash', '-c', `./enigma-principal-app ${commandOption} --contract-address ${contractAddress}`];
+    const cmdStr = cmd.join(' ');
+    console.log('Calling:', cmdStr);
     container.exec(
       {
         Cmd: cmd,

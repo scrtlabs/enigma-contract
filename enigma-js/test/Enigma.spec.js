@@ -443,7 +443,7 @@ describe('Enigma tests', () => {
       const blockNumber = await web3.eth.getBlockNumber();
       const workerParams = await enigma.getWorkerParams(blockNumber);
       expect(workerParams.workers).toEqual(accounts.slice(0, 7));
-      expect(workerParams.stakes).toEqual([900, 100, 10, 20, 100, 200, 40].map((stake) => stake * 10 ** 8));
+      expect(workerParams.stakes).toEqual([900, 100, 10, 20, 100, 200, 40].map((stake) => web3.utils.toBN(stake * 10 ** 8)));
     });
 
     it('should fail to withdraw too many tokens from worker bank', async () => {
