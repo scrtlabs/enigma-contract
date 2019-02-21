@@ -30,6 +30,7 @@ exports.execInContainer = (enigma, commandOption) => {
           stream.on('end', () => {
             const txFrom = out.lastIndexOf('0x');
             const txLen = out.length - txFrom;
+            console.log(`Called cmd ${cmdStr}:\n${out}`);
             if (txLen === 67) {
               const tx = out.substr(txFrom);
               resolve(tx);

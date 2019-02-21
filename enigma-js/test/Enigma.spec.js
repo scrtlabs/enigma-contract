@@ -1003,6 +1003,40 @@ describe('Enigma tests', () => {
       expect(result).toEqual(codeHash);
     });
 
+  it('should set the worker parameters (principal only) again for a second new epoch', async () => {
+    let receipt;
+    if (process.env.PRINCIPAL_CONTAINER) {
+      const tx = await execInContainer(enigma, '--set-worker-params');
+      receipt = await web3.eth.getTransactionReceipt(tx);
+    } else {
+      let blockNumber = await web3.eth.getBlockNumber();
+      let getActiveWorkersResult = await enigma.enigmaContract.methods.getActiveWorkers(blockNumber).call({
+        from: accounts[8],
+      });
+      let workerAddresses = getActiveWorkersResult['0'];
+      let workerStakes = getActiveWorkersResult['1'];
+      const seed = Math.floor(Math.random() * 100000);
+      const msg = web3.eth.abi.encodeParameters(
+        ['uint256', 'uint256', 'address[]', 'uint256[]'],
+        [seed, 2, workerAddresses, workerStakes],
+      );
+      const hash = web3.utils.keccak256(msg);
+      const sig = utils.sign(data.principal[4], hash);
+
+      receipt = await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: accounts[8],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => {
+          console.log('errored');
+          reject(error);
+        });
+      });
+    }
+    expect(receipt).toBeTruthy();
+  }, 30000);
+
     let scAddr;
     let task;
     it('should create task', async () => {
