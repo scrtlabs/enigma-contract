@@ -23,6 +23,7 @@
     "@babel/preset-env": "^7.0.0",
     "@babel/register": "^7.0.0",
     "buffer": "^5.1.0",
+    "dotenv": "^6.2.0",
     "elliptic": "6.4.0",
     "eth-crypto": "^1.2.2",
     "ethereumjs-abi": "^0.6.5",
