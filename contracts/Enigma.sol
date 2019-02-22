@@ -24,7 +24,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
 
     constructor(address _tokenAddress, address _principal) public {
         state.engToken = ERC20(_tokenAddress);
-        state.epochSize = 10;
+        state.epochSize = 3;
         state.taskTimeoutSize = 200;
         state.principal = _principal;
         state.stakingThreshold = 1;
