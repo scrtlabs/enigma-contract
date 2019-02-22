@@ -73,7 +73,7 @@ library WorkersImpl {
         if (worker.signer == address(0)) {
             state.workerAddresses.push(msg.sender);
         }
-//        require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
+////        require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
 //
 //        uint i = 0;
 //        // find the word "Body" in the _report
@@ -104,7 +104,7 @@ library WorkersImpl {
 //        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
 //        address signerQuote = bytesToAddress(reportData);
 //
-//        require(signerQuote == _signer, "Signer does not match contents of quote");
+////        require(signerQuote == _signer, "Signer does not match contents of quote");
 
         worker.signer = _signer;
         worker.report = _report;
@@ -237,7 +237,7 @@ library WorkersImpl {
                 tokenCpt = tokenCpt.add(params.stakes[i]);
             }
         }
-        bytes32 randHash = keccak256(abi.encodePacked(params.seed, _scAddr, _nonce));
+        bytes32 randHash = keccak256(abi.encode(params.seed, _scAddr, _nonce));
         int randVal = int256(uint256(randHash) % tokenCpt);
         for (uint k = 0; k < params.workers.length; k++) {
             if (params.workers[k] != address(0)) {

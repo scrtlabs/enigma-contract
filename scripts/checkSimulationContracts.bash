@@ -23,7 +23,7 @@ if ! diff Enigma-Simulation.sol $CONTRACTSDIR/Enigma-Simulation.sol > /dev/null 
 	else 
 		echo "Error: Enigma.sol and Enigma-Simulation.sol differ more than they should."; 
 		echo "Run this script with --fix to fix the differences automatically."
-		rm Enigma-Simulation.sol
+		rm -f Enigma-Simulation.sol
 		popd > /dev/null 2>&1
 		exit 1;
 	fi
@@ -39,7 +39,7 @@ if ! diff WorkersImpl-Simulation.sol $IMPLDIR/WorkersImpl-Simulation.sol > /dev/
 	else		
 		echo "Error: WorkersImpl.sol and WorkersImpl-Simulation.sol differ more than they should."; 
 		echo "Run this script with --fix to fix the differences automatically."
-		rm WorkersImpl-Simulation.sol
+		rm -f WorkersImpl-Simulation.sol
 		popd > /dev/null 2>&1
 		exit 1;
 	fi
