@@ -250,19 +250,19 @@ function sign(privateKey, message) {
   );
 }
 
-/**
- * Returns the address with which the message was signed
- *
- * @param {string} signature
- * @param {string} message
- * @return {string}
- */
-function recover(signature, message) {
-  return EthCrypto.recover(
-    signature,
-    message,
-  );
-}
+// /**
+//  * Returns the address with which the message was signed
+//  *
+//  * @param {string} signature
+//  * @param {string} message
+//  * @return {string}
+//  */
+// function recover(signature, message) {
+//   return EthCrypto.recover(
+//     signature,
+//     message,
+//   );
+// }
 
 /**
  * Returns the public key associated with the message signature
@@ -392,7 +392,7 @@ utils.generateTaskInputsHash = generateTaskInputsHash;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;
 utils.sign = sign;
-utils.recover = recover;
+// utils.recover = recover;
 utils.recoverPublicKey = recoverPublicKey;
 utils.getDerivedKey = getDerivedKey;
 utils.encryptMessage = encryptMessage;

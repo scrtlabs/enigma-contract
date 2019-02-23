@@ -13,9 +13,6 @@ import forge from 'node-forge';
 import EthCrypto from 'eth-crypto';
 import * as eeConstants from './emitterConstants';
 
-import elliptic from 'elliptic';
-const EC = elliptic.ec;
-
 
 /**
  * Class encapsulation the Enigma operations.
@@ -108,13 +105,14 @@ export default class Enigma {
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
-      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; //TODO: tmp fix 1 worker
+      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
       let workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
-      workerAddress = workerAddress.toLowerCase();
+      workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
       const {publicKey, privateKey} = this.obtainTaskKeyPair();
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-          this.client.request('getWorkerEncryptionKey', {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
+          this.client.request('getWorkerEncryptionKey',
+            {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
             if (err) {
               reject(err);
               return;
@@ -126,37 +124,18 @@ export default class Enigma {
         const {workerEncryptionKey, workerSig} = result;
 
         let key = [];
-        for (var n = 0; n < workerEncryptionKey.length; n += 2) {
+        for (let n = 0; n < workerEncryptionKey.length; n += 2) {
           key.push(parseInt(workerEncryptionKey.substr(n, 2), 16));
         }
 
-        let buffer = msgpack.encode({"prefix": 'Enigma User Message'.split ('').map (function (c) { return c.charCodeAt (0); }), 
-                                     "pubkey": key});
-        console.log(buffer);
+        const prefix = 'Enigma User Message'.split('').map(function(c) {
+          return c.charCodeAt(0);
+        });
+        const buffer = msgpack.encode({'prefix': prefix, 'pubkey': key});
 
-        // let b = ''
-        // for(let a=0; a<buffer.length; a++){
-        //   b += buffer[a]+' ';
-        // }
-        // console.log(b);
-
-        // let c = '0x'+buffer.toString('hex');
-        // console.log(c);
-
-        // console.log(this.web3.utils.soliditySha3({t: 'bytes', value: c}));
-        // console.log(this.web3.utils.soliditySha3(buffer));
-        // console.log(EthCrypto.hash.keccak256({type: 'bytes32', value: buffer}));
-
-        let recAddress = utils.recover('0x'+workerSig, EthCrypto.hash.keccak256({type: 'bytes32', value: buffer}));
-        console.log(recAddress);
-
-        // recAddress = utils.recover('0x'+workerSig, this.web3.utils.soliditySha3(c));  // <--- same as a above
-        // console.log(recAddress);
-
-        // recAddress = utils.recover(workerSig, this.web3.utils.soliditySha3({t: 'bytes', value: c}));  // <-- Different value
-        // console.log(recAddress);
-
-        console.log(workerAddress);
+        let recAddress = EthCrypto.recover('0x'+workerSig,
+          this.web3.utils.soliditySha3({t: 'bytes', value: buffer.toString('hex')}));
+        recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
 
         if (workerAddress !== recAddress ) {
           emitter.emit(eeConstants.ERROR, {
@@ -165,14 +144,10 @@ export default class Enigma {
           });
         } else {
           // Generate derived key from worker's encryption key and user's private key
-          const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);  
-          console.log(derivedKey);
-          console.log(workerEncryptionKey);
+          const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
           // Encrypt function and ABI-encoded args
-          //const encryptedFn = utils.encryptMessage(derivedKey, fn);
-          //const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
-          const encryptedFn = utils.encryptMessage(workerEncryptionKey, fn);
-          const encryptedAbiEncodedArgs = utils.encryptMessage(workerEncryptionKey, abiEncodedArgs);
+          const encryptedFn = utils.encryptMessage(derivedKey, fn);
+          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
           const msg = this.web3.utils.soliditySha3(
             {t: 'bytes', v: encryptedFn},
             {t: 'bytes', v: encryptedAbiEncodedArgs},
@@ -500,9 +475,10 @@ export default class Enigma {
    */
   static serializeTask(task) {
     return task.isContractDeploymentTask ? {preCode: task.preCode, encryptedArgs: task.encryptedAbiEncodedArgs,
-      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr, workerAddress: task.workerAddress} : {taskId: task.taskId,
-      workerAddress: task.workerAddress, encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs,
-      contractAddress: task.scAddr, userDHKey: task.userPubKey};
+      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr,
+      workerAddress: task.workerAddress} : {taskId: task.taskId, workerAddress: task.workerAddress,
+      encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs, contractAddress: task.scAddr,
+      userDHKey: task.userPubKey};
   }
 
   /**

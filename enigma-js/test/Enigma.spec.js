@@ -105,10 +105,10 @@ describe('Enigma tests', () => {
     let worker = data.principal;
     console.log('setting principal node', worker[0]);
     const report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
-    const signature = worker[3];
+    const signature = '0x' + worker[3];
     // Using the same artificial data for all workers
     let receipt = await new Promise((resolve, reject) => {
-      enigma.enigmaContract.methods.register(worker[0], report, signature)
+      enigma.enigmaContract.methods.register('0x'+worker[0], report, signature)
         .send({
           gas: 4712388,
           gasPrice: 100000000000,
@@ -180,10 +180,10 @@ describe('Enigma tests', () => {
       }
       let worker = data.worker;
       const report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
-      const signature = worker[3];
+      const signature = '0x' + worker[3];
       // Using the same artificial data for all workers
       let promise = new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.register(worker[0], report, signature)
+        enigma.enigmaContract.methods.register('0x'+worker[0], report, signature)
           .send({
             gas: 4712388,
             gasPrice: 100000000000,
@@ -1759,7 +1759,7 @@ describe('Enigma tests', () => {
     let worker = data.worker;
 
     let report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
-    let signature = worker[3];
+    let signature = '0x' + worker[3];
     console.log('report: ', report);
     console.log('sig: ', signature);
     const result = await enigma.enigmaContract.methods.verifyReport(report, signature).call();
