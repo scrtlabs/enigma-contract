@@ -6,6 +6,7 @@ node_js:
   - "10.14"
 
 install:
+  - ./scripts/checkSimulationContracts.bash
   - yarn install
   - yarn global add ganache-cli truffle
   - pushd enigma-js && yarn install && popd

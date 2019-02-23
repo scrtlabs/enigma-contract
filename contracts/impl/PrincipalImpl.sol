@@ -47,19 +47,23 @@ library PrincipalImpl {
         EnigmaCommon.WorkersParams storage workerParams = state.workersParams[paramIndex];
         workerParams.firstBlockNumber = block.number;
         workerParams.seed = _seed;
-        workerParams.nonce = state.userTaskDeployments[msg.sender];
 
         (workerParams.workers, workerParams.stakes) = getActiveWorkersImpl(state, _blockNumber);
 
         // Check worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(_seed, state.userTaskDeployments[msg.sender], workerParams.workers,
+        bytes32 msgHash = keccak256(abi.encode(_seed, state.userTaskDeployments[msg.sender], workerParams.workers,
             workerParams.stakes));
-        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
+//        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
 
         for (uint wi = 0; wi < workerParams.workers.length; wi++) {
             EnigmaCommon.Worker storage worker = state.workers[workerParams.workers[wi]];
-            worker.stake = worker.balance;
+            worker.workerLogs.push(EnigmaCommon.WorkerLog({
+                workerEventType: EnigmaCommon.WorkerLogType.Compound,
+                blockNumber: block.number,
+                balance: worker.balance
+            }));
         }
+
         emit WorkersParameterized(_seed, block.number, _blockNumber, workerParams.workers,
             workerParams.stakes, state.userTaskDeployments[msg.sender]);
         state.userTaskDeployments[msg.sender]++;
@@ -71,16 +75,19 @@ library PrincipalImpl {
     returns (address[] memory, uint[] memory)
     {
         uint maxLength = state.workerAddresses.length;
-        uint[] memory activeWorkerIndices = new uint[](maxLength);
+        address[] memory activeWorkerAddressesFull = new address[](maxLength);
+        uint[] memory activeWorkerStakesFull = new uint[](maxLength);
         uint filteredCount;
 
         for (uint i = 0; i < maxLength; i++) {
             EnigmaCommon.Worker memory worker = state.workers[state.workerAddresses[i]];
-            if ((worker.status == EnigmaCommon.WorkerStatus.LoggedIn) &&
-                (worker.statusUpdateBlockNumber <= _blockNumber) &&
-                (worker.signer != state.principal))
+            EnigmaCommon.WorkerLog memory workerLog = WorkersImpl.getLatestWorkerLogImpl(state, worker, _blockNumber);
+            if (((workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogIn) ||
+                (workerLog.workerEventType == EnigmaCommon.WorkerLogType.Compound)) &&
+                worker.signer != state.principal)
             {
-                activeWorkerIndices[filteredCount] = i;
+                activeWorkerAddressesFull[filteredCount] = state.workerAddresses[i];
+                activeWorkerStakesFull[filteredCount] = workerLog.balance;
                 filteredCount++;
             }
         }
@@ -88,10 +95,8 @@ library PrincipalImpl {
         address[] memory activeWorkerAddresses = new address[](filteredCount);
         uint[] memory activeWorkerStakes = new uint[](filteredCount);
         for (uint ic = 0; ic < filteredCount; ic++) {
-            address workerAddress = state.workerAddresses[activeWorkerIndices[ic]];
-            EnigmaCommon.Worker memory worker = state.workers[workerAddress];
-            activeWorkerAddresses[ic] = workerAddress;
-            activeWorkerStakes[ic] = worker.stake;
+            activeWorkerAddresses[ic] = activeWorkerAddressesFull[ic];
+            activeWorkerStakes[ic] = activeWorkerStakesFull[ic];
         }
 
         return (activeWorkerAddresses, activeWorkerStakes);

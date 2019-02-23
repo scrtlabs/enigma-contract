@@ -29,4 +29,8 @@ contract Getters is EnigmaStorage {
     function getSecretContract(bytes32 _scAddr) public view returns (EnigmaCommon.SecretContract memory) {
         return state.contracts[_scAddr];
     }
+
+    function getWorkersParams() public view returns (EnigmaCommon.WorkersParams[5] memory) {
+        return state.workersParams;
+    }
 }
