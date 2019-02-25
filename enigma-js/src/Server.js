@@ -15,11 +15,12 @@ export default class RPCServer {
           callback({code: -32602, message: 'Invalid params'});
         } else {
           callback(null, {
-            workerEncryptionKey: '77bb5487c2ad4070dc130d4651583582ef1b58ecdbc4e74f5b8d685ec8fdfedf4db7d5be67dd4095' +
-              '26b2bafb09a1dacad04816b72ad001d9df57c2d1c1f783a6',
-            workerSig: '0xd1124de42eaf7ab1ae7ae3dc3b3bb18085f867e8cacd5ecccde653760dbcd9793c71427611a6cfdfef366f65' +
-              'a6770451cbf9f800b55aed83e70668d321a261001b',
-            msgId: 'ldotj6nghv7a',
+            result: {
+              workerEncryptionKey: 'c647c3b37429e43638712f2fc2ecfa3e0fbd1bc23938cb8e605a0e91bb93c9c184dbb06552ac9e' +
+                'b7fb65f219bef58f14b90557299fc69b20331f60d183e98cc5',
+              workerSig: 'acb4ce556cbd2549975a08f6e2166f80c9c9fcbb8b92a6ebcc62d998b62449733bd294de8c8db9d225c2e911' +
+                '97231adf5b43a96b1750f75f05cbc22686056d091b',
+            }, id: 'ldotj6nghv7a',
           });
         }
       },
