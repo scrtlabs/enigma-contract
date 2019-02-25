@@ -37,7 +37,6 @@ module.exports = function(callback) {
         console.log('Unable to register', e);
       }
     }
-    console.log('The active workers:', result[0], result[1]);
     callback();
   })();
 };
