@@ -50,7 +50,7 @@ library EnigmaCommon {
         bytes32 preCodeHash; // Predeployed bytecode hash
         bytes32 codeHash; // Deployed bytecode hash
         bytes32[] stateDeltaHashes; // Array of state delta hashes
-        bytes32 outputHash; // Hash of output
+        bytes32[] outputHashes; // Array of output hashes
         SecretContractStatus status; // Undefined: 0, Deployed: 1
         // TODO: consider keeping an index of taskIds
     }

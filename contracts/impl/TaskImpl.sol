@@ -25,7 +25,7 @@ library TaskImpl {
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes optionalEthereumData,
         address optionalEthereumContractAddress, bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32 outputHash,
+    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes sig);
 
@@ -276,7 +276,7 @@ library TaskImpl {
 
         // Append the new state delta hash and set the contract's output hash
         secretContract.stateDeltaHashes.push(_stateDeltaHash);
-        secretContract.outputHash = _outputHash;
+        secretContract.outputHashes.push(_outputHash);
 
         // Verify the worker's signature
         bytes32 msgHash = keccak256(abi.encodePacked(secretContract.codeHash,
@@ -342,7 +342,7 @@ library TaskImpl {
         bytes32 _scAddr,
         bytes32[] memory _taskIds,
         bytes32[] memory _stateDeltaHashes,
-        bytes32 _outputHash,
+        bytes32[] memory _outputHashes,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
         uint[] memory _gasesUsed,
@@ -362,17 +362,15 @@ library TaskImpl {
 
             // Append the new state delta hash
             secretContract.stateDeltaHashes.push(_stateDeltaHashes[i]);
+            secretContract.outputHashes.push(_outputHashes[i]);
         }
-
-        //  Set the contract's output hash
-        secretContract.outputHash = _outputHash;
 
         // Verify the worker's signature
         bytes32 msgHash = keccak256(abi.encodePacked(secretContract.codeHash,
             inputsHashes,
             lastStateDeltaHash,
             _stateDeltaHashes,
-            _outputHash,
+            _outputHashes,
             _gasesUsed,
             uint64(_optionalEthereumData.length), _optionalEthereumData,
             uint64(20), _optionalEthereumContractAddress,
@@ -385,7 +383,7 @@ library TaskImpl {
             require(success, "Ethereum call failed");
         }
 
-        emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHash, _optionalEthereumData,
+        emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
             _optionalEthereumContractAddress, _sig);
     }
 }
