@@ -1543,6 +1543,11 @@ describe('Enigma tests', () => {
       expect(isValid).toEqual(true);
     });
 
+    it('should get output hash', async () => {
+      const output = await enigma.admin.getOutputHash(scAddr, 1);
+      expect(outputHash).toEqual(output);
+    });
+
     it('should fail to create task records due to insufficient funds', async () => {
       let taskFn = 'medianWealth(int32,int32)';
       let taskGasLimit = 500;
@@ -1626,11 +1631,15 @@ describe('Enigma tests', () => {
     });
 
     let stateDeltaHashes;
+    let outputHashes;
     it('should simulate multiple task receipts', async () => {
       const gasesUsed = [25, 10];
       const stateDeltaHash2 = web3.utils.soliditySha3('stateDeltaHash2');
       const stateDeltaHash3 = web3.utils.soliditySha3('stateDeltaHash3');
+      stateDeltaHashes = [stateDeltaHash2, stateDeltaHash3];
       const outputHash2 = web3.utils.soliditySha3('outputHash2');
+      const outputHash3 = web3.utils.soliditySha3('outputHash3');
+      outputHashes = [outputHash2, outputHash3];
       const taskIds = tasks.map((task) => task.taskId);
       const inputsHashes = tasks.map((task) => task.inputsHash);
       const optionalEthereumData = '0x00';
@@ -1639,8 +1648,8 @@ describe('Enigma tests', () => {
         {t: 'bytes32', v: codeHash},
         {t: 'bytes32[]', v: inputsHashes},
         {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32[]', v: [stateDeltaHash2, stateDeltaHash3]},
-        {t: 'bytes32', v: outputHash2},
+        {t: 'bytes32[]', v: stateDeltaHashes},
+        {t: 'bytes32[]', v: outputHashes},
         {t: 'uint[]', v: gasesUsed},
         {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
         {t: 'bytes', v: optionalEthereumData},
@@ -1649,7 +1658,6 @@ describe('Enigma tests', () => {
         {t: 'bytes1', v: '0x01'},
       );
       const sig = utils.sign(data.worker[4], proof);
-      stateDeltaHashes = [stateDeltaHash2, stateDeltaHash3];
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -1659,7 +1667,7 @@ describe('Enigma tests', () => {
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, stateDeltaHashes, outputHash2,
+        enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, stateDeltaHashes, outputHashes,
           optionalEthereumData,
           optionalEthereumContractAddress, gasesUsed, sig).send({
           from: selectedWorkerAddr,
@@ -1691,6 +1699,11 @@ describe('Enigma tests', () => {
       expect(hashes).toEqual([
         initStateDeltaHash, stateDeltaHash, stateDeltaHash, stateDeltaHashes[0],
         stateDeltaHashes[1]]);
+    });
+
+    it('should get output hash range', async () => {
+      const hashes = await enigma.admin.getOutputHashes(scAddr, 0, 4);
+      expect(hashes).toEqual([outputHash, outputHash, outputHashes[0], outputHashes[1]]);
     });
 
     it('should verify the report', async () => {

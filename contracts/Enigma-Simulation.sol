@@ -235,20 +235,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     /**
     * Check if secret contract has been deployed
     *
-    * @param _scAddr Secret contract address
-    * @return  true/false
-    */
-    function isDeployed(bytes32 _scAddr)
-    public
-    view
-    returns (bool)
-    {
-        return SecretContractImpl.isDeployedImpl(state, _scAddr);
-    }
-
-    /**
-    * Check if secret contract has been deployed
-    *
     * @return  Number of deployed secret contracts
     */
     function countSecretContracts()
@@ -274,69 +260,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         return SecretContractImpl.getSecretContractAddressesImpl(state, _start, _stop);
     }
 
-    /**
-    * Count state deltas for a deployed secret contract
-    *
-    * @param _scAddr Secret contract address
-    * @return Number of state deltas for deployed secret contract
-    */
-    function countStateDeltas(bytes32 _scAddr)
-    public
-    view
-    contractDeployed(_scAddr)
-    returns (uint)
-    {
-        return SecretContractImpl.countStateDeltasImpl(state, _scAddr);
-    }
-
-    /**
-    * Obtain state delta hash for a deployed secret contract at a particular index
-    *
-    * @param _scAddr Secret contract address
-    * @param _index Index in list of state deltas
-    * @return State delta hash
-    */
-    function getStateDeltaHash(bytes32 _scAddr, uint _index)
-    public
-    view
-    contractDeployed(_scAddr)
-    returns (bytes32)
-    {
-        return SecretContractImpl.getStateDeltaHashImpl(state, _scAddr, _index);
-    }
-
-    /**
-    * Obtain state delta hashes for a deployed secret contract within a range
-    *
-    * @param _start Start of range
-    * @param _stop End of range
-    * @return Subset of state delta hashes for deployed secret contract
-    */
-    function getStateDeltaHashes(bytes32 _scAddr, uint _start, uint _stop)
-    public
-    view
-    contractDeployed(_scAddr)
-    returns (bytes32[] memory)
-    {
-        return SecretContractImpl.getStateDeltaHashesImpl(state, _scAddr, _start, _stop);
-    }
-
-    /**
-    * Check if particular state delta hash for a deployed secret contract is valid
-    *
-    * @param _scAddr Secret contract address
-    * @param _stateDeltaHash State delta hash
-    * @return true/false
-    */
-    function isValidDeltaHash(bytes32 _scAddr, bytes32 _stateDeltaHash)
-    public
-    view
-    contractDeployed(_scAddr)
-    returns (bool)
-    {
-        return SecretContractImpl.isValidDeltaHashImpl(state, _scAddr, _stateDeltaHash);
-    }
-//
     /**
     * Create task record for contract deployment. This is necessary for transferring task fee from sender to contract,
     * generating the unique taskId, saving the block number when the record was mined, and incrementing the user's
@@ -452,7 +375,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
    * @param _scAddr Secret contract address
    * @param _taskIds Unique taskId
    * @param _stateDeltaHashes Input state delta hashes
-   * @param _outputHash Output state hashes
+   * @param _outputHashes Output state hashes
    * @param _optionalEthereumData Output state hashes
    * @param _optionalEthereumContractAddress Output state hashes
    * @param _gasesUsed Output state hashes
@@ -462,7 +385,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32 _scAddr,
         bytes32[] memory _taskIds,
         bytes32[] memory _stateDeltaHashes,
-        bytes32 _outputHash,
+        bytes32[] memory _outputHashes,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
         uint[] memory _gasesUsed,
@@ -472,7 +395,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHash, _optionalEthereumData,
+        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
             _optionalEthereumContractAddress, _gasesUsed, _sig);
     }
 //
