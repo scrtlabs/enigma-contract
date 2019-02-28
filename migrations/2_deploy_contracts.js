@@ -37,7 +37,7 @@ async function deployProtocol(deployer) {
   const homedir = require('os').homedir();
   const principalSignAddrFile = path.join(homedir, '.enigma', 'principal-sign-addr.txt');
   if (fs.existsSync(principalSignAddrFile)) {
-    principal = '0x' + fs.readFileSync(principalSignAddrFile, 'utf-8');
+    principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
   }
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal);
