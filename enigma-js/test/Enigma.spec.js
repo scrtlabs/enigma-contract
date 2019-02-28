@@ -584,6 +584,8 @@ describe('Enigma tests', () => {
     it('should fail to create/send deploy contract task using wrapper function because of failed worker encryption ' +
       'key rpc call', async () => {
       server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       preCode = '9d075ae';
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
@@ -597,6 +599,7 @@ describe('Enigma tests', () => {
           on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
           on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
       server.listen();
     });
 
@@ -1075,6 +1078,8 @@ describe('Enigma tests', () => {
     it('should fail to create/send compute task using wrapper function because of failed worker encryption ' +
       'key rpc call', async () => {
       server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       scAddr = scTask.scAddr;
       let taskFn = 'medianWealth(int32,int32)';
       let taskArgs = [
@@ -1088,6 +1093,7 @@ describe('Enigma tests', () => {
           on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
           on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
       server.listen();
     });
 
@@ -1155,6 +1161,8 @@ describe('Enigma tests', () => {
 
     it('should fail to poll the network because of failed rpc call', async () => {
       server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       let taskStatuses = [];
       await expect(new Promise((resolve, reject) => {
         enigma.pollTaskInput(task).on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
@@ -1164,6 +1172,7 @@ describe('Enigma tests', () => {
           }
         }).on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
       server.listen();
     });
 
