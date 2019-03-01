@@ -73,7 +73,7 @@ library WorkersImpl {
         if (worker.signer == address(0)) {
             state.workerAddresses.push(msg.sender);
         }
-////        require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
+//        require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
 //
 //        uint i = 0;
 //        // find the word "Body" in the _report
@@ -104,7 +104,7 @@ library WorkersImpl {
 //        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
 //        address signerQuote = bytesToAddress(reportData);
 //
-////        require(signerQuote == _signer, "Signer does not match contents of quote");
+//        require(signerQuote == _signer, "Signer does not match contents of quote");
 
         worker.signer = _signer;
         worker.report = _report;
