@@ -3,6 +3,7 @@ import Enigma from '../src/Enigma';
 import utils from '../src/enigma-utils';
 import forge from 'node-forge';
 import Web3 from 'web3';
+import EthCrypto from 'eth-crypto';
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import data from './data';
@@ -37,7 +38,6 @@ describe('Enigma tests', () => {
       return web3.eth.getAccounts().then((result) => {
         accounts = result;
         console.log('the accounts', accounts);
-        console.log(Enigma);
         enigma = new Enigma(
           web3,
           EnigmaContract.networks['4447'].address,
@@ -134,7 +134,7 @@ describe('Enigma tests', () => {
           [seed, 0, workerAddresses, workerStakes],
         );
         const hash = web3.utils.keccak256(msg);
-        const sig = utils.sign(data.principal[4], hash);
+        const sig = EthCrypto.sign(data.principal[4], hash);
 
         receipt = await new Promise((resolve, reject) => {
           enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
@@ -181,7 +181,7 @@ describe('Enigma tests', () => {
         [seed, 1, workerAddresses, workerStakes],
       );
       const hash = web3.utils.keccak256(msg);
-      const sig = utils.sign(data.principal[4], hash);
+      const sig = EthCrypto.sign(data.principal[4], hash);
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
           gas: 4712388,
@@ -423,7 +423,7 @@ describe('Enigma tests', () => {
           [seed, 1, workerAddresses, workerStakes],
         );
         const hash = web3.utils.keccak256(msg);
-        const sig = utils.sign(data.principal[4], hash);
+        const sig = EthCrypto.sign(data.principal[4], hash);
 
         receipt = await new Promise((resolve, reject) => {
           enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
@@ -584,6 +584,8 @@ describe('Enigma tests', () => {
     it('should fail to create/send deploy contract task using wrapper function because of failed worker encryption ' +
       'key rpc call', async () => {
       server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       preCode = '9d075ae';
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
@@ -597,6 +599,7 @@ describe('Enigma tests', () => {
           on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
           on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
       server.listen();
     });
 
@@ -671,7 +674,7 @@ describe('Enigma tests', () => {
         {t: 'uint', v: gasUsed},
         {t: 'bytes1', v: '0x00'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -713,7 +716,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       await expect(new Promise((resolve, reject) => {
@@ -788,7 +791,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -904,7 +907,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       await expect(new Promise((resolve, reject) => {
@@ -947,7 +950,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -1109,6 +1112,8 @@ describe('Enigma tests', () => {
     it('should fail to create/send compute task using wrapper function because of failed worker encryption ' +
       'key rpc call', async () => {
       server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       scAddr = scTask.scAddr;
       let taskFn = 'medianWealth(int32,int32)';
       let taskArgs = [
@@ -1122,6 +1127,7 @@ describe('Enigma tests', () => {
           on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
           on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
       server.listen();
     });
 
@@ -1189,6 +1195,8 @@ describe('Enigma tests', () => {
 
     it('should fail to poll the network because of failed rpc call', async () => {
       server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       let taskStatuses = [];
       await expect(new Promise((resolve, reject) => {
         enigma.pollTaskInput(task).on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
@@ -1198,6 +1206,7 @@ describe('Enigma tests', () => {
           }
         }).on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
       server.listen();
     });
 
@@ -1227,7 +1236,7 @@ describe('Enigma tests', () => {
         {t: 'uint', v: gasUsed},
         {t: 'bytes1', v: '0x00'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -1283,7 +1292,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       await expect(new Promise((resolve, reject) => {
@@ -1371,7 +1380,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -1480,7 +1489,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       await expect(new Promise((resolve, reject) => {
@@ -1522,7 +1531,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -1575,6 +1584,11 @@ describe('Enigma tests', () => {
     it('should verify state delta', async () => {
       const isValid = await enigma.admin.isValidDeltaHash(scAddr, stateDeltaHash);
       expect(isValid).toEqual(true);
+    });
+
+    it('should get output hash', async () => {
+      const output = await enigma.admin.getOutputHash(scAddr, 1);
+      expect(outputHash).toEqual(output);
     });
 
     it('should fail to create task records due to insufficient funds', async () => {
@@ -1660,11 +1674,15 @@ describe('Enigma tests', () => {
     });
 
     let stateDeltaHashes;
+    let outputHashes;
     it('should simulate multiple task receipts', async () => {
       const gasesUsed = [25, 10];
       const stateDeltaHash2 = web3.utils.soliditySha3('stateDeltaHash2');
       const stateDeltaHash3 = web3.utils.soliditySha3('stateDeltaHash3');
+      stateDeltaHashes = [stateDeltaHash2, stateDeltaHash3];
       const outputHash2 = web3.utils.soliditySha3('outputHash2');
+      const outputHash3 = web3.utils.soliditySha3('outputHash3');
+      outputHashes = [outputHash2, outputHash3];
       const taskIds = tasks.map((task) => task.taskId);
       const inputsHashes = tasks.map((task) => task.inputsHash);
       const optionalEthereumData = '0x00';
@@ -1673,8 +1691,8 @@ describe('Enigma tests', () => {
         {t: 'bytes32', v: codeHash},
         {t: 'bytes32[]', v: inputsHashes},
         {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32[]', v: [stateDeltaHash2, stateDeltaHash3]},
-        {t: 'bytes32', v: outputHash2},
+        {t: 'bytes32[]', v: stateDeltaHashes},
+        {t: 'bytes32[]', v: outputHashes},
         {t: 'uint[]', v: gasesUsed},
         {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
         {t: 'bytes', v: optionalEthereumData},
@@ -1682,8 +1700,7 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = utils.sign(data.worker[4], proof);
-      stateDeltaHashes = [stateDeltaHash2, stateDeltaHash3];
+      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const startingWorkerBalance = parseInt(
@@ -1693,7 +1710,7 @@ describe('Enigma tests', () => {
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, stateDeltaHashes, outputHash2,
+        enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, stateDeltaHashes, outputHashes,
           optionalEthereumData,
           optionalEthereumContractAddress, gasesUsed, sig).send({
           from: selectedWorkerAddr,
@@ -1725,6 +1742,11 @@ describe('Enigma tests', () => {
       expect(hashes).toEqual([
         initStateDeltaHash, stateDeltaHash, stateDeltaHash, stateDeltaHashes[0],
         stateDeltaHashes[1]]);
+    });
+
+    it('should get output hash range', async () => {
+      const hashes = await enigma.admin.getOutputHashes(scAddr, 0, 4);
+      expect(hashes).toEqual([outputHash, outputHash, outputHashes[0], outputHashes[1]]);
     });
 
     it('should verify the report', async () => {

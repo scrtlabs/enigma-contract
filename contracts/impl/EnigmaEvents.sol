@@ -18,7 +18,7 @@ contract EnigmaEvents {
         uint blockNumber);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes optionalEthereumData,
         address optionalEthereumContractAddress, bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32 outputHash,
+    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes sig);
     event TaskFeeReturned(bytes32 taskId);

@@ -43,6 +43,7 @@
     "eventemitter3": "^3.1.0",
     "filereader": "^0.10.3",
     "jayson": "^2.1.0",
+    "msgpack-lite": "^0.1.26",
     "net": "^1.0.2",
     "node-fetch": "^2.3.0",
     "node-forge": "^0.7.6",

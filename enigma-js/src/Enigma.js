@@ -6,6 +6,7 @@ import Task from './models/Task';
 import EventEmitter from 'eventemitter3';
 import web3Utils from 'web3-utils';
 import jaysonBrowserClient from 'jayson/lib/client/browser';
+import msgpack from 'msgpack-lite';
 import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
@@ -103,11 +104,14 @@ export default class Enigma {
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
-      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0];
-      const workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
+      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
+      let workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
+      workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
+      const {publicKey, privateKey} = this.obtainTaskKeyPair();
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-          this.client.request('getWorkerEncryptionKey', {workerAddress}, (err, response) => {
+          this.client.request('getWorkerEncryptionKey',
+            {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
             if (err) {
               reject(err);
               return;
@@ -115,15 +119,29 @@ export default class Enigma {
             resolve(response);
           });
         });
-        const {workerEncryptionKey, workerSig, msgId} = getWorkerEncryptionKeyResult;
-        if (workerEncryptionKey !== utils.recoverPublicKey(workerSig,
-          this.web3.utils.soliditySha3({t: 'bytes', v: workerEncryptionKey}))) {
+        const {result, id} = getWorkerEncryptionKeyResult;
+        const {workerEncryptionKey, workerSig} = result;
+
+        let key = [];
+        for (let n = 0; n < workerEncryptionKey.length; n += 2) {
+          key.push(parseInt(workerEncryptionKey.substr(n, 2), 16));
+        }
+
+        const prefix = 'Enigma User Message'.split('').map(function(c) {
+          return c.charCodeAt(0);
+        });
+        const buffer = msgpack.encode({'prefix': prefix, 'pubkey': key});
+
+        let recAddress = EthCrypto.recover('0x'+workerSig,
+          this.web3.utils.soliditySha3({t: 'bytes', value: buffer.toString('hex')}));
+        recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
+
+        if (workerAddress !== recAddress ) {
           emitter.emit(eeConstants.ERROR, {
             name: 'InvalidWorker',
             message: 'Invalid worker encryption key + signature combo',
           });
         } else {
-          const {publicKey, privateKey} = this.obtainTaskKeyPair();
           // Generate derived key from worker's encryption key and user's private key
           const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
           // Encrypt function and ABI-encoded args
@@ -135,7 +153,7 @@ export default class Enigma {
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            msgId, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
+            id, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
             isContractDeploymentTask));
         }
       } catch (err) {
@@ -451,12 +469,9 @@ export default class Enigma {
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
-    return task.isContractDeploymentTask ? {
-      workerAddress: task.workerAddress, preCode: task.preCode,
-      encryptedArgs: task.encryptedAbiEncodedArgs, encryptedFn: task.encryptedFn, userDHKey: task.userPubKey,
-      contractAddress: task.scAddr,
-    } : {
-      taskId: task.taskId, workerAddress: task.workerAddress,
+    return task.isContractDeploymentTask ? {preCode: task.preCode, encryptedArgs: task.encryptedAbiEncodedArgs,
+      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr,
+      workerAddress: task.workerAddress} : {taskId: task.taskId, workerAddress: task.workerAddress,
       encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs, contractAddress: task.scAddr,
       userDHKey: task.userPubKey,
     };

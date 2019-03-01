@@ -39,7 +39,7 @@ export default class Admin {
    * @return {Promise} Resolves to a boolean value whether the contract has been deployed or not
    */
   async isDeployed(scAddr) {
-    return await this.enigmaContract.methods.isDeployed(scAddr).call();
+    return parseInt((await this.enigmaContract.methods.getSecretContract(scAddr).call()).status) === 1;
   }
 
   /**
@@ -59,7 +59,7 @@ export default class Admin {
    * @return {Promise} - Resolves to count of state deltas
    */
   async countStateDeltas(scAddr) {
-    return parseInt(await this.enigmaContract.methods.countStateDeltas(scAddr).call());
+    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes.length;
   }
 
   /**
@@ -70,7 +70,7 @@ export default class Admin {
    * @return {Promise} - Resolves to state delta hash at the specified position
    */
   async getStateDeltaHash(scAddr, index) {
-    return await this.enigmaContract.methods.getStateDeltaHash(scAddr, index).call();
+    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes[index];
   }
 
   /**
@@ -82,7 +82,7 @@ export default class Admin {
    * @return {Promise} - Resolves to the state delta hashes in the specified range
    */
   async getStateDeltaHashes(scAddr, start, stop) {
-    return await this.enigmaContract.methods.getStateDeltaHashes(scAddr, start, stop).call();
+    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes.slice(start, stop);
   }
 
   /**
@@ -93,7 +93,31 @@ export default class Admin {
    * @return {Promise} Resolves to boolean value for whether the state delta hash is valid
    */
   async isValidDeltaHash(scAddr, stateDeltaHash) {
-    return await this.enigmaContract.methods.isValidDeltaHash(scAddr, stateDeltaHash).call();
+    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes
+      .includes(stateDeltaHash);
+  }
+
+  /**
+   * Fetch output hash at specified index position
+   *
+   * @param {string} scAddr - Secret contract address
+   * @param {number} index - Index of state delta hash to retrieve
+   * @return {Promise} - Resolves to output hash at the specified position
+   */
+  async getOutputHash(scAddr, index) {
+    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).outputHashes[index];
+  }
+
+  /**
+   * Fetch output hash in the specified range
+   *
+   * @param {string} scAddr - Secret contract address
+   * @param {number} start - Start index of output hash to retrieve (inclusive)
+   * @param {number} stop - Stop index of output hash to retrieve (exclusive)
+   * @return {Promise} - Resolves to the output hashes in the specified range
+   */
+  async getOutputHashes(scAddr, start, stop) {
+    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).outputHashes.slice(start, stop);
   }
 
   /**
