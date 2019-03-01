@@ -1024,7 +1024,7 @@ describe('Enigma tests', () => {
         [seed, 2, workerAddresses, workerStakes],
       );
       const hash = web3.utils.keccak256(msg);
-      const sig = utils.sign(data.principal[4], hash);
+      const sig = EthCrypto.sign(data.principal[4], hash);
 
       receipt = await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
