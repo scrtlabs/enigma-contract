@@ -9,7 +9,7 @@ const Sample = artifacts.require('Sample.sol');
 const fs = require('fs');
 const path = require('path');
 
-const PRINCIPAL_SIGNING_ADDRESS = '0x4800e3f00f9cdbc4420ce4b299855c39455a7bab';
+const PRINCIPAL_SIGNING_ADDRESS = '0x3078356633353161633136306365333763653066';
 const EPOCH_SIZE = 10;
 
 async function deployProtocol(deployer) {
