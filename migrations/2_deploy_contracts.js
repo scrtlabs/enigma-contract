@@ -9,6 +9,9 @@ const Sample = artifacts.require('Sample.sol');
 const fs = require('fs');
 const path = require('path');
 
+const PRINCIPAL_SIGNING_ADDRESS = '0x4800e3f00f9cdbc4420ce4b299855c39455a7bab';
+const EPOCH_SIZE = 10;
+
 async function deployProtocol(deployer) {
   await Promise.all([
     deployer.deploy(EnigmaToken),
@@ -33,14 +36,14 @@ async function deployProtocol(deployer) {
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
 
-  let principal = '0x4800e3f00f9cdbc4420ce4b299855c39455a7bab';
+  let principal = PRINCIPAL_SIGNING_ADDRESS;
   const homedir = require('os').homedir();
   const principalSignAddrFile = path.join(homedir, '.enigma', 'principal-sign-addr.txt');
   if (fs.existsSync(principalSignAddrFile)) {
     principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
   }
   console.log('using account', principal, 'as principal signer');
-  await deployer.deploy(Enigma, EnigmaToken.address, principal);
+  await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
   await deployer.deploy(Sample);
 }
 
