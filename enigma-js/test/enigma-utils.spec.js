@@ -34,4 +34,11 @@ describe('enigma-utils', () => {
       userPubKey);
     expect(taskInputsHash).toEqual('0x2300c9a68af32dde19c22fd12d9ef6a8dda5e4c03547425d3fe5a5eee8ea9811');
   });
+
+  it('should derive the same key', () => {
+    const enclavePublicKey = 'c73d872559d1468ef05204d66a75e616493e08c2e532a3dad7d7cedac6757c4e74021348e73bce08ea178a1b8cc0e3670dd3335977b5d7b294b819b26d5db934';
+    const clientPrivateKey = '1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f';
+    expect(utils.getDerivedKey(enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfbace2faaff7e8ebfe00c4854f8c59407f6c24');
+    expect(utils.getDerivedKey('04'+enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfbace2faaff7e8ebfe00c4854f8c59407f6c24');
+  })
 });

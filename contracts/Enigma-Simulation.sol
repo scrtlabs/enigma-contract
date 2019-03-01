@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import "./utils/SolRsaVerify.sol";
 
-import { WorkersImpl } from "./impl/WorkersImpl.sol";
+import { WorkersImpl } from "./impl/WorkersImpl-Simulation.sol";
 import { PrincipalImpl } from "./impl/PrincipalImpl.sol";
 import { TaskImpl } from "./impl/TaskImpl.sol";
 import { SecretContractImpl } from "./impl/SecretContractImpl.sol";
@@ -22,9 +22,9 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
 
     // ========================================== Constructor ==========================================
 
-    constructor(address _tokenAddress, address _principal, uint _epochSize) public {
+    constructor(address _tokenAddress, address _principal) public {
         state.engToken = ERC20(_tokenAddress);
-        state.epochSize = _epochSize;
+        state.epochSize = 10;
         state.taskTimeoutSize = 200;
         state.principal = _principal;
         state.stakingThreshold = 1;
