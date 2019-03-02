@@ -443,7 +443,8 @@ describe('Enigma tests', () => {
       const blockNumber = await web3.eth.getBlockNumber();
       const workerParams = await enigma.getWorkerParams(blockNumber);
       expect(workerParams.workers).toEqual(accounts.slice(0, 7));
-      expect(workerParams.stakes).toEqual([900, 100, 10, 20, 100, 200, 40].map((stake) => web3.utils.toBN(stake * 10 ** 8)));
+      expect(workerParams.stakes).toEqual([900, 100, 10, 20, 100, 200, 40]
+        .map((stake) => web3.utils.toBN(stake * 10 ** 8)));
     });
 
     it('should fail to withdraw too many tokens from worker bank', async () => {
@@ -578,7 +579,7 @@ describe('Enigma tests', () => {
           on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
           on(eeConstants.ERROR, (error) => reject(error));
       });
-      expect(scTask.engStatus).toEqual(1);
+      expect(scTask).toBeTruthy();
     });
 
     it('should fail to create/send deploy contract task using wrapper function because of failed worker encryption ' +
@@ -662,7 +663,7 @@ describe('Enigma tests', () => {
       expect(scTask.ethStatus).toEqual(1);
       expect(scTask.proof).toBeFalsy();
       expect(endingContractBalance - startingContractBalance).toEqual(scTask.gasLimit * scTask.gasPx);
-      expect(scTask.engStatus).toEqual(1);
+      expect(scTask).toBeTruthy();
     });
 
     let codeHash;
@@ -771,7 +772,7 @@ describe('Enigma tests', () => {
       expect(scTask.ethStatus).toEqual(1);
       expect(scTask.proof).toBeFalsy();
       expect(endingContractBalance - startingContractBalance).toEqual(scTask.gasLimit * scTask.gasPx);
-      expect(scTask.engStatus).toEqual(1);
+      expect(scTask).toBeTruthy();
     });
 
     it('should simulate the contract deployment', async () => {
@@ -869,7 +870,7 @@ describe('Enigma tests', () => {
       expect(scTask.ethStatus).toEqual(1);
       expect(scTask.proof).toBeFalsy();
       expect(endingContractBalance - startingContractBalance).toEqual(scTask.gasLimit * scTask.gasPx);
-      expect(scTask.engStatus).toEqual(1);
+      expect(scTask).toBeTruthy();
     });
 
     it('should get the pending deploy contract task', async () => {
@@ -1106,7 +1107,7 @@ describe('Enigma tests', () => {
           on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt)).
           on(eeConstants.ERROR, (error) => reject(error));
       });
-      expect(task.engStatus).toEqual(1);
+      expect(task).toBeTruthy();
     });
 
     it('should fail to create/send compute task using wrapper function because of failed worker encryption ' +
@@ -1147,6 +1148,23 @@ describe('Enigma tests', () => {
             on(eeConstants.ERROR, (error) => reject(error));
         })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
       });
+
+    it('should get task result with invalid return status', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.getTaskResult(task)
+          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual('Invalid task result status');
+    });
+
+    it('should get task result of nonexistant task', async () => {
+      task = await new Promise((resolve, reject) => {
+        enigma.getTaskResult(task)
+          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.engStatus).toEqual('null');
+    });
 
     it('should create/send compute task using wrapper function', async () => {
       scAddr = scTask.scAddr;
@@ -1190,7 +1208,65 @@ describe('Enigma tests', () => {
       expect(task.ethStatus).toEqual(1);
       expect(task.proof).toBeFalsy();
       expect(endingContractBalance - startingContractBalance).toEqual(task.gasLimit * task.gasPx);
-      expect(task.engStatus).toEqual(1);
+    });
+
+    it('should get task result of unverified task', async () => {
+      task = await new Promise((resolve, reject) => {
+        enigma.getTaskResult(task)
+          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.engStatus).toEqual('UNVERIFIED');
+    });
+
+    it('should get task result of inprogress task', async () => {
+      task = await new Promise((resolve, reject) => {
+        enigma.getTaskResult(task)
+          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.engStatus).toEqual('INPROGRESS');
+    });
+
+    it('should fail to get task result because of failed prc call', async () => {
+      server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
+      await expect(new Promise((resolve, reject) => {
+        enigma.getTaskResult(task)
+          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
+      server.listen();
+    });
+
+    it('should get task result of failed task', async () => {
+      task = await new Promise((resolve, reject) => {
+        enigma.getTaskResult(task)
+          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.engStatus).toEqual('FAILED');
+      expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
+      expect(task.usedGas).toBeTruthy();
+      expect(task.workerTaskSig).toBeTruthy();
+    });
+
+    it('should get task result of successful computation', async () => {
+      task = await new Promise((resolve, reject) => {
+        enigma.getTaskResult(task)
+          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      });
+      console.log('TASK', task);
+      expect(task.engStatus).toEqual('SUCCESS');
+      expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
+      expect(task.delta).toBeTruthy();
+      expect(task.usedGas).toBeTruthy();
+      expect(task.ethereumPayload).toBeTruthy();
+      expect(task.ethereumAddress).toBeTruthy();
+      expect(task.workerTaskSig).toBeTruthy();
     });
 
     it('should fail to poll the network because of failed rpc call', async () => {
@@ -1201,7 +1277,7 @@ describe('Enigma tests', () => {
       await expect(new Promise((resolve, reject) => {
         enigma.pollTaskInput(task).on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
           taskStatuses.push(result.engStatus);
-          if (result.engStatus === 2) {
+          if (result.engStatus === 'SUCCESS') {
             resolve();
           }
         }).on(eeConstants.ERROR, (error) => reject(error));
@@ -1215,12 +1291,12 @@ describe('Enigma tests', () => {
       await new Promise((resolve, reject) => {
         enigma.pollTaskInput(task).on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
           taskStatuses.push(result.engStatus);
-          if (result.engStatus === 2) {
+          if (result.engStatus === 'SUCCESS') {
             resolve();
           }
         }).on(eeConstants.ERROR, (error) => reject(error));
       });
-      expect(taskStatuses).toEqual([1, 1, 1, 1, 2]);
+      expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
     });
 
     it('should get the pending task', async () => {
@@ -1360,7 +1436,6 @@ describe('Enigma tests', () => {
       expect(task.ethStatus).toEqual(1);
       expect(task.proof).toBeFalsy();
       expect(endingContractBalance - startingContractBalance).toEqual(task.gasLimit * task.gasPx);
-      expect(task.engStatus).toEqual(1);
     });
 
     it('should simulate task receipt', async () => {
@@ -1456,7 +1531,6 @@ describe('Enigma tests', () => {
       expect(task.ethStatus).toEqual(1);
       expect(task.proof).toBeFalsy();
       expect(endingContractBalance - startingContractBalance).toEqual(task.gasLimit * task.gasPx);
-      expect(task.engStatus).toEqual(1);
     });
 
     it('should fail to simulate task receipt with invalid eth call', async () => {
@@ -1868,7 +1942,7 @@ describe('Enigma tests', () => {
         });
       })).rejects.toEqual({code: -32602, message: 'Invalid params'});
       await expect(new Promise((resolve, reject) => {
-        enigma.client.request('pollTaskInput', {}, (err, response) => {
+        enigma.client.request('getTaskStatus', {}, (err, response) => {
           if (err) {
             reject(err);
           }

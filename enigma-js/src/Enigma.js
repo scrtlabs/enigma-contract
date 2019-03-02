@@ -387,7 +387,7 @@ export default class Enigma {
         emitName = eeConstants.DEPLOY_SECRET_CONTRACT_RESULT;
       }
       try {
-        const sendTaskInputResult = await new Promise((resolve, reject) => {
+        await new Promise((resolve, reject) => {
           this.client.request(rpcEndpointName, Enigma.serializeTask(task), (err, response) => {
             if (err) {
               reject(err);
@@ -396,10 +396,53 @@ export default class Enigma {
             resolve(response);
           });
         });
-        if (sendTaskInputResult.deploySentResult || sendTaskInputResult.sendTaskResult) {
-          task.engStatus = 1;
-        }
         emitter.emit(emitName, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
+   * Get task result from p2p network
+   *
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {EventEmitter} EventEmitter to be listened to track getting result from Enigma network. Emits
+   * a response from the ENG network.
+   */
+  getTaskResult(task) {
+    let emitter = new EventEmitter();
+    (async () => {
+      try {
+        const getTaskResultResult = await new Promise((resolve, reject) => {
+          this.client.request('getTaskResult', {taskId: task.taskId}, (err, response) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(response);
+          });
+        });
+        switch (getTaskResultResult.result.status) {
+          case 'SUCCESS':
+            task.delta = getTaskResultResult.result.delta;
+            task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
+            task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
+            task.preCodeHash = getTaskResultResult.result.preCodeHash;
+          case 'FAILED':
+            task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
+            task.usedGas = getTaskResultResult.result.usedGas;
+            task.workerTaskSig = getTaskResultResult.result.signature;
+          case 'null':
+          case 'UNVERIFIED':
+          case 'INPROGRESS':
+            task.engStatus = getTaskResultResult.result.status;
+            break;
+          default:
+            throw (new Error('Invalid task result status')).message;
+        }
+        emitter.emit(eeConstants.GET_TASK_RESULT_RESULT, task);
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
       }
@@ -415,7 +458,7 @@ export default class Enigma {
   * pollTaskInputGen(task) {
     while (true) {
       yield new Promise((resolve, reject) => {
-        this.client.request('pollTaskInput', {taskId: task.taskId}, (err, response) => {
+        this.client.request('getTaskStatus', {taskId: task.taskId}, (err, response) => {
           if (err) {
             reject(err);
             return;
