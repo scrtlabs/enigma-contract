@@ -41,4 +41,9 @@ describe('enigma-utils', () => {
     expect(utils.getDerivedKey(enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfbace2faaff7e8ebfe00c4854f8c59407f6c24');
     expect(utils.getDerivedKey('04'+enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfbace2faaff7e8ebfe00c4854f8c59407f6c24');
   })
+
+  it('should remove 0x where present', () => {
+    expect(utils.remove0x('0x12345')).toEqual('12345');
+    expect(utils.remove0x('12345')).toEqual('12345');
+  })
 });
