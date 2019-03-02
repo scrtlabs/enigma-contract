@@ -293,7 +293,7 @@ function recoverPublicKey(signature, message) {
 function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   let ec = new EC('secp256k1');
 
-  if (enclavePublicKey.slice(0, 2) !== '04') {
+  if (enclavePublicKey.length == 128) {
     enclavePublicKey = '04' + enclavePublicKey;
   }
 
