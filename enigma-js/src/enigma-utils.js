@@ -292,7 +292,7 @@ function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPr
 function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   let ec = new EC('secp256k1');
 
-  if (enclavePublicKey.slice(0, 2) !== '04') {
+  if (enclavePublicKey.length == 128) {
     enclavePublicKey = '04' + enclavePublicKey;
   }
 
@@ -379,6 +379,20 @@ function toGrains(engValue) {
 //   return grains / 10**8;
 // }
 
+/**
+ * Removes '0x' from a hex string, if present
+ *
+ * @param {string} hexString
+ * @return {string}
+ */
+function remove0x(hexString) {
+  if (hexString.substring(0, 2) == '0x') {
+    return hexString.substring(2);
+  } else {
+    return hexString;
+  }
+}
+
 let utils = {};
 
 // utils.readCert = readCert;
@@ -398,5 +412,6 @@ utils.encryptMessage = encryptMessage;
 // utils.decryptMessage = decryptMessage;
 utils.toGrains = toGrains;
 // utils.fromGrains = fromGrains;
+utils.remove0x = remove0x;
 
 export default utils;

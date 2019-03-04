@@ -100,7 +100,11 @@ export default class Enigma {
       const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
-      const abiEncodedArgs = this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]);
+      const abiEncodedArgs = utils.remove0x(this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
+      let abiEncodedArgsArray = [];
+      for (let n = 0; n < abiEncodedArgs.length; n += 2) {
+        abiEncodedArgsArray.push(parseInt(abiEncodedArgs.substr(n, 2), 16));
+      }
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
@@ -146,7 +150,7 @@ export default class Enigma {
           const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
           // Encrypt function and ABI-encoded args
           const encryptedFn = utils.encryptMessage(derivedKey, fn);
-          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, abiEncodedArgs);
+          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, Buffer.from(abiEncodedArgsArray));
           const msg = this.web3.utils.soliditySha3(
             {t: 'bytes', v: encryptedFn},
             {t: 'bytes', v: encryptedAbiEncodedArgs},
@@ -512,11 +516,12 @@ export default class Enigma {
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
-    return task.isContractDeploymentTask ? {preCode: task.preCode, encryptedArgs: task.encryptedAbiEncodedArgs,
-      encryptedFn: task.encryptedFn, userDHKey: task.userPubKey, contractAddress: task.scAddr,
+    return task.isContractDeploymentTask ? {preCode: task.preCode,
+      encryptedArgs: utils.remove0x(task.encryptedAbiEncodedArgs), encryptedFn: utils.remove0x(task.encryptedFn),
+      userDHKey: utils.remove0x(task.userPubKey), contractAddress: utils.remove0x(task.scAddr),
       workerAddress: task.workerAddress} : {taskId: task.taskId, workerAddress: task.workerAddress,
-      encryptedFn: task.encryptedFn, encryptedArgs: task.encryptedAbiEncodedArgs, contractAddress: task.scAddr,
-      userDHKey: task.userPubKey,
+      encryptedFn: utils.remove0x(task.encryptedFn), encryptedArgs: utils.remove0x(task.encryptedAbiEncodedArgs),
+      contractAddress: utils.remove0x(task.scAddr), userDHKey: utils.remove0x(task.userPubKey),
     };
   }
 
