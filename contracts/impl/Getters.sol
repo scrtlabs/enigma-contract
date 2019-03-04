@@ -10,6 +10,10 @@ import { EnigmaStorage } from "./EnigmaStorage.sol";
  * Getter functions to be used by Enigma library to access state variables
  */
 contract Getters is EnigmaStorage {
+    function getSigningAddress() public view returns (address) {
+        return state.workers[msg.sender].signer;
+    }
+
     function getWorker(address _worker) public view returns (EnigmaCommon.Worker memory) {
         return state.workers[_worker];
     }
