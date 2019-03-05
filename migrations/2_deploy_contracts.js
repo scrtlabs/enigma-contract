@@ -1,7 +1,6 @@
+const dotenv = require('dotenv');
 const EnigmaToken = artifacts.require('EnigmaToken.sol');
-const Enigma = artifacts.require('Enigma.sol');
 const SolRsaVerify = artifacts.require('./utils/SolRsaVerify.sol');
-const WorkersImpl = artifacts.require('./impl/WorkersImpl.sol');
 const PrincipalImpl = artifacts.require('./impl/PrincipalImpl.sol');
 const TaskImpl = artifacts.require('./impl/TaskImpl.sol');
 const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
@@ -11,6 +10,15 @@ const path = require('path');
 
 const PRINCIPAL_SIGNING_ADDRESS = '0x3078356633353161633136306365333763653066';
 const EPOCH_SIZE = 10;
+
+dotenv.config();    // Reads .env configuration file, if present
+
+const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+  artifacts.require('Enigma-Simulation.sol') :
+  artifacts.require('Enigma.sol');
+const WorkersImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+  artifacts.require('./impl/WorkersImpl-Simulation.sol') :
+  artifacts.require('./impl/WorkersImpl.sol');
 
 async function deployProtocol(deployer) {
   await Promise.all([

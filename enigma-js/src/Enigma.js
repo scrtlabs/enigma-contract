@@ -458,18 +458,21 @@ export default class Enigma {
    * Generator function for polling the Enigma p2p network for task status
    *
    * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {boolean} withResult - Task wrapper for contract deployment and regular tasks
    */
-  * pollTaskInputGen(task) {
+  * pollTaskStatusGen(task, withResult) {
     while (true) {
       yield new Promise((resolve, reject) => {
-        this.client.request('getTaskStatus', {taskId: task.taskId}, (err, response) => {
+        this.client.request('getTaskStatus', {taskId: task.taskId, workerAddress: task.workerAddress,
+          withResult: withResult}, (err, response) => {
           if (err) {
             reject(err);
             return;
           }
-          task.encryptedAbiEncodedOutputs = response.encryptedAbiEncodedOutputs;
-          task.workerTaskSig = response.workerTaskSig;
-          task.engStatus = response.engStatus;
+          task.engStatus = response.result.status;
+          if (withResult) {
+            task.encryptedAbiEncodedOutputs = response.result.output;
+          }
           resolve(task);
         });
       });
@@ -480,15 +483,15 @@ export default class Enigma {
    * Inner poll status function that continues to poll the Enigma p2p network until the task has been verified
    *
    * @param {Task} task - Task wrapper for contract deployment and regular tasks
-   * @param {pollTaskGen} generator - Generator function for polling Enigma p2p network for task status
+   * @param {pollTaskStatusGen} generator - Generator function for polling Enigma p2p network for task status
    * @param {EventEmitter} emitter - EventEmitter to track Enigma p2p network polling for Task status
    */
-  innerPollTaskInput(task, generator, emitter) {
+  innerPollTaskStatus(task, generator, emitter) {
     let p = generator.next();
     p.value.then((d) => {
-      emitter.emit(eeConstants.POLL_TASK_INPUT_RESULT, d);
-      if (d.status !== 2) {
-        this.innerPollTaskInput(task, generator, emitter);
+      emitter.emit(eeConstants.POLL_TASK_STATUS_RESULT, d);
+      if (d.engStatus !== 'SUCCESS' && d.engStatus !== 'FAILED') {
+        this.innerPollTaskStatus(task, generator, emitter);
       }
     }).catch((err) => {
       emitter.emit(eeConstants.ERROR, err);
@@ -499,13 +502,14 @@ export default class Enigma {
    * Poll the Enigma p2p network for a TaskInput's status
    *
    * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {boolean} withResult - Task wrapper for contract deployment and regular tasks
    * @return {EventEmitter} EventEmitter to be listened to track polling the Enigma p2p network for a Task status.
    * Emits a Task with task result attributes
    */
-  pollTaskInput(task) {
+  pollTaskStatus(task, withResult=false) {
     let emitter = new EventEmitter();
-    let generator = this.pollTaskInputGen(task);
-    this.innerPollTaskInput(task, generator, emitter);
+    let generator = this.pollTaskStatusGen(task, withResult);
+    this.innerPollTaskStatus(task, generator, emitter);
     return emitter;
   }
 

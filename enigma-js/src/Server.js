@@ -7,9 +7,11 @@ import bodyParser from 'body-parser';
 export default class RPCServer {
   constructor() {
     let _counter = 0;
-    let _getTaskResultCounter = 0;
     this.app = connect();
     this.serverInstance = null;
+    this.resetCounter = () => {
+      _counter = 0;
+    };
     this.server = jayson.server({
       getWorkerEncryptionKey: function(workerAddress, callback) {
         if (!workerAddress) {
@@ -61,16 +63,19 @@ export default class RPCServer {
           });
         }
       },
-      getTaskStatus: function(taskId, callback) {
+      getTaskStatus: function(taskId, workerAddress, withResult, callback) {
         if (!taskId) {
+          callback({code: -32602, message: 'Invalid params'});
+        } else if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
           _counter++;
           let status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
           callback(null, {
-            encryptedAbiEncodedOutputs: 'abcd1234',
-            workerTaskSig: 'myWorkerSig',
-            engStatus: status,
+            result: {
+              output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+              status: status,
+            },
           });
         }
       },
@@ -78,9 +83,9 @@ export default class RPCServer {
         if (!taskId) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
-          switch (_getTaskResultCounter) {
+          switch (_counter) {
             case (0):
-              _getTaskResultCounter+=1;
+              _counter++;
               callback(null, {
                 result: {
                   status: 'INVALIDSTATUS',
@@ -88,7 +93,7 @@ export default class RPCServer {
               });
               break;
             case (1):
-              _getTaskResultCounter+=1;
+              _counter++;
               callback(null, {
                 result: {
                   status: 'null',
@@ -96,7 +101,7 @@ export default class RPCServer {
               });
               break;
             case (2):
-              _getTaskResultCounter+=1;
+              _counter++;
               callback(null, {
                 result: {
                   status: 'UNVERIFIED',
@@ -104,7 +109,7 @@ export default class RPCServer {
               });
               break;
             case (3):
-              _getTaskResultCounter+=1;
+              _counter++;
               callback(null, {
                 result: {
                   status: 'INPROGRESS',
@@ -112,7 +117,7 @@ export default class RPCServer {
               });
               break;
             case (4):
-              _getTaskResultCounter+=1;
+              _counter++;
               callback(null, {
                 result: {
                   taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
@@ -124,7 +129,7 @@ export default class RPCServer {
               });
               break;
             default:
-              _getTaskResultCounter+=1;
+              _counter++;
               callback(null, {
                 result: {
                   taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',

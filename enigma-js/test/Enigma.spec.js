@@ -1149,7 +1149,54 @@ describe('Enigma tests', () => {
         })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
       });
 
+    it('should fail to poll the network because of failed rpc call', async () => {
+      server.close(true);
+      const consoleError = console.error; // save original console for future use
+      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
+      let taskStatuses = [];
+      await expect(new Promise((resolve, reject) => {
+        enigma.pollTaskStatus(task).on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
+          taskStatuses.push(result.engStatus);
+          if (result.engStatus === 'SUCCESS') {
+            resolve();
+          }
+        }).on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      console.error = consoleError; // restore the original console
+      server.listen();
+    });
+
+    it('should poll the network until task confirmed without result', async () => {
+      let taskStatuses = [];
+      task = await new Promise((resolve, reject) => {
+        enigma.pollTaskStatus(task).on(eeConstants.POLL_TASK_STATUS_RESULT, (result) => {
+          taskStatuses.push(result.engStatus);
+          if (result.engStatus === 'SUCCESS') {
+            resolve(result);
+          }
+        }).on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.encryptedAbiEncodedOutputs).toBeFalsy();
+      expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
+    });
+
+  it('should poll the network until task confirmed with result', async () => {
+    server.resetCounter();
+    let taskStatuses = [];
+    task = await new Promise((resolve, reject) => {
+      enigma.pollTaskStatus(task, true).on(eeConstants.POLL_TASK_STATUS_RESULT, (result) => {
+        taskStatuses.push(result.engStatus);
+        if (result.engStatus === 'SUCCESS') {
+          resolve(result);
+        }
+      }).on(eeConstants.ERROR, (error) => reject(error));
+    });
+    expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
+    expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
+  });
+
     it('should get task result with invalid return status', async () => {
+      server.resetCounter();
       await expect(new Promise((resolve, reject) => {
         enigma.getTaskResult(task)
           .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
@@ -1266,36 +1313,6 @@ describe('Enigma tests', () => {
       expect(task.ethereumPayload).toBeTruthy();
       expect(task.ethereumAddress).toBeTruthy();
       expect(task.workerTaskSig).toBeTruthy();
-    });
-
-    it('should fail to poll the network because of failed rpc call', async () => {
-      server.close(true);
-      const consoleError = console.error; // save original console for future use
-      console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
-      let taskStatuses = [];
-      await expect(new Promise((resolve, reject) => {
-        enigma.pollTaskInput(task).on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
-          taskStatuses.push(result.engStatus);
-          if (result.engStatus === 'SUCCESS') {
-            resolve();
-          }
-        }).on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
-      console.error = consoleError; // restore the original console
-      server.listen();
-    });
-
-    it('should poll the network until task confirmed', async () => {
-      let taskStatuses = [];
-      await new Promise((resolve, reject) => {
-        enigma.pollTaskInput(task).on(eeConstants.POLL_TASK_INPUT_RESULT, (result) => {
-          taskStatuses.push(result.engStatus);
-          if (result.engStatus === 'SUCCESS') {
-            resolve();
-          }
-        }).on(eeConstants.ERROR, (error) => reject(error));
-      });
-      expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
     });
 
     it('should get the pending task', async () => {
@@ -1833,7 +1850,7 @@ describe('Enigma tests', () => {
     }, 40000);
 
     it('should fail the RPC Server', async () => {
-      expect.assertions(13);
+      expect.assertions(15);
       await expect(new Promise((resolve, reject) => {
         enigma.client.request('getWorkerEncryptionKey', {}, (err, response) => {
           if (err) {
@@ -1941,7 +1958,23 @@ describe('Enigma tests', () => {
         });
       })).rejects.toEqual({code: -32602, message: 'Invalid params'});
       await expect(new Promise((resolve, reject) => {
+        enigma.client.request('getTaskStatus', {taskId: '1'}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
+      })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+      await expect(new Promise((resolve, reject) => {
         enigma.client.request('getTaskStatus', {}, (err, response) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(response);
+        });
+      })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+      await expect(new Promise((resolve, reject) => {
+        enigma.client.request('getTaskResult', {}, (err, response) => {
           if (err) {
             reject(err);
           }
