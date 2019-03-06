@@ -9,6 +9,9 @@ export default class RPCServer {
     let _counter = 0;
     this.app = connect();
     this.serverInstance = null;
+    this.resetCounter = () => {
+      _counter = 0;
+    };
     this.server = jayson.server({
       getWorkerEncryptionKey: function(workerAddress, callback) {
         if (!workerAddress) {
@@ -60,17 +63,86 @@ export default class RPCServer {
           });
         }
       },
-      pollTaskInput: function(taskId, callback) {
+      getTaskStatus: function(taskId, workerAddress, withResult, callback) {
         if (!taskId) {
+          callback({code: -32602, message: 'Invalid params'});
+        } else if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
           _counter++;
-          let status = (_counter < 5) ? 1 : 2;
+          let status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
           callback(null, {
-            encryptedAbiEncodedOutputs: 'abcd1234',
-            workerTaskSig: 'myWorkerSig',
-            engStatus: status,
+            result: {
+              output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+              status: status,
+            },
           });
+        }
+      },
+      getTaskResult: function(taskId, callback) {
+        if (!taskId) {
+          callback({code: -32602, message: 'Invalid params'});
+        } else {
+          switch (_counter) {
+            case (0):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'INVALIDSTATUS',
+                },
+              });
+              break;
+            case (1):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'null',
+                },
+              });
+              break;
+            case (2):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'UNVERIFIED',
+                },
+              });
+              break;
+            case (3):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'INPROGRESS',
+                },
+              });
+              break;
+            case (4):
+              _counter++;
+              callback(null, {
+                result: {
+                  taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
+                  status: 'FAILED',
+                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  usedGas: 'amount-of-gas-used',
+                  signature: 'enclave-signature',
+                },
+              });
+              break;
+            default:
+              _counter++;
+              callback(null, {
+                result: {
+                  taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
+                  status: 'SUCCESS',
+                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  delta: {'key': 0, 'data': [11, 2, 3, 5, 41, 44]},
+                  usedGas: 'amount-of-gas-used',
+                  ethereumPayload: 'hex of payload',
+                  ethereumAddress: 'address of the payload',
+                  signature: 'enclave-signature',
+                },
+              });
+          }
         }
       },
     }, {
