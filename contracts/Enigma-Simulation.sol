@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import "./utils/SolRsaVerify.sol";
 
-import { WorkersImpl } from "./impl/WorkersImpl.sol";
+import { WorkersImpl } from "./impl/WorkersImpl-Simulation.sol";
 import { PrincipalImpl } from "./impl/PrincipalImpl.sol";
 import { TaskImpl } from "./impl/TaskImpl.sol";
 import { SecretContractImpl } from "./impl/SecretContractImpl.sol";

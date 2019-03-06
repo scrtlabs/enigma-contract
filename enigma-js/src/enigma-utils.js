@@ -1,7 +1,6 @@
 import web3Utils from 'web3-utils';
 // import RLP from 'rlp';
 import forge from 'node-forge';
-import EthCrypto from 'eth-crypto';
 import elliptic from 'elliptic';
 import {Buffer} from 'buffer';
 
@@ -236,19 +235,19 @@ function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPr
 //   return address;
 // }
 
-/**
- * Sign a message with the specified private key
- *
- * @param {string} privateKey
- * @param {string} message
- * @return {string}
- */
-function sign(privateKey, message) {
-  return EthCrypto.sign(
-    privateKey,
-    message,
-  );
-}
+// /**
+//  * Sign a message with the specified private key
+//  *
+//  * @param {string} privateKey
+//  * @param {string} message
+//  * @return {string}
+//  */
+// function sign(privateKey, message) {
+//   return EthCrypto.sign(
+//     privateKey,
+//     message,
+//   );
+// }
 
 // /**
 //  * Returns the address with which the message was signed
@@ -264,19 +263,19 @@ function sign(privateKey, message) {
 //   );
 // }
 
-/**
- * Returns the public key associated with the message signature
- *
- * @param {string} signature
- * @param {string} message
- * @return {string} Public key
- */
-function recoverPublicKey(signature, message) {
-  return EthCrypto.recoverPublicKey(
-    signature,
-    message,
-  );
-}
+// /**
+//  * Returns the public key associated with the message signature
+//  *
+//  * @param {string} signature
+//  * @param {string} message
+//  * @return {string} Public key
+//  */
+// function recoverPublicKey(signature, message) {
+//   return EthCrypto.recoverPublicKey(
+//     signature,
+//     message,
+//   );
+// }
 
 /**
  * This does ECDH key derivation from 2 EC secp256k1 keys.
@@ -293,7 +292,7 @@ function recoverPublicKey(signature, message) {
 function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   let ec = new EC('secp256k1');
 
-  if (enclavePublicKey.slice(0, 2) !== '04') {
+  if (enclavePublicKey.length == 128) {
     enclavePublicKey = '04' + enclavePublicKey;
   }
 
@@ -380,6 +379,20 @@ function toGrains(engValue) {
 //   return grains / 10**8;
 // }
 
+/**
+ * Removes '0x' from a hex string, if present
+ *
+ * @param {string} hexString
+ * @return {string}
+ */
+function remove0x(hexString) {
+  if (hexString.substring(0, 2) == '0x') {
+    return hexString.substring(2);
+  } else {
+    return hexString;
+  }
+}
+
 let utils = {};
 
 // utils.readCert = readCert;
@@ -391,13 +404,14 @@ utils.generateTaskInputsHash = generateTaskInputsHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;
-utils.sign = sign;
+// utils.sign = sign;
 // utils.recover = recover;
-utils.recoverPublicKey = recoverPublicKey;
+// utils.recoverPublicKey = recoverPublicKey;
 utils.getDerivedKey = getDerivedKey;
 utils.encryptMessage = encryptMessage;
 // utils.decryptMessage = decryptMessage;
 utils.toGrains = toGrains;
 // utils.fromGrains = fromGrains;
+utils.remove0x = remove0x;
 
 export default utils;

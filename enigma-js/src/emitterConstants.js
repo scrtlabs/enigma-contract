@@ -30,5 +30,6 @@ export const CREATE_TASK_RECORDS_RECEIPT = 'createTaskRecordsReceipt';
 export const CREATE_TASK_RECORDS = 'createTaskRecords';
 
 export const SEND_TASK_INPUT_RESULT = 'sendTaskInputResult';
-export const POLL_TASK_INPUT_RESULT = 'pollTaskInputResult';
+export const POLL_TASK_STATUS_RESULT = 'pollTaskStatusResult';
+export const GET_TASK_RESULT_RESULT = 'getTaskResultResult';
 export const DEPLOY_SECRET_CONTRACT_RESULT = 'deploySecretContractResult';

@@ -9,6 +9,14 @@ The Solidity contracts and the [Javascript client library](enigma-js/) of the En
 
 For more information, refer to the [Protocol documentation](https://enigma.co/protocol) for more information, as well as the [client library README](enigma-js/README.md).
 
+## Configuration
+
+The Enigma contract supports both Hardware and Software (aka Simulation) SGX modes for the enclaves running on the Engima network. The distinction comes when the enclaves register with the contract, when they must include a Remote Attestation report signed by Intel that verifies the enclaves credentials. In the case of Simulation mode that report is empty, and the contract skips the mandatory signature verifications enforced in Hardware mode.
+
+Simulation mode is only supported for development purposes in environments without access to hosts with SGX capabilities. For security reasons, there are two different sets of contracts for Hardware and Software mode (instead of having a switch or conditional block inside the contract that will end on mainnet). The selection between either mode is conditional at the time of doing the contract migrations based on the environment variable `SGX_MODE`. Only when it is set to `SW`, the simulation mode will be enabled. In all other cases, it will run in Hardware mode.
+
+For reference, an `.env-template` is provided that can be copied over to `.env` to manage the setting of this environment variable.
+
 ## License
 
 The Enigma Contract is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by
