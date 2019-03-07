@@ -14,10 +14,10 @@ const EPOCH_SIZE = 10;
 dotenv.config();    // Reads .env configuration file, if present
 
 const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-  artifacts.require('Enigma-Simulation.sol') :
+  artifacts.require('EnigmaSimulation.sol') :
   artifacts.require('Enigma.sol');
 const WorkersImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-  artifacts.require('./impl/WorkersImpl-Simulation.sol') :
+  artifacts.require('./impl/WorkersImplSimulation.sol') :
   artifacts.require('./impl/WorkersImpl.sol');
 
 async function deployProtocol(deployer) {
@@ -29,8 +29,12 @@ async function deployProtocol(deployer) {
   ]);
 
   await Promise.all([
-    TaskImpl.link('WorkersImpl', WorkersImpl.address),
-    PrincipalImpl.link('WorkersImpl', WorkersImpl.address),
+    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+      TaskImpl.link('WorkersImplSimulation', WorkersImpl.address):
+      TaskImpl.link('WorkersImpl', WorkersImpl.address),
+    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+      PrincipalImpl.link('WorkersImplSimulation', WorkersImpl.address) :
+      PrincipalImpl.link('WorkersImpl', WorkersImpl.address),
   ]);
   await Promise.all([
     deployer.deploy(TaskImpl),
@@ -38,7 +42,9 @@ async function deployProtocol(deployer) {
   ]);
 
   await Promise.all([
-    Enigma.link('WorkersImpl', WorkersImpl.address),
+    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+      Enigma.link('WorkersImplSimulation', WorkersImpl.address) :
+      Enigma.link('WorkersImpl', WorkersImpl.address),
     Enigma.link('PrincipalImpl', PrincipalImpl.address),
     Enigma.link('TaskImpl', TaskImpl.address),
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
