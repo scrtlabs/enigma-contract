@@ -20,6 +20,8 @@ script:
   - truffle compile
   - truffle migrate --reset --network development
   - pushd enigma-js && yarn build && popd
+  - SGX_MODE=SW truffle migrate --reset --network development
+  - SGX_MODE=SW pushd enigma-js && yarn test && popd
 
 after_success:
   - pushd enigma-js && yarn report-coverage
