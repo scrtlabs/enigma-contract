@@ -1,15 +1,19 @@
 /* eslint-disable require-jsdoc */
+import dotenv from 'dotenv';
 import Enigma from '../src/Enigma';
 import utils from '../src/enigma-utils';
 import forge from 'node-forge';
 import Web3 from 'web3';
 import EthCrypto from 'eth-crypto';
 import EnigmaContract from '../../build/contracts/Enigma';
+import EnigmaContractSimulation from '../../build/contracts/EnigmaSimulation';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import data from './data';
 import * as eeConstants from '../src/emitterConstants';
 import SampleContract from '../../build/contracts/Sample';
 import {execInContainer} from './principal-utils';
+
+dotenv.config();
 
 // Launch local mock JSON RPC Server
 import RPCServer from '../src/Server';
@@ -40,7 +44,9 @@ describe('Enigma tests', () => {
         console.log('the accounts', accounts);
         enigma = new Enigma(
           web3,
-          EnigmaContract.networks['4447'].address,
+          (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+            EnigmaContractSimulation.networks['4447'].address :
+            EnigmaContract.networks['4447'].address,
           EnigmaTokenContract.networks['4447'].address,
           'http://localhost:3000',
           {
