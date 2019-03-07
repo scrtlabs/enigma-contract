@@ -1,8 +1,6 @@
 const dotenv = require('dotenv');
 const EnigmaToken = artifacts.require('EnigmaToken.sol');
 const SolRsaVerify = artifacts.require('./utils/SolRsaVerify.sol');
-const PrincipalImpl = artifacts.require('./impl/PrincipalImpl.sol');
-const TaskImpl = artifacts.require('./impl/TaskImpl.sol');
 const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
 const Sample = artifacts.require('Sample.sol');
 const fs = require('fs');
@@ -19,6 +17,12 @@ const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_M
 const WorkersImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
   artifacts.require('./impl/WorkersImplSimulation.sol') :
   artifacts.require('./impl/WorkersImpl.sol');
+const PrincipalImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+  artifacts.require('./impl/PrincipalImplSimulation.sol') :
+  artifacts.require('./impl/PrincipalImpl.sol');
+const TaskImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+  artifacts.require('./impl/TaskImplSimulation.sol') :
+  artifacts.require('./impl/TaskImpl.sol');
 
 async function deployProtocol(deployer) {
   await Promise.all([
@@ -28,14 +32,18 @@ async function deployProtocol(deployer) {
     deployer.deploy(SecretContractImpl),
   ]);
 
-  await Promise.all([
-    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-      TaskImpl.link('WorkersImplSimulation', WorkersImpl.address):
+  if (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') {
+    await Promise.all([
+      TaskImpl.link('WorkersImplSimulation', WorkersImpl.address),
+      PrincipalImpl.link('WorkersImplSimulation', WorkersImpl.address),
+    ]);
+  } else {
+    await Promise.all([
       TaskImpl.link('WorkersImpl', WorkersImpl.address),
-    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-      PrincipalImpl.link('WorkersImplSimulation', WorkersImpl.address) :
       PrincipalImpl.link('WorkersImpl', WorkersImpl.address),
-  ]);
+    ]);
+  }
+
   await Promise.all([
     deployer.deploy(TaskImpl),
     deployer.deploy(PrincipalImpl),

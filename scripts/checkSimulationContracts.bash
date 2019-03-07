@@ -55,6 +55,7 @@ fi
 # Replace what needs to be replaced in TaskImpl.sol to support Simulation
 sed -e "s#import { WorkersImpl } from \"./WorkersImpl.sol\";#import { WorkersImplSimulation } from \"./WorkersImplSimulation.sol\";#" $IMPLDIR/TaskImpl.sol > TaskImplSimulation.sol
 sed -i "s/WorkersImpl\./WorkersImplSimulation./g" TaskImplSimulation.sol
+sed -i "s/library TaskImpl /library TaskImplSimulation /" TaskImplSimulation.sol
 
 # Check if the existing TaskImplSimulation.sol matches the replacement version
 if ! diff TaskImplSimulation.sol $IMPLDIR/TaskImplSimulation.sol > /dev/null 2>&1; then
@@ -74,6 +75,7 @@ fi
 # Replace what needs to be replaced in PrincipalImpl.sol to support Simulation
 sed -e "s#import { WorkersImpl } from \"./WorkersImpl.sol\";#import { WorkersImplSimulation } from \"./WorkersImplSimulation.sol\";#" $IMPLDIR/PrincipalImpl.sol > PrincipalImplSimulation.sol
 sed -i "s/WorkersImpl\./WorkersImplSimulation./g" PrincipalImplSimulation.sol
+sed -i "s/library PrincipalImpl /library PrincipalImplSimulation /" PrincipalImplSimulation.sol
 
 # Check if the existing PrincipalImplSimulation.sol matches the replacement version
 if ! diff PrincipalImplSimulation.sol $IMPLDIR/PrincipalImplSimulation.sol > /dev/null 2>&1; then

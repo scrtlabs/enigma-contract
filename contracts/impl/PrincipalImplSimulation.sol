@@ -13,7 +13,7 @@ import { WorkersImplSimulation } from "./WorkersImplSimulation.sol";
  *
  * Library that maintains functionality associated with Principal node
  */
-library PrincipalImpl {
+library PrincipalImplSimulation {
     using SafeMath for uint256;
     using ECDSA for bytes32;
 

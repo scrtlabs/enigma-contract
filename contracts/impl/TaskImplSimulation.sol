@@ -14,7 +14,7 @@ import "../utils/SolRsaVerify.sol";
  *
  * Library that maintains functionality associated with tasks
  */
-library TaskImpl {
+library TaskImplSimulation {
     using SafeMath for uint256;
     using ECDSA for bytes32;
 
@@ -133,7 +133,7 @@ library TaskImpl {
             uint64(_optionalEthereumData.length), _optionalEthereumData,
             uint64(20), _optionalEthereumContractAddress,
             bytes1(0x01)));
-        // require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         // Set the secret contract's attributes in registry
         EnigmaCommon.SecretContract storage secretContract = state.contracts[_taskId];
@@ -289,7 +289,7 @@ library TaskImpl {
             uint64(20), _optionalEthereumContractAddress,
             bytes1(0x01)));
 
-        // require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         if (_optionalEthereumContractAddress != address(0)) {
             (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
