@@ -108,8 +108,7 @@ export default class Enigma {
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
-      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
-      let workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
+      let workerAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
       workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
       const {publicKey, privateKey} = this.obtainTaskKeyPair();
       try {
