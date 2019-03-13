@@ -12,7 +12,7 @@ import SampleContract from '../../build/contracts/Sample';
 import {execInContainer, getStateKeysInContainer} from './principal-utils';
 
 // Launch local mock JSON RPC Server
-import RPCServer from '../src/Server';
+import RPCServer from './Server';
 
 forge.options.usePureJavaScript = true;
 
@@ -678,8 +678,8 @@ describe('Enigma tests', () => {
       const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
-      let [account, selectedWorker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
-      const startingWorkerBalance = parseInt(selectedWorker.balance);
+      let [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const startingWorkerBalance = parseInt(worker.balance);
       const startingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
       );
@@ -688,8 +688,9 @@ describe('Enigma tests', () => {
           from: account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      [account, selectedWorker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
-      const endingWorkerBalance = parseInt(selectedWorker.balance);
+      [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).
+        call();
+      const endingWorkerBalance = parseInt(worker.balance);
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
       );
@@ -793,9 +794,8 @@ describe('Enigma tests', () => {
       const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      let [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const startingWorkerBalance = parseInt(worker.balance);
       const startingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
       );
@@ -811,9 +811,8 @@ describe('Enigma tests', () => {
           from: selectedWorkerAddr,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const endingWorkerBalance = parseInt(worker.balance);
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
       );
@@ -952,9 +951,8 @@ describe('Enigma tests', () => {
       const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      let [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const startingWorkerBalance = parseInt(worker.balance);
       const startingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
       );
@@ -970,9 +968,8 @@ describe('Enigma tests', () => {
           from: selectedWorkerAddr,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const endingWorkerBalance = parseInt(worker.balance);
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
       );
@@ -1258,9 +1255,8 @@ describe('Enigma tests', () => {
       const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      let [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const startingWorkerBalance = parseInt(worker.balance);
       const startingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1269,9 +1265,8 @@ describe('Enigma tests', () => {
           from: selectedWorkerAddr,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const endingWorkerBalance = parseInt(worker.balance);
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1402,9 +1397,8 @@ describe('Enigma tests', () => {
       const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      let [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const startingWorkerBalance = parseInt(worker.balance);
       const startingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1423,9 +1417,8 @@ describe('Enigma tests', () => {
       sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(5);
       expect(sampleContractBool).toEqual(true);
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const endingWorkerBalance = parseInt(worker.balance);
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1553,9 +1546,8 @@ describe('Enigma tests', () => {
       const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      let [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const startingWorkerBalance = parseInt(worker.balance);
       const startingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1574,9 +1566,8 @@ describe('Enigma tests', () => {
       sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(10);
       expect(sampleContractBool).toEqual(false);
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const endingWorkerBalance = parseInt(worker.balance);
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1722,9 +1713,8 @@ describe('Enigma tests', () => {
       const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      let [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const startingWorkerBalance = parseInt(worker.balance);
       const startingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1735,9 +1725,8 @@ describe('Enigma tests', () => {
           from: selectedWorkerAddr,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      [, worker] = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const endingWorkerBalance = parseInt(worker.balance);
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );

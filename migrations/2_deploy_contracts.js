@@ -13,12 +13,15 @@ const EPOCH_SIZE = 10;
 
 dotenv.config();    // Reads .env configuration file, if present
 
-const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-  artifacts.require('Enigma-Simulation.sol') :
-  artifacts.require('Enigma.sol');
-const WorkersImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-  artifacts.require('./impl/WorkersImpl-Simulation.sol') :
-  artifacts.require('./impl/WorkersImpl.sol');
+// const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+//   artifacts.require('Enigma-Simulation.sol') :
+//   artifacts.require('Enigma.sol');
+// const WorkersImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+//   artifacts.require('./impl/WorkersImpl-Simulation.sol') :
+//   artifacts.require('./impl/WorkersImpl.sol');
+
+const Enigma = artifacts.require('Enigma.sol');
+const WorkersImpl = artifacts.require('./impl/WorkersImpl.sol');
 
 async function deployProtocol(deployer) {
   await Promise.all([
@@ -44,14 +47,14 @@ async function deployProtocol(deployer) {
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
 
-  let principal = PRINCIPAL_SIGNING_ADDRESS;
-  const homedir = require('os').homedir();
-  const principalSignAddrFile = path.join(homedir, '.enigma', 'principal-sign-addr.txt');
-  if (fs.existsSync(principalSignAddrFile)) {
-    principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
-  }
-  console.log('using account', principal, 'as principal signer');
-  await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
+  // let principal = PRINCIPAL_SIGNING_ADDRESS;
+  // const homedir = require('os').homedir();
+  // const principalSignAddrFile = path.join(homedir, '.enigma', 'principal-sign-addr.txt');
+  // if (fs.existsSync(principalSignAddrFile)) {
+  //   principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
+  // }
+  // console.log('using account', principal, 'as principal signer');
+  await deployer.deploy(Enigma, EnigmaToken.address, PRINCIPAL_SIGNING_ADDRESS, EPOCH_SIZE);
   await deployer.deploy(Sample);
 }
 
