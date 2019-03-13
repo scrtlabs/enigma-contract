@@ -2,7 +2,12 @@ import jayson from 'jayson';
 import cors from 'cors';
 import connect from 'connect';
 import bodyParser from 'body-parser';
-// var app = connect();
+import web3Utils from 'web3-utils';
+import data from '../test/data';
+import EthCrypto from 'eth-crypto';
+import msgpack from 'msgpack-lite';
+import utils from './enigma-utils';
+
 
 export default class RPCServer {
   constructor() {
@@ -17,12 +22,20 @@ export default class RPCServer {
         if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
+          const identity = EthCrypto.createIdentity();
+          let key = [];
+          for (let n = 0; n < identity.publicKey.length; n += 2) {
+            key.push(parseInt(identity.publicKey.substr(n, 2), 16));
+          }
+          const prefix = 'Enigma User Message'.split('').map(function(c) {
+            return c.charCodeAt(0);
+          });
+          const buffer = msgpack.encode({'prefix': prefix, 'pubkey': key});
+          const signature = EthCrypto.sign(data.worker[4], web3Utils.soliditySha3({t: 'bytes', value: buffer.toString('hex')}));
           callback(null, {
             result: {
-              workerEncryptionKey: 'c647c3b37429e43638712f2fc2ecfa3e0fbd1bc23938cb8e605a0e91bb93c9c184dbb06552ac9e' +
-                'b7fb65f219bef58f14b90557299fc69b20331f60d183e98cc5',
-              workerSig: 'acb4ce556cbd2549975a08f6e2166f80c9c9fcbb8b92a6ebcc62d998b62449733bd294de8c8db9d225c2e911' +
-                '97231adf5b43a96b1750f75f05cbc22686056d091b',
+              workerEncryptionKey: identity.publicKey,
+              workerSig: utils.remove0x(signature),
             }, id: 'ldotj6nghv7a',
           });
         }
