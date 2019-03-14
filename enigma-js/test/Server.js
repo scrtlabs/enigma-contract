@@ -2,30 +2,40 @@ import jayson from 'jayson';
 import cors from 'cors';
 import connect from 'connect';
 import bodyParser from 'body-parser';
-import * as data from './data';
-import EthCrypto from 'eth-crypto';
 import web3Utils from 'web3-utils';
-// var app = connect();
+import data from '../test/data';
+import EthCrypto from 'eth-crypto';
+import msgpack from 'msgpack-lite';
+import utils from './enigma-utils';
+
 
 export default class RPCServer {
   constructor() {
     let _counter = 0;
     this.app = connect();
     this.serverInstance = null;
+    this.resetCounter = () => {
+      _counter = 0;
+    };
     this.server = jayson.server({
       getWorkerEncryptionKey: function(workerAddress, callback) {
         if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
-          const worker = data.workers.find((w) => w[0] === '0x' + workerAddress);
-          console.log('Found worker', worker);
-          const key = '0xc647c3b37429e43638712f2fc2ecfa3e0fbd1bc23938cb8e605a0e91bb93c9c184dbb06552ac9e' +
-            'b7fb65f219bef58f14b90557299fc69b20331f60d183e98cc5';
-          const sig = EthCrypto.sign(worker[4], key);
+          const identity = EthCrypto.createIdentity();
+          let key = [];
+          for (let n = 0; n < identity.publicKey.length; n += 2) {
+            key.push(parseInt(identity.publicKey.substr(n, 2), 16));
+          }
+          const prefix = 'Enigma User Message'.split('').map(function(c) {
+            return c.charCodeAt(0);
+          });
+          const buffer = msgpack.encode({'prefix': prefix, 'pubkey': key});
+          const signature = EthCrypto.sign(data.worker[4], web3Utils.soliditySha3({t: 'bytes', value: buffer.toString('hex')}));
           callback(null, {
             result: {
-              workerEncryptionKey: key,
-              workerSig: sig,
+              workerEncryptionKey: identity.publicKey,
+              workerSig: utils.remove0x(signature),
             }, id: 'ldotj6nghv7a',
           });
         }
@@ -66,17 +76,86 @@ export default class RPCServer {
           });
         }
       },
-      pollTaskInput: function(taskId, callback) {
+      getTaskStatus: function(taskId, workerAddress, withResult, callback) {
         if (!taskId) {
+          callback({code: -32602, message: 'Invalid params'});
+        } else if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
           _counter++;
-          let status = (_counter < 5) ? 1 : 2;
+          let status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
           callback(null, {
-            encryptedAbiEncodedOutputs: 'abcd1234',
-            workerTaskSig: 'myWorkerSig',
-            engStatus: status,
+            result: {
+              output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+              status: status,
+            },
           });
+        }
+      },
+      getTaskResult: function(taskId, callback) {
+        if (!taskId) {
+          callback({code: -32602, message: 'Invalid params'});
+        } else {
+          switch (_counter) {
+            case (0):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'INVALIDSTATUS',
+                },
+              });
+              break;
+            case (1):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'null',
+                },
+              });
+              break;
+            case (2):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'UNVERIFIED',
+                },
+              });
+              break;
+            case (3):
+              _counter++;
+              callback(null, {
+                result: {
+                  status: 'INPROGRESS',
+                },
+              });
+              break;
+            case (4):
+              _counter++;
+              callback(null, {
+                result: {
+                  taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
+                  status: 'FAILED',
+                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  usedGas: 'amount-of-gas-used',
+                  signature: 'enclave-signature',
+                },
+              });
+              break;
+            default:
+              _counter++;
+              callback(null, {
+                result: {
+                  taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
+                  status: 'SUCCESS',
+                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  delta: {'key': 0, 'data': [11, 2, 3, 5, 41, 44]},
+                  usedGas: 'amount-of-gas-used',
+                  ethereumPayload: 'hex of payload',
+                  ethereumAddress: 'address of the payload',
+                  signature: 'enclave-signature',
+                },
+              });
+          }
         }
       },
     }, {

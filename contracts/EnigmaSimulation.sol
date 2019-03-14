@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import "./utils/SolRsaVerify.sol";
 
-import { WorkersImpl } from "./impl/WorkersImpl-Simulation.sol";
+import { WorkersImplSimulation } from "./impl/WorkersImplSimulation.sol";
 import { PrincipalImpl } from "./impl/PrincipalImpl.sol";
 import { TaskImpl } from "./impl/TaskImpl.sol";
 import { SecretContractImpl } from "./impl/SecretContractImpl.sol";
@@ -16,7 +16,7 @@ import { EnigmaStorage } from "./impl/EnigmaStorage.sol";
 import { Getters } from "./impl/Getters.sol";
 import { ERC20 } from "./interfaces/ERC20.sol";
 
-contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
+contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     using SafeMath for uint256;
     using ECDSA for bytes32;
 
@@ -87,7 +87,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     modifier canWithdraw(address _user) {
         EnigmaCommon.Worker memory worker = state.workers[_user];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
-        EnigmaCommon.WorkerLog memory workerLog = WorkersImpl.getLatestWorkerLogImpl(state, worker, block.number);
+        EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulation.getLatestWorkerLogImpl(state, worker, block.number);
         require(workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogOut,
             "Worker's last log is not of LogOut type");
         require(getFirstBlockNumber(block.number) > workerLog.blockNumber,
@@ -139,7 +139,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     function register(address _signer, bytes memory _report, bytes memory _signature)
     public
     {
-        WorkersImpl.registerImpl(state, _signer, _report, _signature);
+        WorkersImplSimulation.registerImpl(state, _signer, _report, _signature);
     }
 //
     /**
@@ -152,7 +152,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     public
     workerRegistered(_custodian)
     {
-        WorkersImpl.depositImpl(state, _custodian, _amount);
+        WorkersImplSimulation.depositImpl(state, _custodian, _amount);
     }
 
     /**
@@ -165,7 +165,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     public
     canWithdraw(_custodian)
     {
-        WorkersImpl.withdrawImpl(state, _custodian, _amount);
+        WorkersImplSimulation.withdrawImpl(state, _custodian, _amount);
     }
 
     /**
@@ -173,14 +173,14 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * selection process.
     */
     function login() public canLogIn(msg.sender) {
-        WorkersImpl.loginImpl(state);
+        WorkersImplSimulation.loginImpl(state);
     }
 
     /**
     * Logout worker. Worker must be logged in to do so.
     */
     function logout() public workerLoggedIn(msg.sender) {
-        WorkersImpl.logoutImpl(state);
+        WorkersImplSimulation.logoutImpl(state);
     }
 
     /**
@@ -477,14 +477,14 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     public
     view
     returns (uint) {
-        return WorkersImpl.getFirstBlockNumberImpl(state, _blockNumber);
+        return WorkersImplSimulation.getFirstBlockNumberImpl(state, _blockNumber);
     }
 
     function getWorkerParams(uint _blockNumber)
     public
     view
     returns (uint, uint, address[] memory, uint[] memory) {
-        return WorkersImpl.getWorkerParamsImpl(state, _blockNumber);
+        return WorkersImplSimulation.getWorkerParamsImpl(state, _blockNumber);
     }
 
     /**
@@ -500,7 +500,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     view
     returns (address[] memory)
     {
-        return WorkersImpl.getWorkerGroupImpl(state, _blockNumber, _scAddr);
+        return WorkersImplSimulation.getWorkerGroupImpl(state, _blockNumber, _scAddr);
     }
 
     /**
@@ -514,7 +514,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     workerRegistered(_custodian)
     returns (address, bytes memory)
     {
-        return WorkersImpl.getReportImpl(state, _custodian);
+        return WorkersImplSimulation.getReportImpl(state, _custodian);
     }
 
     /**
@@ -527,6 +527,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     view
     returns (uint)
     {
-        return WorkersImpl.verifyReportImpl(_data, _signature);
+        return WorkersImplSimulation.verifyReportImpl(_data, _signature);
     }
 }

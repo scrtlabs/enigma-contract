@@ -13,7 +13,7 @@ import "../utils/Base64.sol";
  *
  * Library that maintains functionality associated with workers
  */
-library WorkersImpl {
+library WorkersImplSimulation {
     using SafeMath for uint256;
 
     event Registered(address custodian, address signer);

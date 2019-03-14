@@ -55,9 +55,13 @@ export default class Task {
     this.proof = '';
     this.creationBlockNumber = -1;
 
-    // Attributes added to task when computation result is being polled from the ENG network
+    // Attributes added to task when computation result is being polled/retrieved from the ENG network
     this.encryptedAbiEncodedOutputs = '';
+    this.delta = '';
+    this.usedGas = '';
+    this.ethereumPayload = '';
+    this.ethereumAddress = '';
     this.workerTaskSig = '';
-    this.engStatus = 0;
+    this.engStatus = 'null';
   }
 }
