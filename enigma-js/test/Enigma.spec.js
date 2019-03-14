@@ -509,7 +509,8 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: scTask.encryptedFn},
         {t: 'bytes', v: scTask.encryptedAbiEncodedArgs},
       );
-      expect(enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig)).toEqual(accounts[0]);
+      const signer = enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig);
+      expect(signer).toEqual(accounts[0]);
       expect(scTask.nonce).toEqual(0);
     });
 
@@ -1201,35 +1202,35 @@ describe('Enigma tests', () => {
       expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
     });
 
-  it('should poll the network until task confirmed with result', async () => {
-    server.resetCounter();
-    let taskStatuses = [];
-    task = await new Promise((resolve, reject) => {
-      enigma.pollTaskStatus(task, true).on(eeConstants.POLL_TASK_STATUS_RESULT, (result) => {
-        taskStatuses.push(result.engStatus);
-        if (result.engStatus === 'SUCCESS') {
-          resolve(result);
-        }
-      }).on(eeConstants.ERROR, (error) => reject(error));
+    it('should poll the network until task confirmed with result', async () => {
+      server.resetCounter();
+      let taskStatuses = [];
+      task = await new Promise((resolve, reject) => {
+        enigma.pollTaskStatus(task, true).on(eeConstants.POLL_TASK_STATUS_RESULT, (result) => {
+          taskStatuses.push(result.engStatus);
+          if (result.engStatus === 'SUCCESS') {
+            resolve(result);
+          }
+        }).on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
+      expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
     });
-    expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
-    expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
-  });
 
     it('should get task result with invalid return status', async () => {
       server.resetCounter();
       await expect(new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual('Invalid task result status');
     });
 
     it('should get task result of nonexistant task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('null');
     });
@@ -1280,18 +1281,18 @@ describe('Enigma tests', () => {
 
     it('should get task result of unverified task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('UNVERIFIED');
     });
 
     it('should get task result of inprogress task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('INPROGRESS');
     });
@@ -1301,9 +1302,9 @@ describe('Enigma tests', () => {
       const consoleError = console.error; // save original console for future use
       console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       await expect(new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
       console.error = consoleError; // restore the original console
       server.listen();
@@ -1311,9 +1312,9 @@ describe('Enigma tests', () => {
 
     it('should get task result of failed task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('FAILED');
       expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
@@ -1323,9 +1324,9 @@ describe('Enigma tests', () => {
 
     it('should get task result of successful computation', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('SUCCESS');
       expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
