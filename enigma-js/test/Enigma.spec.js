@@ -103,7 +103,7 @@ describe('Enigma tests', () => {
     it('should simulate principal node registration', async () => {
       let receipt;
       if (process.env.PRINCIPAL_CONTAINER) {
-        const tx = await execInContainer(enigma, '--register');
+        const tx = await execInContainer(enigma, '--register', true);
         receipt = await web3.eth.getTransactionReceipt(tx);
       } else {
         let worker = data.principal;
@@ -1042,23 +1042,15 @@ describe('Enigma tests', () => {
     }, 30000);
 
     it('should simulate getting the state keys for the contract / epoch', async () => {
-      let blockNumber = await web3.eth.getBlockNumber();
-      let getActiveWorkersResult = await enigma.enigmaContract.methods.getActiveWorkers(blockNumber).call({
-        from: accounts[8],
-      });
-      let workerAddresses = getActiveWorkersResult['0'];
-      for (let addr of workerAddresses) {
-        console.log('found worker address', addr);
-        const stateKeys = await getStateKeysInContainer(addr, [scTask.taskId]);
+      if (process.env.PRINCIPAL_CONTAINER) {
+        const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
+        const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
+        const worker = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase());
+        const stateKeys = await getStateKeysInContainer(enigma, worker, [scTask.scAddr]);
         console.log('the response', stateKeys);
+      } else {
+        console.log('Getting state keys requires the live Principal container.');
       }
-      // const contractSelectWorkers = await enigma.enigmaContract.methods.getWorkerGroup(scTask.creationBlockNumber,
-      //   scTask.taskId).call();
-      // const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
-      // const group = await enigma.selectWorkerGroup(scTask.taskId, workerParams, 1);
-      // for (let i = 0; i < group.length; i++) {
-      //   expect(group[i]).toEqual(contractSelectWorkers[i]);
-      // }
     });
 
     let scAddr;
@@ -1488,10 +1480,11 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       let sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
@@ -1634,9 +1627,10 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
       let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
@@ -1799,9 +1793,10 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.workers[0][4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
       let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
