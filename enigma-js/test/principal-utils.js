@@ -55,20 +55,25 @@ exports.getStateKeysInContainer = (enigma, worker, scAddrs) => {
   for (let n = 0; n < identity.publicKey.length; n += 2) {
     pubkey.push(parseInt(identity.publicKey.substr(n, 2), 16));
   }
-  const buffer = msgpack.encode({
-    prefix: Buffer.from('Enigma Message'),
+  const prefix = 'Enigma Message'.split('').map((c) => c.charCodeAt(0));
+  const request = {
+    prefix: prefix,
     data: {Request: scAddrs.map((a) => web3Utils.hexToBytes(a))},
     pubkey: pubkey,
-  });
+    id: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  };
+  console.log('The JSON request', JSON.stringify(request));
+  const buffer = msgpack.encode(request);
   const msg = buffer.toString('hex');
   const signature = EthCrypto.sign(worker[4], web3Utils.soliditySha3({
     t: 'bytes',
     value: msg,
   }));
   const params = JSON.stringify([msg, utils.remove0x(signature)]);
+  console.log('The getStateKeys params:', params);
   return new Promise((resolve, reject) => {
     const contractAddress = enigma.enigmaContract.options.address.substring(2);
-    const cmd = ['bash', '-c', `./enigma-principal-app -k ${params} -c ${contractAddress}`];
+    const cmd = ['bash', '-c', `./enigma-principal-app -k '${params}' -c ${contractAddress}`];
     const cmdStr = cmd.join(' ');
     console.log('Calling:\n', cmdStr);
     container.exec(
