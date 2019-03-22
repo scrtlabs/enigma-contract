@@ -99,7 +99,9 @@ exports.getStateKeysInContainer = (enigma, worker, scAddrs) => {
             console.log(`Called cmd ${cmdStr}:\n${out}`);
             const from = out.lastIndexOf('{"data"');
             if (from != -1) {
-              const response = out.substr(from);
+              const response = JSON.parse(out.substr(from));
+              const data = msgpack.decode(response.data);
+              console.log('Got response', response, data);
               resolve(response);
             } else {
               reject(`Unable to setStateKeys from the Principal node container: ${out}`);

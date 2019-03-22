@@ -53,7 +53,7 @@ library PrincipalImplSimulation {
         // Check worker's signature
         bytes32 msgHash = keccak256(abi.encode(_seed, state.userTaskDeployments[msg.sender], workerParams.workers,
             workerParams.stakes));
-        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
+//        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
 
         for (uint wi = 0; wi < workerParams.workers.length; wi++) {
             EnigmaCommon.Worker storage worker = state.workers[workerParams.workers[wi]];
@@ -86,7 +86,7 @@ library PrincipalImplSimulation {
                 (workerLog.workerEventType == EnigmaCommon.WorkerLogType.Compound)) &&
                 worker.signer != state.principal)
             {
-                activeWorkerAddressesFull[filteredCount] = state.workerAddresses[i];
+                activeWorkerAddressesFull[filteredCount] = worker.signer;
                 activeWorkerStakesFull[filteredCount] = workerLog.balance;
                 filteredCount++;
             }
