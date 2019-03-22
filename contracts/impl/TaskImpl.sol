@@ -74,8 +74,9 @@ library TaskImpl {
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
         require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
 
+        EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(msg.sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
+        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -103,8 +104,9 @@ library TaskImpl {
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
         require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
 
+        EnigmaCommon.Worker memory worker = state.workers[_sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
+        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -211,8 +213,9 @@ library TaskImpl {
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
         require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
 
+        EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(msg.sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
+        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -241,8 +244,10 @@ library TaskImpl {
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
         require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
 
+        EnigmaCommon.Worker memory worker = state.workers[_sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_sender == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0], "Not the selected worker for this task");
+        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
+            "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
         require(task.gasLimit >= _gasUsed, "Too much gas used for task");

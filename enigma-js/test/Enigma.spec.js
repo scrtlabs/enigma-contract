@@ -11,7 +11,7 @@ import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import data from './data';
 import * as eeConstants from '../src/emitterConstants';
 import SampleContract from '../../build/contracts/Sample';
-import {execInContainer} from './principal-utils';
+import {execInContainer, getStateKeysInContainer} from './principal-utils';
 
 dotenv.config();
 
@@ -103,7 +103,7 @@ describe('Enigma tests', () => {
     it('should simulate principal node registration', async () => {
       let receipt;
       if (process.env.PRINCIPAL_CONTAINER) {
-        const tx = await execInContainer(enigma, '--register');
+        const tx = await execInContainer(enigma, '--register', true);
         receipt = await web3.eth.getTransactionReceipt(tx);
       } else {
         let worker = data.principal;
@@ -225,7 +225,7 @@ describe('Enigma tests', () => {
         if (i === 8) {
           continue;
         }
-        let worker = data.worker;
+        let worker = data.workers[i];
         const report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
         const signature = '0x' + worker[3];
         // Using the same artificial data for all workers
@@ -448,9 +448,9 @@ describe('Enigma tests', () => {
     it('should get the worker parameters for the current block', async () => {
       const blockNumber = await web3.eth.getBlockNumber();
       const workerParams = await enigma.getWorkerParams(blockNumber);
-      expect(workerParams.workers).toEqual(accounts.slice(0, 7));
-      expect(workerParams.stakes).toEqual([900, 100, 10, 20, 100, 200, 40]
-        .map((stake) => web3.utils.toBN(stake * 10 ** 8)));
+      expect(workerParams.workers).toEqual(data.workers.map((w) => web3.utils.toChecksumAddress(w[0])).slice(0, 7));
+      expect(workerParams.stakes).
+        toEqual([900, 100, 10, 20, 100, 200, 40].map((stake) => web3.utils.toBN(stake * 10 ** 8)));
     });
 
     it('should fail to withdraw too many tokens from worker bank', async () => {
@@ -509,7 +509,8 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: scTask.encryptedFn},
         {t: 'bytes', v: scTask.encryptedAbiEncodedArgs},
       );
-      expect(enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig)).toEqual(accounts[0]);
+      const signer = enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig);
+      expect(signer).toEqual(accounts[0]);
       expect(scTask.nonce).toEqual(0);
     });
 
@@ -675,32 +676,31 @@ describe('Enigma tests', () => {
     let codeHash;
     let initStateDeltaHash;
     it('should simulate the contract deployment failure', async () => {
+      console.log('Simulating deployment failure with task', scTask);
       const gasUsed = 25;
       const proof = web3.utils.soliditySha3(
         {t: 'bytes32', v: scTask.inputsHash},
         {t: 'uint', v: gasUsed},
         {t: 'bytes1', v: '0x00'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
+      console.log('The worker params:', workerParams);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const startingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
-      );
+      console.log('Found selected worker address:', selectedWorkerAddr);
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      console.log('Found worker from signing address', worker);
+      const startingWorkerBalance = worker.balance;
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       const result = await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, gasUsed, sig).send({
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const endingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
-      );
+      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const endingWorkerBalance = worker.balance;
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * scTask.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((scTask.gasLimit - gasUsed) * scTask.gasPx);
       expect(result.events.ReceiptFailed).toBeTruthy;
@@ -723,15 +723,17 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.deploySecretContract(scTask.taskId, scTask.preCodeHash, codeHash,
           initStateDeltaHash, optionalEthereumData, optionalEthereumContractAddress, gasUsed, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid task status');
     });
@@ -798,15 +800,13 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const startingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
-      );
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const startingWorkerBalance = worker.balance;
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       let sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       let sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(1);
@@ -816,15 +816,12 @@ describe('Enigma tests', () => {
           initStateDeltaHash, optionalEthereumData, optionalEthereumContractAddress, gasUsed, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const endingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
-      );
+      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const endingWorkerBalance = worker.balance;
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(1);
@@ -914,15 +911,17 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      const worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.deploySecretContract(scTask.taskId, scTask.preCodeHash, codeHash,
           initStateDeltaHash, optionalEthereumData, optionalEthereumContractAddress, gasUsed, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ethereum call failed');
     });
@@ -957,15 +956,13 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const startingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
-      );
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const startingWorkerBalance = worker.balance;
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       let sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       let sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(1);
@@ -975,15 +972,12 @@ describe('Enigma tests', () => {
           initStateDeltaHash, optionalEthereumData, optionalEthereumContractAddress, gasUsed, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const endingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(scTask.sender).call()),
-      );
+      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const endingWorkerBalance = worker.balance;
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(5);
@@ -1013,39 +1007,51 @@ describe('Enigma tests', () => {
       expect(result).toEqual(codeHash);
     });
 
-  it('should set the worker parameters (principal only) again for a second new epoch', async () => {
-    let receipt;
-    if (process.env.PRINCIPAL_CONTAINER) {
-      const tx = await execInContainer(enigma, '--set-worker-params');
-      receipt = await web3.eth.getTransactionReceipt(tx);
-    } else {
-      let blockNumber = await web3.eth.getBlockNumber();
-      let getActiveWorkersResult = await enigma.enigmaContract.methods.getActiveWorkers(blockNumber).call({
-        from: accounts[8],
-      });
-      let workerAddresses = getActiveWorkersResult['0'];
-      let workerStakes = getActiveWorkersResult['1'];
-      const seed = Math.floor(Math.random() * 100000);
-      const msg = web3.eth.abi.encodeParameters(
-        ['uint256', 'uint256', 'address[]', 'uint256[]'],
-        [seed, 2, workerAddresses, workerStakes],
-      );
-      const hash = web3.utils.keccak256(msg);
-      const sig = EthCrypto.sign(data.principal[4], hash);
-
-      receipt = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
-          gas: 4712388,
-          gasPrice: 100000000000,
+    it('should set the worker parameters (principal only) again for a second new epoch', async () => {
+      let receipt;
+      if (process.env.PRINCIPAL_CONTAINER) {
+        const tx = await execInContainer(enigma, '--set-worker-params');
+        receipt = await web3.eth.getTransactionReceipt(tx);
+      } else {
+        let blockNumber = await web3.eth.getBlockNumber();
+        let getActiveWorkersResult = await enigma.enigmaContract.methods.getActiveWorkers(blockNumber).call({
           from: accounts[8],
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => {
-          console.log('errored');
-          reject(error);
         });
-      });
-    }
-    expect(receipt).toBeTruthy();
-  }, 30000);
+        let workerAddresses = getActiveWorkersResult['0'];
+        let workerStakes = getActiveWorkersResult['1'];
+        const seed = Math.floor(Math.random() * 100000);
+        const msg = web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256', 'address[]', 'uint256[]'],
+          [seed, 2, workerAddresses, workerStakes],
+        );
+        const hash = web3.utils.keccak256(msg);
+        const sig = EthCrypto.sign(data.principal[4], hash);
+
+        receipt = await new Promise((resolve, reject) => {
+          enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
+            gas: 4712388,
+            gasPrice: 100000000000,
+            from: accounts[8],
+          }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => {
+            console.log('errored');
+            reject(error);
+          });
+        });
+      }
+      expect(receipt).toBeTruthy();
+    }, 30000);
+
+    it('should simulate getting the state keys for the contract / epoch', async () => {
+      if (process.env.PRINCIPAL_CONTAINER) {
+        const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
+        const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
+        const worker = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase());
+        const stateKeys = await getStateKeysInContainer(enigma, worker, [scTask.scAddr]);
+        console.log('the response', stateKeys);
+      } else {
+        console.log('Getting state keys requires the live Principal container.');
+      }
+    });
 
     let scAddr;
     let task;
@@ -1186,35 +1192,35 @@ describe('Enigma tests', () => {
       expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
     });
 
-  it('should poll the network until task confirmed with result', async () => {
-    server.resetCounter();
-    let taskStatuses = [];
-    task = await new Promise((resolve, reject) => {
-      enigma.pollTaskStatus(task, true).on(eeConstants.POLL_TASK_STATUS_RESULT, (result) => {
-        taskStatuses.push(result.engStatus);
-        if (result.engStatus === 'SUCCESS') {
-          resolve(result);
-        }
-      }).on(eeConstants.ERROR, (error) => reject(error));
+    it('should poll the network until task confirmed with result', async () => {
+      server.resetCounter();
+      let taskStatuses = [];
+      task = await new Promise((resolve, reject) => {
+        enigma.pollTaskStatus(task, true).on(eeConstants.POLL_TASK_STATUS_RESULT, (result) => {
+          taskStatuses.push(result.engStatus);
+          if (result.engStatus === 'SUCCESS') {
+            resolve(result);
+          }
+        }).on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
+      expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
     });
-    expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
-    expect(taskStatuses).toEqual(['INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'INPROGRESS', 'SUCCESS']);
-  });
 
     it('should get task result with invalid return status', async () => {
       server.resetCounter();
       await expect(new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual('Invalid task result status');
     });
 
     it('should get task result of nonexistant task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('null');
     });
@@ -1265,18 +1271,18 @@ describe('Enigma tests', () => {
 
     it('should get task result of unverified task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('UNVERIFIED');
     });
 
     it('should get task result of inprogress task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('INPROGRESS');
     });
@@ -1286,9 +1292,9 @@ describe('Enigma tests', () => {
       const consoleError = console.error; // save original console for future use
       console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
       await expect(new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       })).rejects.toEqual({code: -32000, message: 'Network Error'});
       console.error = consoleError; // restore the original console
       server.listen();
@@ -1296,9 +1302,9 @@ describe('Enigma tests', () => {
 
     it('should get task result of failed task', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('FAILED');
       expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
@@ -1308,9 +1314,9 @@ describe('Enigma tests', () => {
 
     it('should get task result of successful computation', async () => {
       task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
+        enigma.getTaskResult(task).
+          on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
+          on(eeConstants.ERROR, (error) => reject(error));
       });
       expect(task.engStatus).toEqual('SUCCESS');
       expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
@@ -1334,26 +1340,21 @@ describe('Enigma tests', () => {
         {t: 'uint', v: gasUsed},
         {t: 'bytes1', v: '0x00'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const startingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
-      );
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const startingWorkerBalance = worker.balance;
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       const result = await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, gasUsed, sig).send({
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const endingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
-      );
+      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const endingWorkerBalance = worker.balance;
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsed) * task.gasPx);
       expect(result.events.ReceiptFailed).toBeTruthy();
@@ -1390,14 +1391,16 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      const worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash,
           optionalEthereumData,
           optionalEthereumContractAddress, gasUsed, sig).send({
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid task status');
     });
@@ -1477,15 +1480,13 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const startingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
-      );
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      const startingWorkerBalance = worker.balance;
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       let sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       let sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(5);
@@ -1494,19 +1495,16 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash,
           optionalEthereumData,
           optionalEthereumContractAddress, gasUsed, sig).send({
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(5);
       expect(sampleContractBool).toEqual(true);
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const endingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
-      );
+      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const endingWorkerBalance = worker.balance;
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsed) * task.gasPx);
       expect(result.events.ReceiptVerified).toBeTruthy();
@@ -1585,14 +1583,16 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      const worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash,
           optionalEthereumData,
           optionalEthereumContractAddress, gasUsed, sig).send({
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ethereum call failed');
     });
@@ -1627,15 +1627,13 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const startingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
-      );
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const startingWorkerBalance = worker.balance;
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       let sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       let sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(5);
@@ -1644,16 +1642,15 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash,
           optionalEthereumData,
           optionalEthereumContractAddress, gasUsed, sig).send({
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
       sampleContractBool = await sampleContract.methods.stateBool().call();
       expect(sampleContractInt).toEqual(10);
       expect(sampleContractBool).toEqual(false);
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
+      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const endingWorkerBalance = worker.balance;
       const endingSenderBalance = parseInt(
         (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
       );
@@ -1796,28 +1793,23 @@ describe('Enigma tests', () => {
         {t: 'address', v: optionalEthereumContractAddress},
         {t: 'bytes1', v: '0x01'},
       );
-      const sig = EthCrypto.sign(data.worker[4], proof);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const startingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const startingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
-      );
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const startingWorkerBalance = worker.balance;
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       const result = await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, stateDeltaHashes, outputHashes,
           optionalEthereumData,
           optionalEthereumContractAddress, gasesUsed, sig).send({
-          from: selectedWorkerAddr,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
-      const endingWorkerBalance = parseInt(
-        (await enigma.enigmaContract.methods.getWorker(selectedWorkerAddr).call()).balance,
-      );
-      const endingSenderBalance = parseInt(
-        (await enigma.tokenContract.methods.balanceOf(task.sender).call()),
-      );
+      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const endingWorkerBalance = worker.balance;
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       expect(endingWorkerBalance - startingWorkerBalance).toEqual((gasesUsed[0] * tasks[0].gasPx) +
         (gasesUsed[1] * tasks[1].gasPx));
       expect(endingSenderBalance - startingSenderBalance).
@@ -1846,7 +1838,7 @@ describe('Enigma tests', () => {
     });
 
     it('should verify the report', async () => {
-      let worker = data.worker;
+      let worker = data.workers[0];
 
       let report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
       let signature = '0x' + worker[3];

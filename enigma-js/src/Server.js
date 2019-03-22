@@ -8,7 +8,6 @@ import EthCrypto from 'eth-crypto';
 import msgpack from 'msgpack-lite';
 import utils from './enigma-utils';
 
-
 export default class RPCServer {
   constructor() {
     let _counter = 0;
@@ -22,16 +21,19 @@ export default class RPCServer {
         if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
+          const worker = data.workers.find((w) => w[0] === '0x' + workerAddress);
           const identity = EthCrypto.createIdentity();
           let key = [];
           for (let n = 0; n < identity.publicKey.length; n += 2) {
             key.push(parseInt(identity.publicKey.substr(n, 2), 16));
           }
-          const prefix = 'Enigma User Message'.split('').map(function(c) {
-            return c.charCodeAt(0);
-          });
-          const buffer = msgpack.encode({'prefix': prefix, 'pubkey': key});
-          const signature = EthCrypto.sign(data.worker[4], web3Utils.soliditySha3({t: 'bytes', value: buffer.toString('hex')}));
+          const prefix = 'Enigma User Message'.split('').map((c) => c.charCodeAt(0));
+          const buffer = msgpack.encode({prefix: prefix, pubkey: key});
+          console.log('Signing message', buffer);
+          const signature = EthCrypto.sign(worker[4], web3Utils.soliditySha3({
+            t: 'bytes',
+            value: buffer.toString('hex'),
+          }));
           callback(null, {
             result: {
               workerEncryptionKey: identity.publicKey,
