@@ -7,7 +7,6 @@ import data from '../test/data';
 import EthCrypto from 'eth-crypto';
 import utils from './enigma-utils';
 
-
 export default class RPCServer {
   constructor() {
     let _counter = 0;
@@ -21,10 +20,11 @@ export default class RPCServer {
         if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
+          const worker = data.workers.find((w) => w[0] === '0x' + workerAddress);
           const identity = EthCrypto.createIdentity();
           // see the corresponding implementation in Enigma.js for an explanation of this hardcoded hex string
           const hexToSign = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040'+identity.publicKey;
-          const signature = EthCrypto.sign(data.worker[4], web3Utils.soliditySha3({t: 'bytes', value: hexToSign}));
+          const signature = EthCrypto.sign(worker[4], web3Utils.soliditySha3({t: 'bytes', value: hexToSign}));
           callback(null, {
             result: {
               workerEncryptionKey: identity.publicKey,

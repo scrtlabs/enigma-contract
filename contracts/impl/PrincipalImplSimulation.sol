@@ -86,7 +86,7 @@ library PrincipalImplSimulation {
                 (workerLog.workerEventType == EnigmaCommon.WorkerLogType.Compound)) &&
                 worker.signer != state.principal)
             {
-                activeWorkerAddressesFull[filteredCount] = state.workerAddresses[i];
+                activeWorkerAddressesFull[filteredCount] = worker.signer;
                 activeWorkerStakesFull[filteredCount] = workerLog.balance;
                 filteredCount++;
             }

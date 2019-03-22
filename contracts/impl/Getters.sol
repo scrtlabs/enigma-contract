@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import { EnigmaCommon } from "./EnigmaCommon.sol";
-import { EnigmaStorage } from "./EnigmaStorage.sol";
+import {EnigmaCommon} from "./EnigmaCommon.sol";
+import {EnigmaStorage} from "./EnigmaStorage.sol";
 
 /**
  * @author Enigma
@@ -16,6 +16,19 @@ contract Getters is EnigmaStorage {
 
     function getWorker(address _worker) public view returns (EnigmaCommon.Worker memory) {
         return state.workers[_worker];
+    }
+
+    function getWorkerFromSigningAddress(address _signer) public view returns (address, EnigmaCommon.Worker memory) {
+        address account;
+        EnigmaCommon.Worker memory worker;
+        for (uint i = 0; i < state.workerAddresses.length; i++) {
+            worker = state.workers[state.workerAddresses[i]];
+            if (worker.signer == _signer) {
+                account = state.workerAddresses[i];
+                break;
+            }
+        }
+        return (account, worker);
     }
 
     function getUserTaskDeployments(address _sender) public view returns (uint) {

@@ -107,20 +107,19 @@ export default class Enigma {
       const blockNumber = await this.web3.eth.getBlockNumber();
       const workerParams = await this.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
-      const workerEthAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
-      let workerAddress = await this.admin.getWorkerSignerAddr(workerEthAddress);
+      let workerAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
       workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
       const {publicKey, privateKey} = this.obtainTaskKeyPair();
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           this.client.request('getWorkerEncryptionKey',
             {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve(response);
-          });
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(response);
+            });
         });
         const {result, id} = getWorkerEncryptionKeyResult;
         const {workerEncryptionKey, workerSig} = result;
@@ -138,12 +137,14 @@ export default class Enigma {
         // the hashing function soliditySha3 expects hex instead of bytes
         let recAddress = EthCrypto.recover('0x'+workerSig,
           this.web3.utils.soliditySha3({t: 'bytes', value: hexToVerify}));
+
         recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
 
-        if (workerAddress !== recAddress ) {
+        if (workerAddress !== recAddress) {
+          console.error('Worker address', workerAddress, '!= recovered address', recAddress);
           emitter.emit(eeConstants.ERROR, {
             name: 'InvalidWorker',
-            message: 'Invalid worker encryption key + signature combo',
+            message: `Invalid worker encryption key + signature combo ${workerAddress} != ${recAddress}`,
           });
         } else {
           // Generate derived key from worker's encryption key and user's private key
@@ -463,8 +464,10 @@ export default class Enigma {
   * pollTaskStatusGen(task, withResult) {
     while (true) {
       yield new Promise((resolve, reject) => {
-        this.client.request('getTaskStatus', {taskId: task.taskId, workerAddress: task.workerAddress,
-          withResult: withResult}, (err, response) => {
+        this.client.request('getTaskStatus', {
+          taskId: task.taskId, workerAddress: task.workerAddress,
+          withResult: withResult,
+        }, (err, response) => {
           if (err) {
             reject(err);
             return;
@@ -506,7 +509,7 @@ export default class Enigma {
    * @return {EventEmitter} EventEmitter to be listened to track polling the Enigma p2p network for a Task status.
    * Emits a Task with task result attributes
    */
-  pollTaskStatus(task, withResult=false) {
+  pollTaskStatus(task, withResult = false) {
     let emitter = new EventEmitter();
     let generator = this.pollTaskStatusGen(task, withResult);
     this.innerPollTaskStatus(task, generator, emitter);
@@ -520,10 +523,13 @@ export default class Enigma {
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
-    return task.isContractDeploymentTask ? {preCode: task.preCode,
+    return task.isContractDeploymentTask ? {
+      preCode: task.preCode,
       encryptedArgs: utils.remove0x(task.encryptedAbiEncodedArgs), encryptedFn: utils.remove0x(task.encryptedFn),
       userDHKey: utils.remove0x(task.userPubKey), contractAddress: utils.remove0x(task.scAddr),
-      workerAddress: task.workerAddress} : {taskId: task.taskId, workerAddress: task.workerAddress,
+      workerAddress: task.workerAddress,
+    } : {
+      taskId: task.taskId, workerAddress: task.workerAddress,
       encryptedFn: utils.remove0x(task.encryptedFn), encryptedArgs: utils.remove0x(task.encryptedAbiEncodedArgs),
       contractAddress: utils.remove0x(task.scAddr), userDHKey: utils.remove0x(task.userPubKey),
     };
