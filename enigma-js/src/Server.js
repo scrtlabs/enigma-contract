@@ -5,7 +5,6 @@ import bodyParser from 'body-parser';
 import web3Utils from 'web3-utils';
 import data from '../test/data';
 import EthCrypto from 'eth-crypto';
-import msgpack from 'msgpack-lite';
 import utils from './enigma-utils';
 
 
@@ -23,15 +22,9 @@ export default class RPCServer {
           callback({code: -32602, message: 'Invalid params'});
         } else {
           const identity = EthCrypto.createIdentity();
-          let key = [];
-          for (let n = 0; n < identity.publicKey.length; n += 2) {
-            key.push(parseInt(identity.publicKey.substr(n, 2), 16));
-          }
-          const prefix = 'Enigma User Message'.split('').map(function(c) {
-            return c.charCodeAt(0);
-          });
-          const buffer = msgpack.encode({'prefix': prefix, 'pubkey': key});
-          const signature = EthCrypto.sign(data.worker[4], web3Utils.soliditySha3({t: 'bytes', value: buffer.toString('hex')}));
+          // see the corresponding implementation in Enigma.js for an explanation of this hardcoded hex string
+          const hexToSign = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040'+identity.publicKey;
+          const signature = EthCrypto.sign(data.worker[4], web3Utils.soliditySha3({t: 'bytes', value: hexToSign}));
           callback(null, {
             result: {
               workerEncryptionKey: identity.publicKey,
