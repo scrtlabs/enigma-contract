@@ -124,7 +124,6 @@ export default class Enigma {
         });
         const {result, id} = getWorkerEncryptionKeyResult;
         const {workerEncryptionKey, workerSig} = result;
-        console.log('Got encryption key', result);
 
         let key = [];
         for (let n = 0; n < workerEncryptionKey.length; n += 2) {
