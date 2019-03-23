@@ -96,7 +96,7 @@ export default class Enigma {
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
-      const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
+      const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = utils.remove0x(this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
