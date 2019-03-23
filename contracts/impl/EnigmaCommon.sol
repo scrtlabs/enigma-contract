@@ -1,12 +1,16 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
+import { Bytes } from "../utils/Bytes.sol";
+
 /**
  * @author Enigma
  *
  * This library contains the common structs and enums used throughout the Enigma codebase
  */
 library EnigmaCommon {
+    using Bytes for bytes;
+    using Bytes for uint64;
 
     // ========================================== Structs ==========================================
 
@@ -64,4 +68,13 @@ library EnigmaCommon {
     enum SecretContractStatus {Undefined, Deployed}
 
     enum WorkerLogType {Undefined, LogIn, LogOut, Compound}
+
+    // ========================================== Shared Functions ==========================================
+
+    function appendMessage(bytes memory _message, bytes memory _var)
+    internal
+    returns (bytes memory)
+    {
+        return (_message.concat(uint64(_var.length).toBytesFromUint64())).concat(_var);
+    }
 }
