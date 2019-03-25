@@ -27,8 +27,8 @@ export default class Task {
   constructor(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, msgId, userPubKey, firstBlockNumber,
               workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash, isContractDeploymentTask) {
     // Initial task attributes
-    this.inputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs,
-      isContractDeploymentTask ? preCodeHash : scAddr, userPubKey);
+    this.inputsHash = utils.generateTaskInputsHash([encryptedFn, encryptedAbiEncodedArgs,
+      isContractDeploymentTask ? preCodeHash : scAddr, userPubKey]);
     this.scAddr = scAddr;
     this.encryptedFn = encryptedFn;
     this.encryptedAbiEncodedArgs = encryptedAbiEncodedArgs;

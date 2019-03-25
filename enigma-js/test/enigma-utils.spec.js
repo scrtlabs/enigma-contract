@@ -30,9 +30,9 @@ describe('enigma-utils', () => {
     const scAddrOrPreCodeHash = '0x300c3473734f4fe56d4acb834359a70d47ff2511c4839524c6f078cb28151ff4';
     const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762' +
       'e49ec912be61358d5e90bff56a53a0ed42abfe27e3';
-    const taskInputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash,
-      userPubKey);
-    expect(taskInputsHash).toEqual('0x2300c9a68af32dde19c22fd12d9ef6a8dda5e4c03547425d3fe5a5eee8ea9811');
+    const taskInputsHash = utils.generateTaskInputsHash([encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash,
+      userPubKey]);
+    expect(taskInputsHash).toEqual('0x0af2a6c64065ee3eca9ed1838a12d858dc8ccb604295bf0fa23008347c22f4b5');
   });
 
   it('should derive the same key', () => {
