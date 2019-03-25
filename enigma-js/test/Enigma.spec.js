@@ -678,11 +678,7 @@ describe('Enigma tests', () => {
     it('should simulate the contract deployment failure', async () => {
       console.log('Simulating deployment failure with task', scTask);
       const gasUsed = 25;
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: scTask.inputsHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'bytes1', v: '0x00'},
-      );
+      const proof = utils.hash([scTask.inputsHash, web3.utils.toBN(gasUsed).toString(16, 16), '0x00']);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       console.log('The worker params:', workerParams);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
@@ -703,26 +699,17 @@ describe('Enigma tests', () => {
       const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * scTask.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((scTask.gasLimit - gasUsed) * scTask.gasPx);
-      expect(result.events.ReceiptFailed).toBeTruthy;
+      expect(result.events.ReceiptFailed).toBeTruthy();
     });
 
     it('should fail to simulate contract deployment of already failed task', async () => {
       const gasUsed = 25;
       codeHash = web3.utils.soliditySha3('1a2b3c4d');
       initStateDeltaHash = web3.utils.soliditySha3('initialized');
-      const optionalEthereumData = '0x00';
+      const optionalEthereumData = '0x';
       const optionalEthereumContractAddress = '0x0000000000000000000000000000000000000000';
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: scTask.inputsHash},
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: initStateDeltaHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([scTask.inputsHash, codeHash, initStateDeltaHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x00']);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
@@ -787,19 +774,10 @@ describe('Enigma tests', () => {
       const gasUsed = 25;
       codeHash = web3.utils.soliditySha3('1a2b3c4d');
       initStateDeltaHash = web3.utils.soliditySha3('initialized');
-      const optionalEthereumData = '0x00';
+      const optionalEthereumData = '0x';
       const optionalEthereumContractAddress = '0x0000000000000000000000000000000000000000';
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: scTask.inputsHash},
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: initStateDeltaHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([scTask.inputsHash, codeHash, initStateDeltaHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
@@ -900,17 +878,8 @@ describe('Enigma tests', () => {
       const parameters = [5, true];
       const optionalEthereumData = enigma.web3.eth.abi.encodeFunctionCall(jsonInterface, parameters);
       const optionalEthereumContractAddress = sampleContract.options.address;
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: scTask.inputsHash},
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: initStateDeltaHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([scTask.inputsHash, codeHash, initStateDeltaHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
@@ -945,17 +914,8 @@ describe('Enigma tests', () => {
       const parameters = [5, true];
       const optionalEthereumData = enigma.web3.eth.abi.encodeFunctionCall(jsonInterface, parameters);
       const optionalEthereumContractAddress = sampleContract.options.address;
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: scTask.inputsHash},
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: initStateDeltaHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([scTask.inputsHash, codeHash, initStateDeltaHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
@@ -1334,12 +1294,7 @@ describe('Enigma tests', () => {
 
     it('should simulate the task failure', async () => {
       const gasUsed = 25;
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: task.inputsHash},
-        {t: 'bytes32', v: codeHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'bytes1', v: '0x00'},
-      );
+      const proof = utils.hash([task.inputsHash, codeHash, web3.utils.toBN(gasUsed).toString(16, 16), '0x00']);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
@@ -1378,19 +1333,8 @@ describe('Enigma tests', () => {
       outputHash = web3.utils.soliditySha3('outputHash1');
       const optionalEthereumData = '0x00';
       const optionalEthereumContractAddress = '0x0000000000000000000000000000000000000000';
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: task.inputsHash},
-        {t: 'bytes32', v: initStateDeltaHash},
-        {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32', v: outputHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([codeHash, task.inputsHash, initStateDeltaHash, stateDeltaHash, outputHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
@@ -1467,19 +1411,8 @@ describe('Enigma tests', () => {
       const gasUsed = 25;
       const optionalEthereumData = '0x00';
       const optionalEthereumContractAddress = '0x0000000000000000000000000000000000000000';
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: task.inputsHash},
-        {t: 'bytes32', v: initStateDeltaHash},
-        {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32', v: outputHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([codeHash, task.inputsHash, initStateDeltaHash, stateDeltaHash, outputHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
@@ -1570,19 +1503,8 @@ describe('Enigma tests', () => {
       const parameters = [10, false];
       const optionalEthereumData = enigma.web3.eth.abi.encodeFunctionCall(jsonInterface, parameters);
       const optionalEthereumContractAddress = sampleContract.options.address;
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: task.inputsHash},
-        {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32', v: outputHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([codeHash, task.inputsHash, stateDeltaHash, stateDeltaHash, outputHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
@@ -1614,19 +1536,8 @@ describe('Enigma tests', () => {
       const parameters = [10, false];
       const optionalEthereumData = enigma.web3.eth.abi.encodeFunctionCall(jsonInterface, parameters);
       const optionalEthereumContractAddress = sampleContract.options.address;
-      const proof = web3.utils.soliditySha3(
-        {t: 'bytes32', v: codeHash},
-        {t: 'bytes32', v: task.inputsHash},
-        {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32', v: stateDeltaHash},
-        {t: 'bytes32', v: outputHash},
-        {t: 'uint', v: gasUsed},
-        {t: 'uint64', v: (optionalEthereumData.length - 2) / 2},
-        {t: 'bytes', v: optionalEthereumData},
-        {t: 'uint64', v: 20},
-        {t: 'address', v: optionalEthereumContractAddress},
-        {t: 'bytes1', v: '0x01'},
-      );
+      const proof = utils.hash([codeHash, task.inputsHash, stateDeltaHash, stateDeltaHash, outputHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];

@@ -180,6 +180,23 @@ function generateScAddr(sender, nonce) {
 }
 
 /**
+ * Generate a hash of all inputs
+ * The Enigma contract uses the same logic to generate a matching taskId
+ *
+ * @param {array} inputsArray
+ * @return {string} hash of inputs
+ */
+function hash(inputsArray) {
+  let hexStr = '';
+  for (let e of inputsArray) {
+    e = remove0x(e);
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += (new BN(e.length/2).toString(16, 16)) + e;
+  }
+  return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
+}
+
+/**
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
@@ -399,6 +416,7 @@ let utils = {};
 utils.test = () => 'hello2';
 // utils.encodeArguments = encodeArguments;
 utils.generateScAddr = generateScAddr;
+utils.hash = hash;
 utils.generateTaskInputsHash = generateTaskInputsHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
