@@ -482,7 +482,7 @@ describe('Enigma tests', () => {
     let scTask;
     let preCode;
     it('should create deploy contract task', async () => {
-      preCode = '9d075ae';
+      preCode = '0x9d075aef';
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -594,7 +594,7 @@ describe('Enigma tests', () => {
       server.close(true);
       const consoleError = console.error; // save original console for future use
       console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
-      preCode = '9d075ae';
+      preCode = '0x9d075aef';
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -613,7 +613,7 @@ describe('Enigma tests', () => {
 
     it('should fail to create/send deploy contract task using wrapper function due to insufficient funds',
       async () => {
-        preCode = '9d075ae';
+        preCode = '0x9d075aef';
         let scTaskFn = 'deployContract(string,uint)';
         let scTaskArgs = [
           ['first_sc', 'string'],
@@ -629,7 +629,7 @@ describe('Enigma tests', () => {
       });
 
     it('should create/send deploy contract task using wrapper function', async () => {
-      preCode = '9d075ae';
+      preCode = '0x9d075aef';
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -739,7 +739,7 @@ describe('Enigma tests', () => {
     });
 
     it('should create/send deploy contract task using wrapper function', async () => {
-      preCode = '9d075ae';
+      preCode = '0x9d075aef';
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -832,7 +832,7 @@ describe('Enigma tests', () => {
     });
 
     it('should create/send a new deploy contract task using wrapper function to test eth call', async () => {
-      preCode = '9d075ae';
+      preCode = '0x9d075aef';
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
