@@ -134,22 +134,9 @@ library TaskImpl {
         verifyDeployReceipt(state, _taskId, _gasUsed, msg.sender, _sig);
         EnigmaCommon.TaskRecord memory task = state.tasks[_taskId];
 
-//        // Verify the worker's signature
-//        bytes memory message;
-//        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, _codeHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, _initStateDeltaHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
-//        message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
-//        message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
-//        message = EnigmaCommon.appendMessage(message, hex"01");
-//        bytes32 msgHash = keccak256(message);
-//        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
-
         // Verify the worker's signature
-        bytes32 inputsHash = 0x9e2d1121bc69e391dc49447663f8844a258ce1f17658cc75be7086f7da85167c;
         bytes memory message;
-        message = EnigmaCommon.appendMessage(message, inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _codeHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _initStateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
@@ -157,7 +144,7 @@ library TaskImpl {
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
         message = EnigmaCommon.appendMessage(message, hex"01");
         bytes32 msgHash = keccak256(message);
-        require(msgHash.recover(_sig) == 0xf8d4C254c7779a1e3Fa9c18D0437954047cCff87, "Invalid signature");
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         // Set the secret contract's attributes in registry
         EnigmaCommon.SecretContract storage secretContract = state.contracts[_taskId];
