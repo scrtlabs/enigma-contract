@@ -1,3 +1,4 @@
+import BN from 'bn.js';
 import web3Utils from 'web3-utils';
 // import RLP from 'rlp';
 import forge from 'node-forge';
@@ -182,19 +183,17 @@ function generateScAddr(sender, nonce) {
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {string} encryptedFn
- * @param {string} encryptedAbiEncodedArgs
- * @param {string} scAddrOrPreCodeHash
- * @param {string} userPubKey
- * @return {string}
+ * @param {array} inputsArray
+ * @return {string} hash of inputs
  */
-function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash, userPubKey) {
-  return web3Utils.soliditySha3(
-    {t: 'bytes', v: encryptedFn},
-    {t: 'bytes', v: encryptedAbiEncodedArgs},
-    {t: 'bytes', v: scAddrOrPreCodeHash},
-    {t: 'bytes', v: userPubKey},
-  );
+function generateTaskInputsHash(inputsArray) {
+  let hexStr = '';
+  for (let e of inputsArray) {
+    e = remove0x(e);
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += (new BN(e.length/2).toString(16, 16)) + e;
+  }
+  return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
 
 // /**
