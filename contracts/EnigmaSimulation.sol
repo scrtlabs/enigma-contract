@@ -125,10 +125,22 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
         _;
     }
 
+    /**
+    * Ensure signing key used for registration is unique
+    *
+    * @param _signer Signing key
+    */
+    modifier isUniqueSigningKey(address _signer) {
+        for (uint i = 0; i < state.workerAddresses.length; i++) {
+            require(state.workers[state.workerAddresses[i]].signer != _signer, "Not a unique signing key");
+        }
+        _;
+    }
+
     // ========================================== Functions ==========================================
 
     /**
-    * Registers a new worker of change the signer parameters of an existing
+    * Registers a new worker or change the signer parameters of an existing
     * worker. This should be called by every worker (and the principal)
     * node in order to receive tasks.
     *
@@ -138,6 +150,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function register(address _signer, bytes memory _report, bytes memory _signature)
     public
+    isUniqueSigningKey(_signer)
     {
         WorkersImplSimulation.registerImpl(state, _signer, _report, _signature);
     }
