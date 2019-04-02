@@ -294,35 +294,20 @@ library TaskImpl {
         secretContract.stateDeltaHashes.push(_stateDeltaHash);
         secretContract.outputHashes.push(_outputHash);
 
-//        // Verify the worker's signature
-//        bytes memory message;
-//        message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, lastStateDeltaHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, _stateDeltaHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, _outputHash.toBytes());
-//        message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
-//        message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
-//        message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
-//        message = EnigmaCommon.appendMessage(message, hex"01");
-//        bytes32 msgHash = keccak256(message);
         // Verify the worker's signature
         bytes memory message;
-        bytes32 inputsHash = 0x3f7f86793960fced363105c633d44aa8917b5af886566d4b92906f20197380d6;
-        lastStateDeltaHash = 0x64db5f753fd3abdb48c9ee98d5635893e81710b6fc913d42c580e6ab6def19eb;
-        bytes32 codeHash = 0x5315198b6dbdb344f8716716973c9473cfa2c303d43af7f633dbe20e83d14345;
-        message = EnigmaCommon.appendMessage(message, codeHash.toBytes());
-        message = EnigmaCommon.appendMessage(message, inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, lastStateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _stateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _outputHash.toBytes());
-        message = EnigmaCommon.appendMessage(message, uint64(28043).toBytesFromUint64());
+        message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
         message = EnigmaCommon.appendMessage(message, hex"01");
         bytes32 msgHash = keccak256(message);
 
-        require(msgHash.recover(_sig) == 0x46B1f8559e3f3Dd34a3a132822d4f2Da5EEcda2F, "Invalid signature");
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         if (_optionalEthereumContractAddress != address(0)) {
             (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
