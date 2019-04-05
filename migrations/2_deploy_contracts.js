@@ -67,6 +67,18 @@ async function deployProtocol(deployer) {
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
   await deployer.deploy(Sample);
+
+  // Writing enigma contracts to a file for other processes to retrieve
+  fs.writeFile(path.join(homedir, '.enigma', 'enigmacontract.txt'), Enigma.address, 'utf8', function(err) {
+    if(err) {
+      return console.log(err);
+    }
+  });
+  fs.writeFile(path.join(homedir, '.enigma', 'enigmatokencontract.txt'), EnigmaToken.address, 'utf8', function(err) {
+    if(err) {
+      return console.log(err);
+    }
+  });
 }
 
 async function doMigration(deployer) {
