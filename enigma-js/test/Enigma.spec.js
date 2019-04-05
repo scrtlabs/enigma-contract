@@ -73,112 +73,6 @@ describe('Enigma tests', () => {
         'e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
     });
 
-    // it('should test sig ver for deploy', () => {
-    //   let web3Utils = require('web3-utils');
-    //   const BN = require('bn.js');
-    //   const encryptedFn = 'aa686bee886948b57778a37e3d6756422515d3ba403b890a777ab0315643810f75cf58100aa9b4';
-    //   const encryptedAbiEncodedArgs = 'bb778b91ddd0ad0bd90b56023ab01a24cfbe6f8a20df57b0707c2276';
-    //   const PreCodeHash = '6d0f8b8ba8fad4869e4d8325f888ae80ab42efd1559e75fae64280f7f5a9f954';
-    //   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3';
-    //   const outputHash = '5315198b6dbdb344f8716716973c9473cfa2c303d43af7f633dbe20e83d14345'
-    //   const delta = '142c0951c8b1a061226e089005d959bc9b26cd90c76a5278fccd9350dd827036a8dc8080b175596384cfbb67d290e441209f08a116a6daf01ed37a44fc1b3bd3d9';
-    //   const deltaHash = web3Utils.soliditySha3({ t: 'bytes', v: delta});
-    //   const usedGas = (new BN(6).toString(16, 16))
-    //   const ethPayload = '';
-    //   const ethAddr = '0000000000000000000000000000000000000000';
-    //   const signature = '78ec6d3107392877956a29a3b8539655a66497e5a7a085df8c544aed280ab3711739e5a5574597ddfc019247740755896905332df659683d2bace5eb6cac4c041b';
-    //
-    //   const signingKey = '0x90e5f96150c9ef3dfd2c8982aee1182766cf9ddc';
-    //
-    //   function remove0x(hexString) {
-    //     if (hexString.substring(0, 2) === '0x') {
-    //       return hexString.substring(2);
-    //     } else {
-    //       return hexString;
-    //     }
-    //   }
-    //
-    //   function hash(args) {
-    //     let hexStr = '';
-    //     for (let a of args) {
-    //       a = remove0x(a);
-    //       // inputs come as hex strings that take twice as long as their bytes representation
-    //       hexStr +=(new BN(a.length/2).toString(16, 16))+a;
-    //     }
-    //     return web3Utils.soliditySha3(
-    //       {t: 'bytes', v: hexStr},
-    //     );
-    //   }
-    //
-    //   const inputsHash = hash([encryptedFn , encryptedAbiEncodedArgs, PreCodeHash, userPubKey]);
-    //   const hash2Sign = hash([inputsHash, outputHash, deltaHash, usedGas, ethPayload, ethAddr, '01']);
-    //   let recAddress = EthCrypto.recover('0x'+signature, hash2Sign);
-    //
-    //   console.log('recAddress', recAddress); // 0x90E5f96150C9EF3Dfd2C8982AeE1182766CF9dDC
-    //   console.log('signingKey', signingKey); // 0x90e5f96150c9ef3dfd2c8982aee1182766cf9ddc
-    //
-    //   if (recAddress.toLowerCase() === signingKey.toLowerCase()) {
-    //     console.log('signingKey matches');
-    //   } else {
-    //     console.log('signingKey does not match');
-    //   }
-    // });
-    //
-    // it('should test sig ver for compute', () => {
-    //   let web3Utils = require('web3-utils');
-    //   const BN = require('bn.js');
-    //   const encryptedFn = '37872809f4a01b8e6f889fe01f81a92b751f8e8c14e86a8612f6fead8a20b7fee734b473507a8f077e8077070e8d86';
-    //   const encryptedAbiEncodedArgs = '7595da45de658724ec21c8087f24a9dc8e19e651cbe6abc98ff7d3deb21d8f176a75f399ee303dacb9c95b97bf3b7f7ffee8551b3063c0e1920c02f850ddba2207ac551b7083e48025f14a8eaae6e3c3c5e305285a4bddcc16d4dbcf';
-    //   const scAddr = '0x88987af7d35eabcad95915b93bfd3d2bc3308f06b7197478b0dfca268f0497dc';
-    //   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3';
-    //   const output = '289708a1a3cb042db453af419e36289d6a320fbc443bf2283fd19ef295fea4ba845b5408836c8c0185ad728d48f16bb18b22cf08b876e22de14f5100';
-    //   const outputHash = web3.utils.soliditySha3({t: 'bytes', v: output});
-    //   const delta = 'c564d0392af4fb83d6633b6d18709160d707b0b97954c779f6f0e51d8fa5381512749004617e93adebb23e9d0b2aa2d0e9eae56c33a09659015a179493066b8e86030c1f16beda99ac7ade13f5b062b98dcb31ab23063c5d710a9d676e10ba3683';
-    //   const deltaHash = web3.utils.soliditySha3({t: 'bytes', v: delta});
-    //   const codeHash = '5315198b6dbdb344f8716716973c9473cfa2c303d43af7f633dbe20e83d14345';
-    //   const lastStateDelta = '9b80921274b142a51bf10d80fd031bd7c2f89d5e089cd999ce3b9bd900a3a815765b0b14ff93e9fc914971c489cd4398b7b74737bc1c943b6d039d56eea606c369';
-    //   const lastStateDeltaHash = web3.utils.soliditySha3({t: 'bytes', v: lastStateDelta});
-    //   const usedGas = (web3.utils.toBN(28043).toString(16, 16));
-    //   const ethPayload = '';
-    //   const ethAddr = '0000000000000000000000000000000000000000';
-    //   const signature = '932b9d6a7da7af53aba57ac2ecaf670731813e0dfcf52037b914c27f9ec8228201fc7eca0bcf90af7e0cb469fa786cdfb0fe2b5c9a715f0fa32271a4002bf9481b';
-    //
-    //   const signingKey = '0x46b1f8559e3f3dd34a3a132822d4f2da5eecda2f';
-    //
-    //   function remove0x(hexString) {
-    //     if (hexString.substring(0, 2) === '0x') {
-    //       return hexString.substring(2);
-    //     } else {
-    //       return hexString;
-    //     }
-    //   }
-    //
-    //   function hash(args) {
-    //     let hexStr = '';
-    //     for (let a of args) {
-    //       a = remove0x(a);
-    //       // inputs come as hex strings that take twice as long as their bytes representation
-    //       hexStr +=(new BN(a.length/2).toString(16, 16))+a;
-    //     }
-    //     return web3Utils.soliditySha3(
-    //       {t: 'bytes', v: hexStr},
-    //     );
-    //   }
-    //
-    //   const inputsHash = hash([encryptedFn, encryptedAbiEncodedArgs, scAddr, userPubKey]);
-    //   const hash2Sign = hash([codeHash, inputsHash, lastStateDeltaHash, deltaHash, outputHash, usedGas, ethPayload, ethAddr, '01']);
-    //   let recAddress = EthCrypto.recover('0x'+signature, hash2Sign);
-    //
-    //   console.log('recAddress', recAddress); // 0xa724Fd91Cb2efB9B6b8EF418bf0B40c86bec1fC0
-    //   console.log('signingKey', signingKey); // 0x46b1f8559e3f3dd34a3a132822d4f2da5eecda2f
-    //
-    //   if (recAddress.toLowerCase() === signingKey.toLowerCase()) {
-    //     console.log('signingKey matches');
-    //   } else {
-    //     console.log('signingKey does not match');
-    //   }
-    // });
-
     it('should distribute ENG tokens', async () => {
       const tokenContract = enigma.tokenContract;
       let promises = [];
@@ -782,7 +676,6 @@ describe('Enigma tests', () => {
     let codeHash;
     let initStateDeltaHash;
     it('should simulate the contract deployment failure', async () => {
-      console.log('Simulating deployment failure with task', scTask);
       const gasUsed = 25;
       const proof = utils.hash([scTask.inputsHash, web3.utils.toBN(gasUsed).toString(16, 16), '0x00']);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
@@ -1391,6 +1284,15 @@ describe('Enigma tests', () => {
       expect(task.ethereumPayload).toBeTruthy();
       expect(task.ethereumAddress).toBeTruthy();
       expect(task.workerTaskSig).toBeTruthy();
+    });
+
+    it('should decrypt task result', async () => {
+      try {
+        task = await enigma.decryptTaskResult(task);
+        expect(task.decryptedOutput).toBeTruthy();
+      } catch (err) {
+        expect(err.message).toEqual('decipher did not finish');
+      }
     });
 
     it('should get the pending task', async () => {

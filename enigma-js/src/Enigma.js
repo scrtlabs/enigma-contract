@@ -159,8 +159,8 @@ export default class Enigma {
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            id, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
-            isContractDeploymentTask));
+            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode,
+            preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
@@ -454,6 +454,19 @@ export default class Enigma {
       }
     })();
     return emitter;
+  }
+
+  /**
+   * Decrypt task result
+   *
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {Task} Decrypted task result wrapper
+   */
+  async decryptTaskResult(task) {
+    const {privateKey} = this.obtainTaskKeyPair();
+    const derivedKey = utils.getDerivedKey(task.workerEncryptionKey, privateKey);
+    task.decryptedOutput = utils.decryptMessage(derivedKey, task.encryptedAbiEncodedOutputs);
+    return task;
   }
 
   /**
