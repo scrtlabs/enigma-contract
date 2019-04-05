@@ -9,16 +9,39 @@ describe('enigma-utils', () => {
     expect(utils.test()).toEqual('hello2');
   });
 
-  it('should successfully encrypt the same as in rust', () => {
+  it('should successfully encrypt and decrypt the same as in rust', () => {
     const key = '2987699a6d3a5ebd07f4caf422fad2809dcce942cd9db266ed8e2be02cf95ee9'; // SHA256('EnigmaMPC')
     const iv = forge.util.hexToBytes('000102030405060708090a0b');
-    const msg = 'This Is Enigma';
+    const msg = 'This is Enigma';
     const encrypted = utils.encryptMessage(key, msg, iv);
 
     expect(encrypted).toEqual(
-      '02dc75395859faa78a598e11945c7165db9a16d16ada1b026c9434b134ae000102030405060708090a0b',
+      '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
     );
+
+    expect(utils.decryptMessage(key, encrypted)).toEqual('5468697320697320456e69676d61');
+    expect(utils.hexToAscii(utils.decryptMessage(key, encrypted))).toEqual(msg);
+
+    // Corrupt a valid encrypted message by just tweaking the first byte
+    const invalidEncryptedMsg = '12dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b'
+    // Wrap the code that throws an Error in a function,
+    // otherwise the error will not be caught and the assertion will fail
+    function invalidDecryption() {
+      utils.decryptMessage(key, invalidEncryptedMsg);
+    }
+    expect(invalidDecryption).toThrow();
+
   });
+
+  it('should convert hex to ascii', () => {
+    expect(utils.hexToAscii(31323334)).toEqual('1234');
+    expect(utils.hexToAscii('68656c6c6f')).toEqual('hello');
+    expect(utils.hexToAscii('0x68656c6c6f')).toEqual('hello');
+    expect(utils.hexToAscii('0x68656c6c6f20776f726c64')).toEqual('hello world');
+    expect(utils.hexToAscii('20 20 20 20 20 68 65 6c 6c 6f 20 20 20 20 20')).toEqual('     hello     ');
+    expect(utils.hexToAscii(true)).toEqual('');
+    expect(utils.hexToAscii([1, 2, 3, 4, 5])).toEqual('');
+  })
 
   it('should generate a task input hash', () => {
     const encryptedFn = 'de9bc270f30e03de84aca5ea78f18321f50ca886ff522a49d525bc24f6d56cfb2dcb0b1d33b8756196de2' +

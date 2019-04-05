@@ -310,30 +310,30 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   return sha256.digest().toHex();
 }
 
-// /**
-//  * Decrypts the encrypted message:
-//  * Message format: encrypted_message[*]tag[16]iv[12] (represented as: var_name[len])
-//  *
-//  * @param {string} keyHex
-//  * @param {string} msg
-//  * @return {string}
-//  */
-// function decryptMessage(keyHex, msg) {
-//   let key = forge.util.hexToBytes(keyHex);
-//   let msgBuf = Buffer.from(msg, 'hex');
-//   let iv = forge.util.createBuffer(msgBuf.slice(-12).toString('binary'));
-//   let tag = forge.util.createBuffer(msgBuf.slice(-28, -12).toString('binary'));
-//   const decipher = forge.cipher.createDecipher('AES-GCM', key);
-//
-//   decipher.start({iv: iv, tag: tag});
-//   decipher.update(
-//     forge.util.createBuffer(msgBuf.slice(0, -28).toString('binary')));
-//
-//   if (decipher.finish()) {
-//     return decipher.output.getBytes();
-//   }
-//   throw new Error('decipher did not finish');
-// }
+/**
+ * Decrypts the encrypted message:
+ * Message format: encrypted_message[*]tag[16]iv[12] (represented as: var_name[len])
+ *
+ * @param {string} keyHex
+ * @param {string} msgHex
+ * @return {string}
+ */
+function decryptMessage(keyHex, msgHex) {
+  let key = forge.util.hexToBytes(keyHex);
+  let msgBuf = Buffer.from(msgHex, 'hex');
+  let iv = forge.util.createBuffer(msgBuf.slice(-12));
+  let tag = forge.util.createBuffer(msgBuf.slice(-28, -12));
+  const decipher = forge.cipher.createDecipher('AES-GCM', key);
+
+  decipher.start({iv: iv, tag: tag});
+  decipher.update(
+    forge.util.createBuffer(msgBuf.slice(0, -28)));
+
+  if (decipher.finish()) {
+    return decipher.output.toHex();
+  }
+  throw new Error('decipher did not finish');
+}
 
 /**
  * Encrypts a message using the provided key.
@@ -392,6 +392,27 @@ function remove0x(hexString) {
   }
 }
 
+/**
+ * Converts a hex string to its ASCII representation
+ *
+ * @param {string} hexString
+ * @return {string}
+ */
+function hexToAscii(hexString) {
+    if (!(typeof hexString === 'number' || typeof hexString == 'string')) {
+      return '';
+    }
+    hexString = hexString.toString().replace(/\s+/gi, '');
+    const stack = [];
+    for (let n = 0; n < hexString.length; n += 2) {
+      const code = parseInt(hexString.substr(n, 2), 16);
+      if (!isNaN(code) && code !== 0) {
+        stack.push(String.fromCharCode(code));
+      }
+    }
+    return stack.join('');
+  }
+
 let utils = {};
 
 // utils.readCert = readCert;
@@ -408,9 +429,10 @@ utils.generateTaskInputsHash = generateTaskInputsHash;
 // utils.recoverPublicKey = recoverPublicKey;
 utils.getDerivedKey = getDerivedKey;
 utils.encryptMessage = encryptMessage;
-// utils.decryptMessage = decryptMessage;
+utils.decryptMessage = decryptMessage;
 utils.toGrains = toGrains;
 // utils.fromGrains = fromGrains;
 utils.remove0x = remove0x;
+utils.hexToAscii = hexToAscii;
 
 export default utils;
