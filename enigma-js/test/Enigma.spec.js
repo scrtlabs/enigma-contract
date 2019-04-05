@@ -676,7 +676,6 @@ describe('Enigma tests', () => {
     let codeHash;
     let initStateDeltaHash;
     it('should simulate the contract deployment failure', async () => {
-      console.log('Simulating deployment failure with task', scTask);
       const gasUsed = 25;
       const proof = web3.utils.soliditySha3(
         {t: 'bytes32', v: scTask.inputsHash},
@@ -1325,6 +1324,15 @@ describe('Enigma tests', () => {
       expect(task.ethereumPayload).toBeTruthy();
       expect(task.ethereumAddress).toBeTruthy();
       expect(task.workerTaskSig).toBeTruthy();
+    });
+
+    it('should decrypt task result', async () => {
+      try {
+        task = await enigma.decryptTaskResult(task);
+        expect(task.decryptedOutput).toBeTruthy();
+      } catch (err) {
+        expect(err.message).toEqual('decipher did not finish');
+      }
     });
 
     it('should get the pending task', async () => {
