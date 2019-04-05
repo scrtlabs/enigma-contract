@@ -7,6 +7,7 @@ import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
 import { WorkersImpl } from "./WorkersImpl.sol";
+import { Bytes } from "../utils/Bytes.sol";
 import "../utils/SolRsaVerify.sol";
 
 /**
@@ -17,6 +18,10 @@ import "../utils/SolRsaVerify.sol";
 library TaskImpl {
     using SafeMath for uint256;
     using ECDSA for bytes32;
+    using Bytes for bytes;
+    using Bytes for bytes32;
+    using Bytes for uint64;
+    using Bytes for address;
 
     event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint gasLimit, uint gasPx, address sender,
         uint blockNumber);
@@ -67,7 +72,7 @@ library TaskImpl {
         emit TaskRecordCreated(taskId, _inputsHash, _gasLimit, _gasPx, msg.sender, block.number);
     }
 
-    function deploySecretContractFailureImpl(EnigmaState.State storage state, bytes32 _taskId, uint _gasUsed,
+    function deploySecretContractFailureImpl(EnigmaState.State storage state, bytes32 _taskId, uint64 _gasUsed,
         bytes memory _sig)
     public
     {
@@ -89,9 +94,11 @@ library TaskImpl {
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
         // Verify the worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash,
-            _gasUsed,
-            bytes1(0x00)));
+        bytes memory message;
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
+        message = EnigmaCommon.appendMessage(message, hex"00");
+        bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         emit ReceiptFailed(_taskId, _sig);
@@ -121,20 +128,22 @@ library TaskImpl {
 
     function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
         bytes32 _codeHash, bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress, uint _gasUsed, bytes memory _sig)
+        address _optionalEthereumContractAddress, uint64 _gasUsed, bytes memory _sig)
     public
     {
         verifyDeployReceipt(state, _taskId, _gasUsed, msg.sender, _sig);
         EnigmaCommon.TaskRecord memory task = state.tasks[_taskId];
 
         // Verify the worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash,
-            _codeHash,
-            _initStateDeltaHash,
-            _gasUsed,
-            uint64(_optionalEthereumData.length), _optionalEthereumData,
-            uint64(20), _optionalEthereumContractAddress,
-            bytes1(0x01)));
+        bytes memory message;
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _codeHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _initStateDeltaHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
+        message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
+        message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
+        message = EnigmaCommon.appendMessage(message, hex"01");
+        bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         // Set the secret contract's attributes in registry
@@ -203,7 +212,7 @@ library TaskImpl {
         EnigmaState.State storage state,
         bytes32 _scAddr,
         bytes32 _taskId,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -228,10 +237,12 @@ library TaskImpl {
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
         // Verify the worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(task.inputsHash,
-            secretContract.codeHash,
-            _gasUsed,
-            bytes1(0x00)));
+        bytes memory message;
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
+        message = EnigmaCommon.appendMessage(message, hex"00");
+        bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
         emit ReceiptFailed(_taskId, _sig);
@@ -267,7 +278,7 @@ library TaskImpl {
         bytes32 _outputHash,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -284,15 +295,17 @@ library TaskImpl {
         secretContract.outputHashes.push(_outputHash);
 
         // Verify the worker's signature
-        bytes32 msgHash = keccak256(abi.encodePacked(secretContract.codeHash,
-            state.tasks[_taskId].inputsHash,
-            lastStateDeltaHash,
-            _stateDeltaHash,
-            _outputHash,
-            _gasUsed,
-            uint64(_optionalEthereumData.length), _optionalEthereumData,
-            uint64(20), _optionalEthereumContractAddress,
-            bytes1(0x01)));
+        bytes memory message;
+        message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, lastStateDeltaHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _stateDeltaHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _outputHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
+        message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
+        message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
+        message = EnigmaCommon.appendMessage(message, hex"01");
+        bytes32 msgHash = keccak256(message);
 
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
@@ -350,7 +363,7 @@ library TaskImpl {
         bytes32[] memory _outputHashes,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint[] memory _gasesUsed,
+        uint64[] memory _gasesUsed,
         bytes memory _sig
     )
     public

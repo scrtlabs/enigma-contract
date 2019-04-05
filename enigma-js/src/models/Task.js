@@ -29,7 +29,7 @@ export default class Task {
               workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode, preCodeHash,
               isContractDeploymentTask) {
     // Initial task attributes
-    this.inputsHash = utils.generateTaskInputsHash([encryptedFn, encryptedAbiEncodedArgs,
+    this.inputsHash = utils.hash([encryptedFn, encryptedAbiEncodedArgs,
       isContractDeploymentTask ? preCodeHash : scAddr, userPubKey]);
     this.scAddr = scAddr;
     this.encryptedFn = encryptedFn;
