@@ -79,7 +79,7 @@ export default class RPCServer {
           let status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
           callback(null, {
             result: {
-              output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+              output: '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
               status: status,
             },
           });
@@ -128,7 +128,7 @@ export default class RPCServer {
                 result: {
                   taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
                   status: 'FAILED',
-                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  output: '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
                   usedGas: 'amount-of-gas-used',
                   signature: 'enclave-signature',
                 },
@@ -140,7 +140,7 @@ export default class RPCServer {
                 result: {
                   taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
                   status: 'SUCCESS',
-                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  output: '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
                   delta: {'key': 0, 'data': [11, 2, 3, 5, 41, 44]},
                   usedGas: 'amount-of-gas-used',
                   ethereumPayload: 'hex of payload',
