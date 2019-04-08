@@ -1,3 +1,4 @@
 01_init.spec.js
 02_deploy_addition.spec.js
 03_deploy_fail.spec.js
+10_execute_addition.spec.js 
