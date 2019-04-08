@@ -243,6 +243,20 @@ describe('Enigma tests', () => {
       expect(registerWorkersResults.length).toEqual(accounts.length - 2);
     }, 20000);
 
+    it('should fail to register worker with same signing key', async () => {
+      let worker = data.workers[0];
+      const report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + worker[3];
+
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.register(worker[0], report, signature).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: accounts[0],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not a unique signing key');
+    }, 5000);
+
     it('should get the worker report', async () => {
       const report = await enigma.getReport(accounts[0]);
       expect(report).toBeTruthy();
