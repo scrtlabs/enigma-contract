@@ -205,7 +205,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     */
     function deploySecretContractFailure(
         bytes32 _taskId,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -234,7 +234,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32 _initStateDeltaHash,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -370,7 +370,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32 _outputHash,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -401,7 +401,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
         bytes32[] memory _outputHashes,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint[] memory _gasesUsed,
+        uint64[] memory _gasesUsed,
         bytes memory _sig
     )
     public
@@ -424,7 +424,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     function commitTaskFailure(
         bytes32 _scAddr,
         bytes32 _taskId,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
