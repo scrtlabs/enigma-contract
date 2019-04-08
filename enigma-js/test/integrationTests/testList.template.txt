@@ -2,3 +2,4 @@
 02_deploy_addition.spec.js
 03_deploy_fail.spec.js
 10_execute_addition.spec.js 
+20_execute_fail.spec.js
