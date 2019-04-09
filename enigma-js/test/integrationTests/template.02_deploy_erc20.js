@@ -53,8 +53,8 @@ describe('Enigma tests', () => {
   const homedir = os.homedir();
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
-    let scTaskArgs = '';
-    let scTaskGasLimit = 100;
+    let scTaskArgs =  [[accounts[0],'bytes20'],[1000000,'uint256']];
+    let scTaskGasLimit = 4000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
@@ -83,7 +83,7 @@ describe('Enigma tests', () => {
       await sleep(1000);
     } while (scTask.ethStatus != 2);
     expect(scTask.ethStatus).toEqual(2);
-  }, 10000);
+  }, 25000);
 
   it('should verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask.scAddr);
