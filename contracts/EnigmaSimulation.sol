@@ -125,10 +125,22 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
         _;
     }
 
+    /**
+    * Ensure signing key used for registration is unique
+    *
+    * @param _signer Signing key
+    */
+    modifier isUniqueSigningKey(address _signer) {
+        for (uint i = 0; i < state.workerAddresses.length; i++) {
+            require(state.workers[state.workerAddresses[i]].signer != _signer, "Not a unique signing key");
+        }
+        _;
+    }
+
     // ========================================== Functions ==========================================
 
     /**
-    * Registers a new worker of change the signer parameters of an existing
+    * Registers a new worker or change the signer parameters of an existing
     * worker. This should be called by every worker (and the principal)
     * node in order to receive tasks.
     *
@@ -138,6 +150,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function register(address _signer, bytes memory _report, bytes memory _signature)
     public
+    isUniqueSigningKey(_signer)
     {
         WorkersImplSimulation.registerImpl(state, _signer, _report, _signature);
     }
@@ -192,7 +205,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function deploySecretContractFailure(
         bytes32 _taskId,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -221,7 +234,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
         bytes32 _initStateDeltaHash,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -357,7 +370,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
         bytes32 _outputHash,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public
@@ -388,7 +401,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
         bytes32[] memory _outputHashes,
         bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress,
-        uint[] memory _gasesUsed,
+        uint64[] memory _gasesUsed,
         bytes memory _sig
     )
     public
@@ -411,7 +424,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     function commitTaskFailure(
         bytes32 _scAddr,
         bytes32 _taskId,
-        uint _gasUsed,
+        uint64 _gasUsed,
         bytes memory _sig
     )
     public

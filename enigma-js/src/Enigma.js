@@ -6,7 +6,6 @@ import Task from './models/Task';
 import EventEmitter from 'eventemitter3';
 import web3Utils from 'web3-utils';
 import jaysonBrowserClient from 'jayson/lib/client/browser';
-import msgpack from 'msgpack-lite';
 import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
@@ -97,7 +96,8 @@ export default class Enigma {
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
-      const preCodeHash = isContractDeploymentTask ? this.web3.utils.soliditySha3(scAddrOrPreCode) : '';
+      const preCodeHash = isContractDeploymentTask ?
+        this.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = utils.remove0x(this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
@@ -125,18 +125,20 @@ export default class Enigma {
         const {result, id} = getWorkerEncryptionKeyResult;
         const {workerEncryptionKey, workerSig} = result;
 
-        let key = [];
-        for (let n = 0; n < workerEncryptionKey.length; n += 2) {
-          key.push(parseInt(workerEncryptionKey.substr(n, 2), 16));
-        }
+        // The signature of the workerEncryptionKey is generated
+        // concatenating the following elements in a bytearray:
+        // len('Enigma User Message') + b'Enigma User Message' + len(workerEncryptionKey) + workerEncryptionKey
+        // Because the first 3 elements are constant, they are hardcoded as follows:
+        // len('Enigma User Message') as a uint64 => 19 in hex => 0000000000000013
+        // bytes of 'Enigma User Message' in hex => 456e69676d612055736572204d657373616765
+        // len(workerEncryptionKey) as a unit64 => 64 in hex => 0000000000000040
+        const hexToVerify = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040' +
+          workerEncryptionKey;
 
-        const prefix = 'Enigma User Message'.split('').map((c) => c.charCodeAt(0));
-        const buffer = msgpack.encode({prefix: prefix, pubkey: key});
+        // the hashing function soliditySha3 expects hex instead of bytes
+        let recAddress = EthCrypto.recover('0x'+workerSig,
+          this.web3.utils.soliditySha3({t: 'bytes', value: hexToVerify}));
 
-        let recAddress = EthCrypto.recover('0x' + workerSig, this.web3.utils.soliditySha3({
-          t: 'bytes',
-          value: buffer.toString('hex'),
-        }));
         recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
 
         if (workerAddress !== recAddress) {
@@ -157,8 +159,8 @@ export default class Enigma {
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            id, publicKey, firstBlockNumber, workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash,
-            isContractDeploymentTask));
+            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode,
+            preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
@@ -452,6 +454,19 @@ export default class Enigma {
       }
     })();
     return emitter;
+  }
+
+  /**
+   * Decrypt task result
+   *
+   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @return {Task} Decrypted task result wrapper
+   */
+  async decryptTaskResult(task) {
+    const {privateKey} = this.obtainTaskKeyPair();
+    const derivedKey = utils.getDerivedKey(task.workerEncryptionKey, privateKey);
+    task.decryptedOutput = utils.decryptMessage(derivedKey, task.encryptedAbiEncodedOutputs);
+    return task;
   }
 
   /**
