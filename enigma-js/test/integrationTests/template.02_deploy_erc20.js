@@ -53,7 +53,7 @@ describe('Enigma tests', () => {
   const homedir = os.homedir();
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
-    let scTaskArgs =  [[accounts[0],'bytes20'],[1000000,'uint256']];
+    let scTaskArgs =  [[accounts[0],'bytes32'],[1000000,'uint256']];
     let scTaskGasLimit = 4000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
