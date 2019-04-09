@@ -49,7 +49,7 @@ describe('Enigma tests', () => {
   });
 
   const homedir = os.homedir();
-  const additionAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-millionaire.txt'), 'utf-8');
+  const millionaireAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-millionaire.txt'), 'utf-8');
 
   let task1;
   it('should execute compute task', async () => {
@@ -61,7 +61,7 @@ describe('Enigma tests', () => {
     let taskGasLimit = 1000000;
     let taskGasPx = utils.toGrains(1);
     task1 = await new Promise((resolve, reject) => {
-      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], additionAddr)
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], millionaireAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
@@ -92,7 +92,7 @@ describe('Enigma tests', () => {
     let taskGasLimit = 1000000;
     let taskGasPx = utils.toGrains(1);
     task2 = await new Promise((resolve, reject) => {
-      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], additionAddr)
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], millionaireAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
@@ -120,7 +120,7 @@ describe('Enigma tests', () => {
     let taskGasLimit = 1000000;
     let taskGasPx = utils.toGrains(1);
     task3 = await new Promise((resolve, reject) => {
-      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], additionAddr)
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], millionaireAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
