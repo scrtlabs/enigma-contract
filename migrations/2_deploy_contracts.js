@@ -68,7 +68,7 @@ async function deployProtocol(deployer) {
   await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
   await deployer.deploy(Sample);
 
-  if(fs.existsSync(path.join(homedir, '.enigma')){
+  if(fs.existsSync(path.join(homedir, '.enigma'))){
     // Writing enigma contracts to a file for other processes to retrieve, if ~/.enigma exists
     fs.writeFile(path.join(homedir, '.enigma', 'enigmacontract.txt'), Enigma.address, 'utf8', function(err) {
       if(err) {
@@ -80,7 +80,8 @@ async function deployProtocol(deployer) {
         return console.log(err);
       }
     });
- }
+  }
+}
 
 async function doMigration(deployer) {
   await deployProtocol(deployer);
