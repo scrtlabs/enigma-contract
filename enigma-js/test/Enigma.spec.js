@@ -163,7 +163,7 @@ describe('Enigma tests', () => {
       expect(workerParams.stakes).toEqual([]);
     });
 
-    it('should fail to set worker params (principal only) since it already has during this epoch', async () => {
+    it.skip('should fail to set worker params (principal only) since it already has during this epoch', async () => {
       const reason = 'Returned error: VM Exception while processing transaction: ' +
         'revert Already called during this epoch';
       if (process.env.PRINCIPAL_CONTAINER) {
@@ -426,9 +426,7 @@ describe('Enigma tests', () => {
     it('should set the worker parameters (principal only) again for a new epoch', async () => {
       let receipt;
       if (process.env.PRINCIPAL_CONTAINER) {
-        // Because the previous test failed to submit the worker params (i.e. confirm the epoch)
-        // We confirm here in order to avoid a mismatching nonce in the epoch
-        const tx = await execInContainer(enigma, '--confirm-worker-params');
+        const tx = await execInContainer(enigma, '--set-worker-params');
         receipt = await web3.eth.getTransactionReceipt(tx);
       } else {
         let blockNumber = await web3.eth.getBlockNumber();
