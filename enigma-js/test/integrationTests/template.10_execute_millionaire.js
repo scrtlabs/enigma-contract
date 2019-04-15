@@ -52,10 +52,12 @@ describe('Enigma tests', () => {
   const millionaireAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-millionaire.txt'), 'utf-8');
 
   let task1;
+  const addr1 = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const addr2 = '0x0000000000000000000000000000000000000000000000000000000000000002';
   it('should execute compute task', async () => {
     let taskFn = 'add_millionaire(bytes32,uint256)';
     let taskArgs = [
-        ['0x0000000000000000000000000000000000000000000000000000000000000001', 'bytes32'],
+        [addr1, 'bytes32'],
         [1000000, 'uint256'],
       ];
     let taskGasLimit = 1000000;
@@ -79,14 +81,13 @@ describe('Enigma tests', () => {
       await sleep(1000);
     } while (task1.ethStatus != 2);
     expect(task1.ethStatus).toEqual(2);
-    console.log(task1);
   }, 10000);
 
   let task2;
   it('should execute compute task', async () => {
     let taskFn = 'add_millionaire(bytes32,uint256)';
     let taskArgs = [
-        ['0x0000000000000000000000000000000000000000000000000000000000000002', 'bytes32'],
+        [addr2, 'bytes32'],
         [2000000, 'uint256'],
       ];
     let taskGasLimit = 1000000;
@@ -110,7 +111,6 @@ describe('Enigma tests', () => {
       await sleep(1000);
     } while (task2.ethStatus != 2);
     expect(task2.ethStatus).toEqual(2);
-    console.log(task2);
   }, 10000);
 
   let task3;
@@ -138,24 +138,21 @@ describe('Enigma tests', () => {
       await sleep(1000);
     } while (task3.ethStatus != 2);
     expect(task3.ethStatus).toEqual(2);
-    console.log(task3);
   }, 10000);
 
-  xit('should get the result', async () => {
+  it('should get and validate the result', async () => {
     task3 = await new Promise((resolve, reject) => {
-      enigma.getTaskResult(task)
+      enigma.getTaskResult(task3)
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    expect(task.engStatus).toEqual('SUCCESS');
-    expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
-    expect(task.delta).toBeTruthy();
-    expect(task.usedGas).toBeTruthy();
-    expect(task.ethereumPayload).toBeTruthy();
-    expect(task.ethereumAddress).toBeTruthy();
-    expect(task.workerTaskSig).toBeTruthy();
+    expect(task3.engStatus).toEqual('SUCCESS');
+    expect(task3.encryptedAbiEncodedOutputs).toBeTruthy();
+    expect(task3.usedGas).toBeTruthy();
+    expect(task3.workerTaskSig).toBeTruthy();
+    task3 = await enigma.decryptTaskResult(task3);
+    expect(task3.decryptedOutput).toEqual(utils.remove0x(addr2));
   });
-
 
 });
 
