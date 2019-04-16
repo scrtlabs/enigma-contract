@@ -1019,7 +1019,11 @@ describe('Enigma tests', () => {
     it('should simulate getting the state keys for the contract / epoch', async () => {
       if (process.env.PRINCIPAL_CONTAINER) {
         const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
+        console.log('Selecting worker with params', 'workers:', workerParams.workers,
+          'stakes:', workerParams.stakes.map((s) => web3.utils.numberToHex(s)),
+          'seed:', web3.utils.numberToHex(workerParams.seed));
         const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
+        console.log('The selected worker:', selectedWorkerAddr);
         const worker = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase());
         const stateKeys = await getStateKeysInContainer(enigma, worker, [scTask.scAddr]);
         console.log('the response', stateKeys);

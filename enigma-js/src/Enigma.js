@@ -337,7 +337,7 @@ export default class Enigma {
    * Select the workers weighted-randomly based on the staked token amount that will run the computation task
    *
    * @param {string} scAddr - Secret contract address
-   * @param {Object} params - Worker params
+   * @param {Object} params - Worker params: 1) Worker addresses; 2) Worker stakes; 3) Network seed
    * @param {number} workerGroupSize - Number of workers to be selected for task
    * @return {Array} An array of selected workers where each selected worker is chosen with probability equal to
    * number of staked tokens
