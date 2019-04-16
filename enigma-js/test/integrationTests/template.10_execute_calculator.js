@@ -64,7 +64,6 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    console.log(task1);
   });
 
   it('should get the pending task', async () => {
@@ -81,19 +80,18 @@ describe('Enigma tests', () => {
     expect(task1.ethStatus).toEqual(2);
   }, 10000);
 
-  xit('should get the result', async () => {
+  it('should get the result and verify the computation is correct', async () => {
     task1 = await new Promise((resolve, reject) => {
-      enigma.getTaskResult(task)
+      enigma.getTaskResult(task1)
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     expect(task1.engStatus).toEqual('SUCCESS');
     expect(task1.encryptedAbiEncodedOutputs).toBeTruthy();
-    expect(task1.delta).toBeTruthy();
+    task1 = await enigma.decryptTaskResult(task1);
     expect(task1.usedGas).toBeTruthy();
-    expect(task1.ethereumPayload).toBeTruthy();
-    expect(task1.ethereumAddress).toBeTruthy();
     expect(task1.workerTaskSig).toBeTruthy();
+    expect(parseInt(task1.decryptedOutput, 16)).toEqual(76-17);
   });
 
   let task2;
@@ -127,19 +125,18 @@ describe('Enigma tests', () => {
     expect(task2.ethStatus).toEqual(2);
   }, 10000);
 
-  xit('should get the result', async () => {
+  it('should get and validate the result', async () => {
     task2 = await new Promise((resolve, reject) => {
-      enigma.getTaskResult(task)
+      enigma.getTaskResult(task2)
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
     expect(task2.engStatus).toEqual('SUCCESS');
     expect(task2.encryptedAbiEncodedOutputs).toBeTruthy();
-    expect(task2.delta).toBeTruthy();
+    task2 = await enigma.decryptTaskResult(task2);
     expect(task2.usedGas).toBeTruthy();
-    expect(task2.ethereumPayload).toBeTruthy();
-    expect(task2.ethereumAddress).toBeTruthy();
     expect(task2.workerTaskSig).toBeTruthy();
+    expect(parseInt(task2.decryptedOutput, 16)).toEqual(76*17);
   });
 
 });
