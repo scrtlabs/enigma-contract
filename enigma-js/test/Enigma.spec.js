@@ -135,13 +135,8 @@ describe('Enigma tests', () => {
         let workerAddresses = getActiveWorkersResult['0'];
         let workerStakes = getActiveWorkersResult['1'];
         const seed = Math.floor(Math.random() * 100000);
-        const msg = web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256', 'address[]', 'uint256[]'],
-          [seed, 0, workerAddresses, workerStakes],
-        );
-        const hash = web3.utils.keccak256(msg);
-        const sig = EthCrypto.sign(data.principal[4], hash);
-
+        const proof = utils.principalHash(seed, 0, workerAddresses, workerStakes);
+        const sig = EthCrypto.sign(data.principal[4], proof);
         receipt = await new Promise((resolve, reject) => {
           enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
             gas: 4712388,
@@ -180,12 +175,8 @@ describe('Enigma tests', () => {
       let workerAddresses = getActiveWorkersResult['0'];
       let workerStakes = getActiveWorkersResult['1'];
       const seed = Math.floor(Math.random() * 100000);
-      const msg = web3.eth.abi.encodeParameters(
-        ['uint256', 'uint256', 'address[]', 'uint256[]'],
-        [seed, 1, workerAddresses, workerStakes],
-      );
-      const hash = web3.utils.keccak256(msg);
-      const sig = EthCrypto.sign(data.principal[4], hash);
+      const proof = utils.principalHash(seed, 1, workerAddresses, workerStakes);
+      const sig = EthCrypto.sign(data.principal[4], proof);
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
           gas: 4712388,
@@ -436,12 +427,8 @@ describe('Enigma tests', () => {
         let workerAddresses = getActiveWorkersResult['0'];
         let workerStakes = getActiveWorkersResult['1'];
         const seed = Math.floor(Math.random() * 100000);
-        const msg = web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256', 'address[]', 'uint256[]'],
-          [seed, 1, workerAddresses, workerStakes],
-        );
-        const hash = web3.utils.keccak256(msg);
-        const sig = EthCrypto.sign(data.principal[4], hash);
+        const proof = utils.principalHash(seed, 1, workerAddresses, workerStakes);
+        const sig = EthCrypto.sign(data.principal[4], proof);
 
         receipt = await new Promise((resolve, reject) => {
           enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
@@ -691,13 +678,10 @@ describe('Enigma tests', () => {
       const gasUsed = 25;
       const proof = utils.hash([scTask.inputsHash, web3.utils.toBN(gasUsed).toString(16, 16), '0x00']);
       const workerParams = await enigma.getWorkerParams(scTask.creationBlockNumber);
-      console.log('The worker params:', workerParams);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(scTask.scAddr, workerParams, 1))[0];
-      console.log('Found selected worker address:', selectedWorkerAddr);
       const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
       const sig = EthCrypto.sign(priv, proof);
       let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
-      console.log('Found worker from signing address', worker);
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       const result = await new Promise((resolve, reject) => {
@@ -995,12 +979,8 @@ describe('Enigma tests', () => {
         let workerAddresses = getActiveWorkersResult['0'];
         let workerStakes = getActiveWorkersResult['1'];
         const seed = Math.floor(Math.random() * 100000);
-        const msg = web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256', 'address[]', 'uint256[]'],
-          [seed, 2, workerAddresses, workerStakes],
-        );
-        const hash = web3.utils.keccak256(msg);
-        const sig = EthCrypto.sign(data.principal[4], hash);
+        const proof = utils.principalHash(seed, 2, workerAddresses, workerStakes);
+        const sig = EthCrypto.sign(data.principal[4], proof);
 
         receipt = await new Promise((resolve, reject) => {
           enigma.enigmaContract.methods.setWorkersParams(blockNumber, seed, sig).send({
@@ -1085,12 +1065,6 @@ describe('Enigma tests', () => {
       expect(task.proof).toBeFalsy();
       expect(endingContractBalance - startingContractBalance).toEqual(task.gasLimit * task.gasPx);
     });
-
-    // it('should return funds', async () => {
-    //   console.log('task one', await enigma.enigmaContract.methods.tasks(task.taskId).call());
-    //   await enigma.enigmaContract.methods.returnFeesForTask(task.taskId).send({from: accounts[0]});
-    //   console.log('task one', await enigma.enigmaContract.methods.tasks(task.taskId).call());
-    // });
 
     it('should send task inputs to Enigma network', async () => {
       task = await new Promise((resolve, reject) => {
@@ -1535,6 +1509,39 @@ describe('Enigma tests', () => {
       const optionalEthereumContractAddress = sampleContract.options.address;
       const proof = utils.hash([
         codeHash, task.inputsHash, stateDeltaHash, stateDeltaHash, outputHash,
+        web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
+      const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      const worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash,
+          optionalEthereumData,
+          optionalEthereumContractAddress, gasUsed, sig).send({
+          from: worker.account,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ethereum call failed');
+    });
+
+    it('should fail to simulate task receipt with eth call that reverts', async () => {
+      const gasUsed = 25;
+      const jsonInterface = {
+        name: 'setStateVarRevert',
+        type: 'function',
+        inputs: [
+          {
+            type: 'uint256',
+            name: '_stateInt',
+          }, {
+            type: 'bool',
+            name: '_stateBool',
+          }],
+      };
+      const parameters = [10, false];
+      const optionalEthereumData = enigma.web3.eth.abi.encodeFunctionCall(jsonInterface, parameters);
+      const optionalEthereumContractAddress = sampleContract.options.address;
+      const proof = utils.hash([codeHash, task.inputsHash, stateDeltaHash, stateDeltaHash, outputHash,
         web3.utils.toBN(gasUsed).toString(16, 16), optionalEthereumData, optionalEthereumContractAddress, '0x01']);
       const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
