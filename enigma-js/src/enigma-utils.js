@@ -200,15 +200,30 @@ function hash(inputsArray) {
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {array} inputsArray
+ * @param {Number} seed
+ * @param {Number} nonce
+ * @param {Array} workerAddresses
+ * @param {Array} workerStakes
  * @return {string} hash of inputs
  */
-function generateTaskInputsHash(inputsArray) {
+function principalHash(seed, nonce, workerAddresses, workerStakes) {
   let hexStr = '';
-  for (let e of inputsArray) {
+  for (let e of [seed, nonce]) {
+    let val = remove0x((new BN(e)).toString(16, 64));
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += (new BN(val.length/2).toString(16, 16)) + val;
+  }
+  hexStr += (new BN(workerAddresses.length)).toString(16, 16);
+  for (let e of workerAddresses) {
     e = remove0x(e);
     // since the inputs are in hex string, they are twice as long as their bytes
     hexStr += (new BN(e.length/2).toString(16, 16)) + e;
+  }
+  hexStr += (new BN(workerStakes.length)).toString(16, 16);
+  for (let e of workerStakes) {
+    let val = remove0x((new BN(e)).toString(16, 64));
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += (new BN(val.length/2).toString(16, 16)) + val;
   }
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
@@ -438,7 +453,7 @@ utils.test = () => 'hello2';
 // utils.encodeArguments = encodeArguments;
 utils.generateScAddr = generateScAddr;
 utils.hash = hash;
-utils.generateTaskInputsHash = generateTaskInputsHash;
+utils.principalHash = principalHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;
