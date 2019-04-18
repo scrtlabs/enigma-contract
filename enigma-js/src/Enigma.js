@@ -165,8 +165,8 @@ export default class Enigma {
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCodeArray,
-            preCodeHash, isContractDeploymentTask));
+            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
+            preCodeArray, preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
