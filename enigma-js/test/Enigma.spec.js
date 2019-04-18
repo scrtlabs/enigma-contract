@@ -1030,7 +1030,7 @@ describe('Enigma tests', () => {
       });
       expect(task).toBeTruthy();
       expect(task.scAddr).toBeTruthy();
-      expect(task.preCode).toEqual('');
+      expect(task.preCode).toEqual([]);
       expect(task.preCodeHash).toEqual('');
       expect(task.encryptedFn).toBeTruthy();
       expect(task.encryptedAbiEncodedArgs).toBeTruthy();
@@ -1200,7 +1200,7 @@ describe('Enigma tests', () => {
       );
       expect(task).toBeTruthy();
       expect(task.scAddr).toBeTruthy();
-      expect(task.preCode).toEqual('');
+      expect(task.preCode).toEqual([]);
       expect(task.preCodeHash).toEqual('');
       expect(task.encryptedFn).toBeTruthy();
       expect(task.encryptedAbiEncodedArgs).toBeTruthy();
@@ -1388,7 +1388,7 @@ describe('Enigma tests', () => {
       );
       expect(task).toBeTruthy();
       expect(task.scAddr).toBeTruthy();
-      expect(task.preCode).toEqual('');
+      expect(task.preCode).toEqual([]);
       expect(task.preCodeHash).toEqual('');
       expect(task.encryptedFn).toBeTruthy();
       expect(task.encryptedAbiEncodedArgs).toBeTruthy();
@@ -1468,7 +1468,7 @@ describe('Enigma tests', () => {
       );
       expect(task).toBeTruthy();
       expect(task.scAddr).toBeTruthy();
-      expect(task.preCode).toEqual('');
+      expect(task.preCode).toEqual([]);
       expect(task.preCodeHash).toEqual('');
       expect(task.encryptedFn).toBeTruthy();
       expect(task.encryptedAbiEncodedArgs).toBeTruthy();

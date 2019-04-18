@@ -96,6 +96,12 @@ export default class Enigma {
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
+
+      let preCodeArray = [];
+      for (let n = 0; n < preCode.length; n += 2) {
+        preCodeArray.push(parseInt(preCode.substr(n, 2), 16));
+      }
+
       const preCodeHash = isContractDeploymentTask ?
         this.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
@@ -159,8 +165,8 @@ export default class Enigma {
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode,
-            preCodeHash, isContractDeploymentTask));
+            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
+            preCodeArray, preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
