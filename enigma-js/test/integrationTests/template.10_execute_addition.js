@@ -81,7 +81,7 @@ describe('Enigma tests', () => {
     expect(task.ethStatus).toEqual(2);
   }, 10000);
 
-  xit('should get the result', async () => {
+  it('should get and validate the result', async () => {
     task = await new Promise((resolve, reject) => {
       enigma.getTaskResult(task)
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
@@ -89,11 +89,10 @@ describe('Enigma tests', () => {
     });
     expect(task.engStatus).toEqual('SUCCESS');
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
-    expect(task.delta).toBeTruthy();
     expect(task.usedGas).toBeTruthy();
-    expect(task.ethereumPayload).toBeTruthy();
-    expect(task.ethereumAddress).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
+    task = await enigma.decryptTaskResult(task);
+    expect(parseInt(task.decryptedOutput, 16)).toEqual(24+67);
 
   });
 

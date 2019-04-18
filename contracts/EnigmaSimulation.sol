@@ -340,16 +340,6 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
         TaskImpl.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber);
     }
 
-//    // Execute the encoded function in the specified contract
-//    function executeCall(address _to, uint256 _value, bytes memory _data)
-//    internal
-//    returns (bool success)
-//    {
-//        assembly {
-//            success := call(gas, _to, _value, add(_data, 0x20), mload(_data), 0, 0)
-//        }
-//    }
-
     /**
     * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
     * The task record is finalized and the worker is credited with the task's fee.
@@ -434,30 +424,12 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
         TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
     }
 
-//    function returnFeesForTask(bytes32 _taskId) public taskWaiting(_taskId) {
-//        TaskRecord storage task = tasks[_taskId];
-//
-//        // Ensure that the timeout window has elapsed, allowing for a fee return
-//        require(block.number - task.blockNumber > taskTimeoutSize, "Task timeout window has not elapsed yet");
-//
-//        // Return the full fee to the task sender
-//        require(engToken.transfer(task.sender, task.gasLimit.mul(task.gasPx)), "Token transfer failed");
-//
-//        // Set task's status to ReceiptFailed and emit event
-//        task.status = TaskStatus.ReceiptFailed;
-//        emit TaskFeeReturned(_taskId);
-//    }
-//
-//    // Verify the signature submitted while reparameterizing workers
-//    function verifyParamsSig(uint256 _seed, bytes memory _sig)
-//    internal
-//    pure
-//    returns (address)
-//    {
-//        bytes32 hash = keccak256(abi.encodePacked(_seed));
-//        address signer = hash.recover(_sig);
-//        return signer;
-//    }
+    function returnFeesForTask(bytes32 _taskId)
+    public
+    taskWaiting(_taskId)
+    {
+        TaskImpl.returnFeesForTaskImpl(state, _taskId);
+    }
 
     /**
     * Reparameterizing workers with a new seed

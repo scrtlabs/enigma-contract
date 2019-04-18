@@ -6,7 +6,7 @@ const Sample = artifacts.require('Sample.sol');
 const fs = require('fs');
 const path = require('path');
 
-const PRINCIPAL_SIGNING_ADDRESS = '0x3078356633353161633136306365333763653066';
+const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
 const EPOCH_SIZE = 10;
 
 dotenv.config();    // Reads .env configuration file, if present
