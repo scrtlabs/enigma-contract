@@ -171,14 +171,13 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     /**
     * Withdraws ENG stake from contract back to worker. Worker must be registered to do so.
     *
-    * @param _custodian The worker's ETH address
     * @param _amount The amount of ENG, in grains format (10 ** 8), to deposit
     */
-    function withdraw(address _custodian, uint _amount)
+    function withdraw(uint _amount)
     public
-    canWithdraw(_custodian)
+    canWithdraw(msg.sender)
     {
-        WorkersImplSimulation.withdrawImpl(state, _custodian, _amount);
+        WorkersImplSimulation.withdrawImpl(state, _amount);
     }
 
     /**
