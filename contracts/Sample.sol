@@ -16,6 +16,13 @@ contract Sample {
         stateBool = _stateBool;
     }
 
+    function setStateVarGasFail(uint _stateInt, bool _stateBool) public {
+        for (uint i = 0; i < 1000000; i++) {
+            stateInt = i;
+            stateBool = (i % 2 == 0);
+        }
+    }
+
     function setStateVarRevert(uint _stateInt, bool _stateBool) public {
         require(false, "Failed in eth call");
     }
