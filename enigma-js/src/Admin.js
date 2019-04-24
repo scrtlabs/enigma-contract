@@ -233,7 +233,7 @@ export default class Admin {
     let emitter = new EventEmitter();
     (async () => {
       try {
-        await this.enigmaContract.methods.withdraw(account, amount).
+        await this.enigmaContract.methods.withdraw(amount).
           send({from: account}).
           on('transactionHash', (hash) => {
             emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
