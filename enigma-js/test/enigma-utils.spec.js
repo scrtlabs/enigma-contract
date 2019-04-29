@@ -53,20 +53,23 @@ describe('enigma-utils', () => {
     const scAddrOrPreCodeHash = '0x300c3473734f4fe56d4acb834359a70d47ff2511c4839524c6f078cb28151ff4';
     const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762' +
       'e49ec912be61358d5e90bff56a53a0ed42abfe27e3';
-    const taskInputsHash = utils.generateTaskInputsHash([encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash,
+    const taskInputsHash = utils.hash([encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash,
       userPubKey]);
     expect(taskInputsHash).toEqual('0x0af2a6c64065ee3eca9ed1838a12d858dc8ccb604295bf0fa23008347c22f4b5');
   });
 
   it('should derive the same key', () => {
-    const enclavePublicKey = 'c73d872559d1468ef05204d66a75e616493e08c2e532a3dad7d7cedac6757c4e74021348e73bce08ea178a1b8cc0e3670dd3335977b5d7b294b819b26d5db934';
+    const enclavePublicKey = 'c73d872559d1468ef05204d66a75e616493e08c2e532a3dad7d7cedac6757c4e74021348e73bce08' +
+      'ea178a1b8cc0e3670dd3335977b5d7b294b819b26d5db934';
     const clientPrivateKey = '1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f';
-    expect(utils.getDerivedKey(enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfbace2faaff7e8ebfe00c4854f8c59407f6c24');
-    expect(utils.getDerivedKey('04'+enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfbace2faaff7e8ebfe00c4854f8c59407f6c24');
-  })
+    expect(utils.getDerivedKey(enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfbace2f' +
+      'aaff7e8ebfe00c4854f8c59407f6c24');
+    expect(utils.getDerivedKey('04'+enclavePublicKey, clientPrivateKey)).toEqual('d98eb96fa53f96192fcab5194bfb' +
+      'ace2faaff7e8ebfe00c4854f8c59407f6c24');
+  });
 
   it('should remove 0x where present', () => {
     expect(utils.remove0x('0x12345')).toEqual('12345');
     expect(utils.remove0x('12345')).toEqual('12345');
-  })
+  });
 });

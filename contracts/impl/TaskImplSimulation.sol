@@ -28,11 +28,12 @@ library TaskImplSimulation {
     event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint[] gasLimits, uint[] gasPxs, address sender,
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes optionalEthereumData,
-        address optionalEthereumContractAddress, bytes sig);
+    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, uint hashIndex,
+        bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes sig);
+    event TaskFeeReturned(bytes32 taskId);
 
     function createDeploymentTaskRecordImpl(
         EnigmaState.State storage state,
@@ -292,7 +293,7 @@ library TaskImplSimulation {
 
         // Append the new state delta hash and set the contract's output hash
         secretContract.stateDeltaHashes.push(_stateDeltaHash);
-        secretContract.outputHashes.push(_outputHash);
+        uint hashIndex = secretContract.outputHashes.push(_outputHash) - 1;
 
         // Verify the worker's signature
         bytes memory message;
@@ -314,7 +315,7 @@ library TaskImplSimulation {
             require(success, "Ethereum call failed");
         }
 
-        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, hashIndex, _optionalEthereumData,
             _optionalEthereumContractAddress, _sig);
     }
 
@@ -403,5 +404,24 @@ library TaskImplSimulation {
 
         emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
             _optionalEthereumContractAddress, _sig);
+    }
+
+    function returnFeesForTaskImpl(
+        EnigmaState.State storage state,
+        bytes32 _taskId
+    )
+    public
+    {
+        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
+
+        // Ensure that the timeout window has elapsed, allowing for a fee return
+        require(block.number - task.blockNumber > state.taskTimeoutSize, "Task timeout window has not elapsed yet");
+
+        // Return the full fee to the task sender
+        require(state.engToken.transfer(task.sender, task.gasLimit.mul(task.gasPx)), "Token transfer failed");
+
+        // Set task's status to ReceiptFailed and emit event
+        task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
+        emit TaskFeeReturned(_taskId);
     }
 }

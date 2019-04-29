@@ -1,4 +1,5 @@
 /* eslint-disable require-jsdoc */
+import dotenv from 'dotenv';
 import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
@@ -7,6 +8,8 @@ import EnigmaContract from '../../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
 import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
+
+dotenv.config();
 
 forge.options.usePureJavaScript = true;
 
@@ -21,6 +24,9 @@ describe('Init tests', () => {
   let enigma;
   let sampleContract;
   let epochSize;
+
+  let nodes = parseInt((typeof process.env.NODES !== 'undefined') ? process.env.NODES : 1);
+
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
@@ -65,15 +71,19 @@ describe('Init tests', () => {
     expect(results.length).toEqual(accounts.length - 2);
   });
 
-  let workerAddress;
-  it('should check that one worker and the principal node, and only them, are registered', async () => {
+  let workerAddress=[];
+  it('should check that '+nodes+' worker(s) and the principal node, and only them, are registered', async () => {
     let workerStatuses = [];
     for (let i = 0; i < 10; i++) {
       workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
     }
-    expect(workerStatuses).toEqual([2, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
-    workerAddress = await enigma.admin.getWorkerSignerAddr(accounts[0]);
-    console.log('WorkerAddress is '+workerAddress);
+    let arrayResults = [0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
+    for(let i = 0; i < nodes; i++){
+      arrayResults[i] = 2;
+      workerAddress[i] = await enigma.admin.getWorkerSignerAddr(accounts[i]);
+    }
+    expect(workerStatuses).toEqual(arrayResults);
+    console.log('WorkerAddresses are '+workerAddress);
   });
 
   it('should check worker\'s stake balance is empty', async () => {
@@ -81,46 +91,65 @@ describe('Init tests', () => {
     expect(balance).toEqual(0);
   });
 
-  const deposit = 900;
-  it('should deposit tokens in worker bank', async () => {
-    let result = await new Promise((resolve, reject) => {
-    enigma.admin.deposit(accounts[0], utils.toGrains(deposit))
-      .on(eeConstants.DEPOSIT_RECEIPT, (result) => resolve(result))
-      .on(eeConstants.ERROR, (err) => {
-        reject(err);
-      });
-    });
-    expect(result).toBeTruthy;
-  });
-
-  it('should check worker\'s balance has been filled', async () => {
-    const balance = await enigma.admin.getBalance(accounts[0]);
-    expect(balance).toEqual(900 * 10 ** 8);
-  });
-
-  it('should login the worker', async () => {
-    let result = await new Promise((resolve, reject) => {
-      enigma.admin.login(accounts[0])
-        .on(eeConstants.LOGIN_RECEIPT, (result) => {
-          resolve(result);
-        });
-    });
-    expect(result).toBeTruthy;
-  });
-
-  it('should check that one worker, and only one worker, is logged in', async () => {
-    let workerStatuses = [];
-    for (let i = 0; i < 10; i++) {
-      workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
-    }
-    expect(workerStatuses).toEqual([1, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
-  });
-
   it('should get the worker parameters for the current block', async () => {
     const blockNumber = await web3.eth.getBlockNumber();
     const workerParams = await enigma.getWorkerParams(blockNumber);
     expect(workerParams.workers).toEqual([]);
     expect(workerParams.stakes).toEqual([]);
+  });
+
+  const deposit = 900;
+  it('should deposit tokens in worker banks', async () => {
+    let promises = [];
+      for (let i = 0; i < nodes; i++) {
+        let promise = new Promise((resolve, reject) => {
+          enigma.admin.deposit(accounts[i], utils.toGrains(deposit)).
+            on(eeConstants.DEPOSIT_RECEIPT, (result) => resolve(result)).
+            on(eeConstants.ERROR, (err) => {
+              reject(err);
+            });
+        });
+        promises.push(promise);
+      }
+      const results = await Promise.all(promises);
+      expect(results.length).toEqual(nodes);
+  });
+
+  it('should check workers\' balances have been filled', async () => {
+    let balances = [];
+    let arrayResult = [];
+    for (let i = 0; i < nodes - 1; i++) {
+      balances.push(await enigma.admin.getBalance(accounts[i]));
+      arrayResult[i] = deposit * 10 ** 8;
+    }
+    expect(balances).toEqual(arrayResult);
+  });
+
+  it('should login the worker(s)', async () => {
+    let promises = [];
+    for (let i = 0; i < nodes; i++) {
+      let promise = new Promise((resolve, reject) => {
+        enigma.admin.login(accounts[i])
+          .on(eeConstants.LOGIN_RECEIPT, (result) => {
+            resolve(result);
+          });
+      });
+      promises.push(promise);
+    }
+    const loginReceipts = await Promise.all(promises);
+    expect(loginReceipts.length).toEqual(nodes);
+  }, 20000);
+
+  it('should check that '+nodes+' worker(s), and only them, are logged in', async () => {
+    let workerStatuses = [];
+    for (let i = 0; i < 10; i++) {
+      workerStatuses.push(await enigma.admin.getWorkerStatus(accounts[i]));
+    }
+    let arrayResults = [0, 0, 0, 0, 0, 0, 0, 0, 0, 2];
+    for(let i = 0; i < nodes; i++){
+      arrayResults[i]=1;
+    }
+    expect(workerStatuses).toEqual(arrayResults);
   });
 
   it('should move forward epochSize blocks by calling dummy contract', async () => {
@@ -140,8 +169,8 @@ describe('Init tests', () => {
       workerParams = await enigma.getWorkerParams(blockNumber);
       await sleep(1000);
     } while (!workerParams)
-    expect(workerParams.workers).toEqual([workerAddress]);
-    expect(workerParams.stakes).toEqual([web3.utils.toBN(900 * 10 ** 8)]);
+    expect(workerParams.workers.sort()).toEqual(workerAddress.sort());  // they may come in a different order
+    expect(workerParams.stakes).toEqual(new Array(nodes).fill(web3.utils.toBN(900 * 10 ** 8)));
   }, 5000);
 
   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec'+
@@ -149,7 +178,7 @@ describe('Init tests', () => {
   it('should create getTaskEncryptionKey from core (with call to P2P)', async () => {
     const encryptionKeyResult = await new Promise((resolve, reject) => {
         enigma.client.request('getWorkerEncryptionKey', 
-          {workerAddress: workerAddress.toLowerCase().slice(-40), userPubKey: userPubKey}, (err, response) => {
+          {workerAddress: workerAddress[0].toLowerCase().slice(-40), userPubKey: userPubKey}, (err, response) => {
             if (err) {
               reject(err);
             }

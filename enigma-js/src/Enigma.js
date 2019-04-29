@@ -96,6 +96,12 @@ export default class Enigma {
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
+
+      let preCodeArray = [];
+      for (let n = 0; n < preCode.length; n += 2) {
+        preCodeArray.push(parseInt(preCode.substr(n, 2), 16));
+      }
+
       const preCodeHash = isContractDeploymentTask ?
         this.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
@@ -159,8 +165,8 @@ export default class Enigma {
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode,
-            preCodeHash, isContractDeploymentTask));
+            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
+            preCodeArray, preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
@@ -337,7 +343,7 @@ export default class Enigma {
    * Select the workers weighted-randomly based on the staked token amount that will run the computation task
    *
    * @param {string} scAddr - Secret contract address
-   * @param {Object} params - Worker params
+   * @param {Object} params - Worker params: 1) Worker addresses; 2) Worker stakes; 3) Network seed
    * @param {number} workerGroupSize - Number of workers to be selected for task
    * @return {Array} An array of selected workers where each selected worker is chosen with probability equal to
    * number of staked tokens
