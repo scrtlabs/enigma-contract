@@ -5,6 +5,7 @@ const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
 const Sample = artifacts.require('Sample.sol');
 const fs = require('fs');
 const path = require('path');
+const VotingETH = artifacts.require('VotingETH.sol');
 
 const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
 const EPOCH_SIZE = 10;
@@ -67,6 +68,7 @@ async function deployProtocol(deployer) {
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
   await deployer.deploy(Sample);
+  await deployer.deploy(VotingETH);
 
   if(fs.existsSync(path.join(homedir, '.enigma'))){
     // Writing enigma contracts to a file for other processes to retrieve, if ~/.enigma exists
@@ -79,6 +81,12 @@ async function deployProtocol(deployer) {
       if(err) {
         return console.log(err);
       }
+    });
+    fs.writeFile(path.join(homedir, '.enigma', 'votingethcontract.txt'), VotingETH.address, 'utf8', function(err) {
+        console.log('VOTING CONTRACT WRITTEN TO ', VotingETH.address);
+        if(err) {
+            return console.log(err);
+        }
     });
   }
 }
