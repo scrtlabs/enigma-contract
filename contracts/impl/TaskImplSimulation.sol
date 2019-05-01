@@ -292,8 +292,8 @@ library TaskImplSimulation {
         verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _gasUsed, msg.sender, _sig);
 
         // Append the new state delta hash and set the contract's output hash
-        secretContract.stateDeltaHashes.push(_stateDeltaHash);
-        uint hashIndex = secretContract.outputHashes.push(_outputHash) - 1;
+        uint hashIndex = secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1;
+        state.tasks[_taskId].outputHash = _outputHash;
 
         // Verify the worker's signature
         bytes memory message;
@@ -381,7 +381,7 @@ library TaskImplSimulation {
 
             // Append the new state delta hash
             secretContract.stateDeltaHashes.push(_stateDeltaHashes[i]);
-            secretContract.outputHashes.push(_outputHashes[i]);
+            state.tasks[_taskIds[i]].outputHash = _outputHashes[i];
         }
 
         // Verify the worker's signature

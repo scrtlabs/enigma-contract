@@ -1630,7 +1630,7 @@ describe('Enigma tests', () => {
     });
 
     it('should get output hash', async () => {
-      const output = await enigma.admin.getOutputHash(scAddr, 1);
+      const output = await enigma.getTaskOutputHash(task);
       expect(outputHash).toEqual(output);
     });
 
@@ -1780,11 +1780,6 @@ describe('Enigma tests', () => {
       expect(hashes).toEqual([
         initStateDeltaHash, stateDeltaHash, stateDeltaHash, stateDeltaHashes[0],
         stateDeltaHashes[1]]);
-    });
-
-    it('should get output hash range', async () => {
-      const hashes = await enigma.admin.getOutputHashes(scAddr, 0, 4);
-      expect(hashes).toEqual([outputHash, outputHash, outputHashes[0], outputHashes[1]]);
     });
 
     it('should verify the report', async () => {
