@@ -74,7 +74,7 @@ describe('Enigma tests', () => {
         return console.log(err);
       }
     });
-  });
+  }, 10000);
 
   it('should get the confirmed deploy contract task', async () => {
     do {
