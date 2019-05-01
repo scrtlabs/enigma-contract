@@ -332,7 +332,7 @@ export default class Enigma {
       const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
       this.workerParamsCache = {
         firstBlockNumber: parseInt(getWorkerParamsResult[0]),
-        seed: JSBI.BigInt(getWorkerParamsResult[1]),
+        seed: getWorkerParamsResult[1],
         workers: getWorkerParamsResult[2],
         stakes: getWorkerParamsResult[3].map((x) => JSBI.BigInt(x)),
       };
@@ -358,7 +358,7 @@ export default class Enigma {
       // Unique hash for epoch, secret contract address, and nonce
       const msg = abi.rawEncode(
         ['uint256', 'bytes32', 'uint256'],
-        [JSBI.toNumber(params.seed), scAddr, nonce],
+        [params.seed, scAddr, nonce],
       );
       const hash = web3Utils.keccak256(msg);
       // Find random number between [0, tokenCpt)
