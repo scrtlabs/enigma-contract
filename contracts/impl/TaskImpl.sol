@@ -291,8 +291,8 @@ library TaskImpl {
         // Verify the receipt
         verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _gasUsed, msg.sender, _sig);
 
-        // Append the new state delta hash and set the contract's output hash
-        uint hashIndex = secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1;
+        uint hashIndex = _stateDeltaHash != bytes32(0) ? secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 :
+            0;
         state.tasks[_taskId].outputHash = _outputHash;
 
         // Verify the worker's signature
