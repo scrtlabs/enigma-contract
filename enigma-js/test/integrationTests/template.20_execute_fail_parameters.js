@@ -49,15 +49,15 @@ describe('Enigma tests', () => {
   });
 
   const homedir = os.homedir();
-  const additionAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-calculator.txt'), 'utf-8');
+  const calculatorAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-calculator.txt'), 'utf-8');
   let task;
   it('should execute compute task', async () => {
-    let taskFn = 'addition(uint,uint)';
+    let taskFn = 'add(uint,uint)';
     let taskArgs = [[24, 'uint256']];
     let taskGasLimit = 1000000;
     let taskGasPx = utils.toGrains(1);
     task = await new Promise((resolve, reject) => {
-      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], additionAddr)
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], calculatorAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });

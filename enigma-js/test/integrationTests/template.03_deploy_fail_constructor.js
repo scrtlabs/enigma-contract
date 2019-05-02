@@ -59,7 +59,7 @@ describe('Enigma tests', () => {
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
-      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/addition.wasm'));
+      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/calculator.wasm'));
       preCode = preCode.toString('hex');
     } catch(e) {
       console.log('Error:', e.stack);
