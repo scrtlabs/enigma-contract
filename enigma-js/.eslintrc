@@ -29,6 +29,7 @@
 
   "rules": {
     "camelcase": [2, { "properties": "always" }],
-    "max-len": [2, 120, 4]
+    "max-len": [2, 120, 4],
+    "new-cap": ["error", { "capIsNew": false }]
   }
 }
