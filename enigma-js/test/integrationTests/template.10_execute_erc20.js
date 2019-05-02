@@ -70,7 +70,7 @@ describe('Enigma tests', () => {
     expect(addr0.slice(-40)).toString(utils.remove0x(accounts[0]));
     expect(addr1.slice(-40)).toString(utils.remove0x(accounts[1]));
 
-    const msg = utils.hash(addr1,(new BN(amount).toString(16, 16)));
+    const msg = utils.hash([addr1,(new BN(amount).toString(16, 16))]);
     const sig = EthCrypto.sign(account_zero_private_key, msg);
 
     let taskFn = 'mint(bytes32,bytes32,uint256,bytes)';
@@ -102,9 +102,9 @@ describe('Enigma tests', () => {
       await sleep(1000);
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
-  }, 10000);
+  }, 20000);
 
-  xit('should get the result', async () => {
+  it('should get the result', async () => {
     task = await new Promise((resolve, reject) => {
       enigma.getTaskResult(task)
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
@@ -114,9 +114,9 @@ describe('Enigma tests', () => {
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task.delta).toBeTruthy();
     expect(task.usedGas).toBeTruthy();
-    expect(task.ethereumPayload).toBeTruthy();
-    expect(task.ethereumAddress).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
+    task = await enigma.decryptTaskResult(task);
+    expect(task.decryptedOutput).toBe('');
   });
 
 });
