@@ -84,7 +84,6 @@ describe('Init tests', () => {
       workerAddress[i] = await enigma.admin.getWorkerSignerAddr(accounts[i]);
     }
     expect(workerStatuses).toEqual(arrayResults);
-    console.log('WorkerAddresses are '+workerAddress);
   });
 
   it('should check worker\'s stake balance is empty', async () => {
@@ -186,8 +185,6 @@ describe('Init tests', () => {
             resolve(response);
         });
       });
-    console.log(encryptionKeyResult)
-
     expect(encryptionKeyResult.result.workerEncryptionKey.length).toBe(128);
     expect(encryptionKeyResult.result.workerSig.length).toBe(130);
   });
