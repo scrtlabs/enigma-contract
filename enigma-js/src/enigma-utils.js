@@ -1,4 +1,4 @@
-import BN from 'bn.js';
+import JSBI from 'jsbi';
 import web3Utils from 'web3-utils';
 // import RLP from 'rlp';
 import forge from 'node-forge';
@@ -191,7 +191,7 @@ function hash(inputsArray) {
   for (let e of inputsArray) {
     e = remove0x(e);
     // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += (new BN(e.length/2).toString(16, 16)) + e;
+    hexStr += JSBI.BigInt(e.length/2).toString(16).padStart(16, '0') + e;
   }
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
@@ -209,21 +209,21 @@ function hash(inputsArray) {
 function principalHash(seed, nonce, workerAddresses, workerStakes) {
   let hexStr = '';
   for (let e of [seed, nonce]) {
-    let val = remove0x((new BN(e)).toString(16, 64));
+    let val = JSBI.BigInt(e).toString(16).padStart(64, '0');
     // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += (new BN(val.length/2).toString(16, 16)) + val;
+    hexStr += JSBI.BigInt(val.length/2).toString(16).padStart(16, '0') + val;
   }
-  hexStr += (new BN(workerAddresses.length)).toString(16, 16);
+  hexStr += JSBI.BigInt(workerAddresses.length).toString(16).padStart(16, '0');
   for (let e of workerAddresses) {
     e = remove0x(e);
     // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += (new BN(e.length/2).toString(16, 16)) + e;
+    hexStr += JSBI.BigInt(e.length/2).toString(16).padStart(16, '0') + e;
   }
-  hexStr += (new BN(workerStakes.length)).toString(16, 16);
+  hexStr += JSBI.BigInt(workerStakes.length).toString(16).padStart(16, '0');
   for (let e of workerStakes) {
-    let val = remove0x((new BN(e)).toString(16, 64));
+    let val = JSBI.BigInt(e).toString(16).padStart(64, '0');
     // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += (new BN(val.length/2).toString(16, 16)) + val;
+    hexStr += JSBI.BigInt(val.length/2).toString(16).padStart(16, '0') + val;
   }
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
