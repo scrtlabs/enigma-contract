@@ -6,7 +6,7 @@ import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
-import { WorkersImpl } from "./WorkersImpl.sol";
+import { WorkersImplSimulation } from "./WorkersImplSimulation.sol";
 import { Bytes } from "../utils/Bytes.sol";
 import "../utils/SolRsaVerify.sol";
 
@@ -15,7 +15,7 @@ import "../utils/SolRsaVerify.sol";
  *
  * Library that maintains functionality associated with tasks
  */
-library TaskImpl {
+library TaskImplSimulation {
     using SafeMath for uint256;
     using ECDSA for bytes32;
     using Bytes for bytes;
@@ -49,7 +49,7 @@ library TaskImpl {
         require(state.userTaskDeployments[msg.sender] == _nonce, "Incorrect nonce yielding bad secret contract address");
 
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImpl.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
+        require(_firstBlockNumber == WorkersImplSimulation.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
 
         // Transfer fee from sender to contract
         uint fee = _gasLimit.mul(_gasPx);
@@ -82,7 +82,7 @@ library TaskImpl {
 
         EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
+        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -114,7 +114,7 @@ library TaskImpl {
 
         EnigmaCommon.Worker memory worker = state.workers[_sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
+        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -185,7 +185,7 @@ library TaskImpl {
     public
     {
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImpl.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
+        require(_firstBlockNumber == WorkersImplSimulation.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
 
         // Transfer fee from sender to contract
         uint fee = _gasLimit.mul(_gasPx);
@@ -225,7 +225,7 @@ library TaskImpl {
 
         EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
+        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -258,7 +258,7 @@ library TaskImpl {
 
         EnigmaCommon.Worker memory worker = state.workers[_sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImpl.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
+        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -329,7 +329,7 @@ library TaskImpl {
     public
     {
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImpl.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
+        require(_firstBlockNumber == WorkersImplSimulation.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
 
         bytes32[] memory taskIds = new bytes32[](_inputsHashes.length);
         for (uint i = 0; i < _inputsHashes.length; i++) {

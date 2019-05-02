@@ -1,3 +1,4 @@
+import JSBI from 'jsbi';
 import web3Utils from 'web3-utils';
 // import RLP from 'rlp';
 import forge from 'node-forge';
@@ -179,22 +180,52 @@ function generateScAddr(sender, nonce) {
 }
 
 /**
+ * Generate a hash of all inputs
+ * The Enigma contract uses the same logic to generate a matching taskId
+ *
+ * @param {array} inputsArray
+ * @return {string} hash of inputs
+ */
+function hash(inputsArray) {
+  let hexStr = '';
+  for (let e of inputsArray) {
+    e = remove0x(e);
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += JSBI.BigInt(e.length/2).toString(16).padStart(16, '0') + e;
+  }
+  return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
+}
+
+/**
  * Generate a taskId using a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
- * @param {string} encryptedFn
- * @param {string} encryptedAbiEncodedArgs
- * @param {string} scAddrOrPreCodeHash
- * @param {string} userPubKey
- * @return {string}
+ * @param {Number} seed
+ * @param {Number} nonce
+ * @param {Array} workerAddresses
+ * @param {Array} workerStakes
+ * @return {string} hash of inputs
  */
-function generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs, scAddrOrPreCodeHash, userPubKey) {
-  return web3Utils.soliditySha3(
-    {t: 'bytes', v: encryptedFn},
-    {t: 'bytes', v: encryptedAbiEncodedArgs},
-    {t: 'bytes', v: scAddrOrPreCodeHash},
-    {t: 'bytes', v: userPubKey},
-  );
+function principalHash(seed, nonce, workerAddresses, workerStakes) {
+  let hexStr = '';
+  for (let e of [seed, nonce]) {
+    let val = JSBI.BigInt(e).toString(16).padStart(64, '0');
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += JSBI.BigInt(val.length/2).toString(16).padStart(16, '0') + val;
+  }
+  hexStr += JSBI.BigInt(workerAddresses.length).toString(16).padStart(16, '0');
+  for (let e of workerAddresses) {
+    e = remove0x(e);
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += JSBI.BigInt(e.length/2).toString(16).padStart(16, '0') + e;
+  }
+  hexStr += JSBI.BigInt(workerStakes.length).toString(16).padStart(16, '0');
+  for (let e of workerStakes) {
+    let val = JSBI.BigInt(e).toString(16).padStart(64, '0');
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += JSBI.BigInt(val.length/2).toString(16).padStart(16, '0') + val;
+  }
+  return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
 
 // /**
@@ -311,30 +342,30 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
   return sha256.digest().toHex();
 }
 
-// /**
-//  * Decrypts the encrypted message:
-//  * Message format: encrypted_message[*]tag[16]iv[12] (represented as: var_name[len])
-//  *
-//  * @param {string} keyHex
-//  * @param {string} msg
-//  * @return {string}
-//  */
-// function decryptMessage(keyHex, msg) {
-//   let key = forge.util.hexToBytes(keyHex);
-//   let msgBuf = Buffer.from(msg, 'hex');
-//   let iv = forge.util.createBuffer(msgBuf.slice(-12).toString('binary'));
-//   let tag = forge.util.createBuffer(msgBuf.slice(-28, -12).toString('binary'));
-//   const decipher = forge.cipher.createDecipher('AES-GCM', key);
-//
-//   decipher.start({iv: iv, tag: tag});
-//   decipher.update(
-//     forge.util.createBuffer(msgBuf.slice(0, -28).toString('binary')));
-//
-//   if (decipher.finish()) {
-//     return decipher.output.getBytes();
-//   }
-//   throw new Error('decipher did not finish');
-// }
+/**
+ * Decrypts the encrypted message:
+ * Message format: encrypted_message[*]tag[16]iv[12] (represented as: var_name[len])
+ *
+ * @param {string} keyHex
+ * @param {string} msgHex
+ * @return {string}
+ */
+function decryptMessage(keyHex, msgHex) {
+  let key = forge.util.hexToBytes(keyHex);
+  let msgBuf = Buffer.from(msgHex, 'hex');
+  let iv = forge.util.createBuffer(msgBuf.slice(-12));
+  let tag = forge.util.createBuffer(msgBuf.slice(-28, -12));
+  const decipher = forge.cipher.createDecipher('AES-GCM', key);
+
+  decipher.start({iv: iv, tag: tag});
+  decipher.update(
+    forge.util.createBuffer(msgBuf.slice(0, -28)));
+
+  if (decipher.finish()) {
+    return decipher.output.toHex();
+  }
+  throw new Error('decipher did not finish');
+}
 
 /**
  * Encrypts a message using the provided key.
@@ -393,6 +424,27 @@ function remove0x(hexString) {
   }
 }
 
+/**
+ * Converts a hex string to its ASCII representation
+ *
+ * @param {string} hexString
+ * @return {string}
+ */
+function hexToAscii(hexString) {
+    if (!(typeof hexString === 'number' || typeof hexString == 'string')) {
+      return '';
+    }
+    hexString = hexString.toString().replace(/\s+/gi, '');
+    const stack = [];
+    for (let n = 0; n < hexString.length; n += 2) {
+      const code = parseInt(hexString.substr(n, 2), 16);
+      if (!isNaN(code) && code !== 0) {
+        stack.push(String.fromCharCode(code));
+      }
+    }
+    return stack.join('');
+  }
+
 let utils = {};
 
 // utils.readCert = readCert;
@@ -400,7 +452,8 @@ let utils = {};
 utils.test = () => 'hello2';
 // utils.encodeArguments = encodeArguments;
 utils.generateScAddr = generateScAddr;
-utils.generateTaskInputsHash = generateTaskInputsHash;
+utils.hash = hash;
+utils.principalHash = principalHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;
@@ -409,9 +462,10 @@ utils.generateTaskInputsHash = generateTaskInputsHash;
 // utils.recoverPublicKey = recoverPublicKey;
 utils.getDerivedKey = getDerivedKey;
 utils.encryptMessage = encryptMessage;
-// utils.decryptMessage = decryptMessage;
+utils.decryptMessage = decryptMessage;
 utils.toGrains = toGrains;
 // utils.fromGrains = fromGrains;
 utils.remove0x = remove0x;
+utils.hexToAscii = hexToAscii;
 
 export default utils;

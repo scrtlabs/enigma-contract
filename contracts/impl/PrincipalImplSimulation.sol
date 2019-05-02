@@ -6,7 +6,7 @@ import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
-import { WorkersImpl } from "./WorkersImpl.sol";
+import { WorkersImplSimulation } from "./WorkersImplSimulation.sol";
 import { Bytes } from "../utils/Bytes.sol";
 
 /**
@@ -14,7 +14,7 @@ import { Bytes } from "../utils/Bytes.sol";
  *
  * Library that maintains functionality associated with Principal node
  */
-library PrincipalImpl {
+library PrincipalImplSimulation {
     using SafeMath for uint256;
     using ECDSA for bytes32;
     using Bytes for bytes;
@@ -33,7 +33,7 @@ library PrincipalImpl {
 
         // We assume that the Principal is always the first registered node
         require(state.workers[msg.sender].signer == state.principal, "Only the Principal can update the seed");
-        require(_blockNumber - WorkersImpl.getFirstBlockNumberImpl(state, _blockNumber) >= state.epochSize,
+        require(_blockNumber - WorkersImplSimulation.getFirstBlockNumberImpl(state, _blockNumber) >= state.epochSize,
             "Already called during this epoch");
 
         // Create a new workers parameters item for the specified seed.
@@ -96,7 +96,7 @@ library PrincipalImpl {
 
         for (uint i = 0; i < maxLength; i++) {
             EnigmaCommon.Worker memory worker = state.workers[state.workerAddresses[i]];
-            EnigmaCommon.WorkerLog memory workerLog = WorkersImpl.getLatestWorkerLogImpl(state, worker, _blockNumber);
+            EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulation.getLatestWorkerLogImpl(state, worker, _blockNumber);
             if (((workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogIn) ||
                 (workerLog.workerEventType == EnigmaCommon.WorkerLogType.Compound)) &&
                 worker.signer != state.principal)

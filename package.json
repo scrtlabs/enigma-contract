@@ -27,6 +27,7 @@
     "elliptic": "6.4.0",
     "eth-crypto": "^1.2.2",
     "ethereumjs-abi": "^0.6.5",
+    "msgpack-lite": "^0.1.26",
     "node-forge": "^0.7.5",
     "openzeppelin-solidity": "2.1",
     "rlp": "2.1.0",

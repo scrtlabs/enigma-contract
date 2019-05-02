@@ -13,7 +13,7 @@ import "../utils/Base64.sol";
  *
  * Library that maintains functionality associated with workers
  */
-library WorkersImpl {
+library WorkersImplSimulation {
     using SafeMath for uint256;
 
     event Registered(address custodian, address signer);
@@ -171,16 +171,16 @@ library WorkersImpl {
         emit DepositSuccessful(_custodian, _amount);
     }
 
-    function withdrawImpl(EnigmaState.State storage state, address _custodian, uint _amount)
+    function withdrawImpl(EnigmaState.State storage state, uint _amount)
     public
     {
-        EnigmaCommon.Worker storage worker = state.workers[_custodian];
+        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
         require(worker.balance >= _amount, "Not enough tokens in worker balance");
-        require(state.engToken.transfer(_custodian, _amount), "Token transfer failed");
+        require(state.engToken.transfer(msg.sender, _amount), "Token transfer failed");
 
         worker.balance = worker.balance.sub(_amount);
 
-        emit WithdrawSuccessful(_custodian, _amount);
+        emit WithdrawSuccessful(msg.sender, _amount);
     }
 
     function getWorkerParamsIndex(EnigmaState.State storage state, uint _blockNumber)

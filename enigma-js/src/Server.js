@@ -2,7 +2,10 @@ import jayson from 'jayson';
 import cors from 'cors';
 import connect from 'connect';
 import bodyParser from 'body-parser';
-// var app = connect();
+import web3Utils from 'web3-utils';
+import data from '../test/data';
+import EthCrypto from 'eth-crypto';
+import utils from './enigma-utils';
 
 export default class RPCServer {
   constructor() {
@@ -17,12 +20,15 @@ export default class RPCServer {
         if (!workerAddress) {
           callback({code: -32602, message: 'Invalid params'});
         } else {
+          const worker = data.workers.find((w) => w[0] === '0x' + workerAddress);
+          const identity = EthCrypto.createIdentity();
+          // see the corresponding implementation in Enigma.js for an explanation of this hardcoded hex string
+          const hexToSign = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040'+identity.publicKey;
+          const signature = EthCrypto.sign(worker[4], web3Utils.soliditySha3({t: 'bytes', value: hexToSign}));
           callback(null, {
             result: {
-              workerEncryptionKey: 'c647c3b37429e43638712f2fc2ecfa3e0fbd1bc23938cb8e605a0e91bb93c9c184dbb06552ac9e' +
-                'b7fb65f219bef58f14b90557299fc69b20331f60d183e98cc5',
-              workerSig: 'acb4ce556cbd2549975a08f6e2166f80c9c9fcbb8b92a6ebcc62d998b62449733bd294de8c8db9d225c2e911' +
-                '97231adf5b43a96b1750f75f05cbc22686056d091b',
+              workerEncryptionKey: identity.publicKey,
+              workerSig: utils.remove0x(signature),
             }, id: 'ldotj6nghv7a',
           });
         }
@@ -73,7 +79,7 @@ export default class RPCServer {
           let status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
           callback(null, {
             result: {
-              output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+              output: '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
               status: status,
             },
           });
@@ -122,7 +128,7 @@ export default class RPCServer {
                 result: {
                   taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
                   status: 'FAILED',
-                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  output: '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
                   usedGas: 'amount-of-gas-used',
                   signature: 'enclave-signature',
                 },
@@ -134,7 +140,7 @@ export default class RPCServer {
                 result: {
                   taskId: '0x0033105ed3302282dddd38fcc8330a6448f6ae16bbcb26209d8740e8b3d28538',
                   status: 'SUCCESS',
-                  output: [22, 22, 22, 22, 22, 33, 44, 44, 44, 44, 44, 44, 44, 55, 66, 77, 88, 99],
+                  output: '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
                   delta: {'key': 0, 'data': [11, 2, 3, 5, 41, 44]},
                   usedGas: 'amount-of-gas-used',
                   ethereumPayload: 'hex of payload',

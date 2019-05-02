@@ -1,24 +1,28 @@
 const dotenv = require('dotenv');
 const EnigmaToken = artifacts.require('EnigmaToken.sol');
 const SolRsaVerify = artifacts.require('./utils/SolRsaVerify.sol');
-const PrincipalImpl = artifacts.require('./impl/PrincipalImpl.sol');
-const TaskImpl = artifacts.require('./impl/TaskImpl.sol');
 const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
 const Sample = artifacts.require('Sample.sol');
 const fs = require('fs');
 const path = require('path');
 
-const PRINCIPAL_SIGNING_ADDRESS = '0x3078356633353161633136306365333763653066';
+const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
 const EPOCH_SIZE = 10;
 
 dotenv.config();    // Reads .env configuration file, if present
 
 const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-  artifacts.require('Enigma-Simulation.sol') :
+  artifacts.require('EnigmaSimulation.sol') :
   artifacts.require('Enigma.sol');
 const WorkersImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
-  artifacts.require('./impl/WorkersImpl-Simulation.sol') :
+  artifacts.require('./impl/WorkersImplSimulation.sol') :
   artifacts.require('./impl/WorkersImpl.sol');
+const PrincipalImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+  artifacts.require('./impl/PrincipalImplSimulation.sol') :
+  artifacts.require('./impl/PrincipalImpl.sol');
+const TaskImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+  artifacts.require('./impl/TaskImplSimulation.sol') :
+  artifacts.require('./impl/TaskImpl.sol');
 
 async function deployProtocol(deployer) {
   await Promise.all([
@@ -28,17 +32,27 @@ async function deployProtocol(deployer) {
     deployer.deploy(SecretContractImpl),
   ]);
 
-  await Promise.all([
-    TaskImpl.link('WorkersImpl', WorkersImpl.address),
-    PrincipalImpl.link('WorkersImpl', WorkersImpl.address),
-  ]);
+  if (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') {
+    await Promise.all([
+      TaskImpl.link('WorkersImplSimulation', WorkersImpl.address),
+      PrincipalImpl.link('WorkersImplSimulation', WorkersImpl.address),
+    ]);
+  } else {
+    await Promise.all([
+      TaskImpl.link('WorkersImpl', WorkersImpl.address),
+      PrincipalImpl.link('WorkersImpl', WorkersImpl.address),
+    ]);
+  }
+
   await Promise.all([
     deployer.deploy(TaskImpl),
     deployer.deploy(PrincipalImpl),
   ]);
 
   await Promise.all([
-    Enigma.link('WorkersImpl', WorkersImpl.address),
+    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+      Enigma.link('WorkersImplSimulation', WorkersImpl.address) :
+      Enigma.link('WorkersImpl', WorkersImpl.address),
     Enigma.link('PrincipalImpl', PrincipalImpl.address),
     Enigma.link('TaskImpl', TaskImpl.address),
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
@@ -53,6 +67,20 @@ async function deployProtocol(deployer) {
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
   await deployer.deploy(Sample);
+
+  if(fs.existsSync(path.join(homedir, '.enigma'))){
+    // Writing enigma contracts to a file for other processes to retrieve, if ~/.enigma exists
+    fs.writeFile(path.join(homedir, '.enigma', 'enigmacontract.txt'), Enigma.address, 'utf8', function(err) {
+      if(err) {
+        return console.log(err);
+      }
+    });
+    fs.writeFile(path.join(homedir, '.enigma', 'enigmatokencontract.txt'), EnigmaToken.address, 'utf8', function(err) {
+      if(err) {
+        return console.log(err);
+      }
+    });
+  }
 }
 
 async function doMigration(deployer) {
