@@ -53,7 +53,7 @@ describe('Enigma tests', () => {
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
     let scTaskArgs = '';
-    let scTaskGasLimit = 100;
+    let scTaskGasLimit = 1000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
