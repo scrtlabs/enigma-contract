@@ -1,3 +1,13 @@
 01_init.spec.js
 02_deploy_calculator.spec.js
-10_execute_calculator.spec.js 
+02_deploy_erc20.spec.js
+02_deploy_flipcoin.spec.js
+02_deploy_millionaire.spec.js
+03_deploy_fail_bytecode.spec.js
+03_deploy_fail_outofgas.spec.js
+03_deploy_fail_parameters.spec.js
+10_execute_flipcoin.spec.js
+10_execute_millionaire.spec.js
+10_execute_erc20.spec.js
+20_execute_fail_outofgas.spec.js
+20_execute_fail_parameters.spec.js
