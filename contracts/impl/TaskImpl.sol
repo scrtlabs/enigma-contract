@@ -28,7 +28,7 @@ library TaskImpl {
     event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint[] gasLimits, uint[] gasPxs, address sender,
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, uint hashIndex,
+    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, uint deltaHashIndex,
         bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
@@ -291,7 +291,7 @@ library TaskImpl {
         // Verify the receipt
         verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _gasUsed, msg.sender, _sig);
 
-        uint hashIndex = _stateDeltaHash != bytes32(0) ? secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 :
+        uint deltaHashIndex = _stateDeltaHash != bytes32(0) ? secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 :
             0;
         state.tasks[_taskId].outputHash = _outputHash;
 
@@ -315,7 +315,7 @@ library TaskImpl {
             require(success, "Ethereum call failed");
         }
 
-        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, hashIndex, _optionalEthereumData,
+        emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
             _optionalEthereumContractAddress, _sig);
     }
 

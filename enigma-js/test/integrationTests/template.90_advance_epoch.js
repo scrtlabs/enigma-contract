@@ -25,7 +25,6 @@ describe('Init tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,

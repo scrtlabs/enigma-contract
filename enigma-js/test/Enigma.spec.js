@@ -1484,6 +1484,16 @@ describe('Enigma tests', () => {
       expect(result.events.ReceiptVerified).toBeTruthy();
     });
 
+    it('should count state deltas', async () => {
+      const count = await enigma.admin.countStateDeltas(scAddr);
+      expect(count).toEqual(2);
+    });
+
+    it('should get output hash', async () => {
+      const output = await enigma.getTaskOutputHash(task);
+      expect(outputHash).toEqual(output);
+    });
+
     it('should create/send a new compute task using wrapper function with eth call', async () => {
       let taskFn = 'medianWealth(int32,int32)';
       let taskArgs = [
