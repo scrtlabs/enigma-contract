@@ -307,6 +307,16 @@ export default class Enigma {
   }
 
   /**
+   * Fetch output hash at specified index position
+   *
+   * @param {Task} task - Task wrapper
+   * @return {Promise} - Resolves to output hash at the specified position
+   */
+  async getTaskOutputHash(task) {
+    return (await this.enigmaContract.methods.getTaskRecord(task.taskId).call()).outputHash;
+  }
+
+  /**
    * Find SGX report
    *
    * @param {string} custodian - Worker's address
