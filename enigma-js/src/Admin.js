@@ -115,29 +115,6 @@ export default class Admin {
   }
 
   /**
-   * Fetch output hash at specified index position
-   *
-   * @param {string} scAddr - Secret contract address
-   * @param {number} index - Index of state delta hash to retrieve
-   * @return {Promise} - Resolves to output hash at the specified position
-   */
-  async getOutputHash(scAddr, index) {
-    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).outputHashes[index];
-  }
-
-  /**
-   * Fetch output hash in the specified range
-   *
-   * @param {string} scAddr - Secret contract address
-   * @param {number} start - Start index of output hash to retrieve (inclusive)
-   * @param {number} stop - Stop index of output hash to retrieve (exclusive)
-   * @return {Promise} - Resolves to the output hashes in the specified range
-   */
-  async getOutputHashes(scAddr, start, stop) {
-    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).outputHashes.slice(start, stop);
-  }
-
-  /**
    * Login the selected worker
    *
    * @param {string} account
