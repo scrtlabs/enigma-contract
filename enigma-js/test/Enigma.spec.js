@@ -1178,7 +1178,7 @@ describe('Enigma tests', () => {
           on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
           on(eeConstants.ERROR, (error) => reject(error));
       });
-      expect(task.engStatus).toEqual('null');
+      expect(task.engStatus).toEqual(null);
     });
 
     it('should create/send compute task using wrapper function', async () => {
