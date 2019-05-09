@@ -249,7 +249,7 @@ library TaskImpl {
         emit ReceiptFailed(_taskId, _sig);
     }
 
-    function verifyReceipt(EnigmaState.State storage state, bytes32 _scAddr, bytes32 _taskId, bytes32 _stateDeltaHash, uint _gasUsed, address _sender,
+    function verifyReceipt(EnigmaState.State storage state, bytes32 _scAddr, bytes32 _taskId, uint _gasUsed, address _sender,
         bytes memory _sig)
     internal
     {
@@ -289,7 +289,7 @@ library TaskImpl {
         bytes32 lastStateDeltaHash = secretContract.stateDeltaHashes[secretContract.stateDeltaHashes.length - 1];
 
         // Verify the receipt
-        verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _gasUsed, msg.sender, _sig);
+        verifyReceipt(state, _scAddr, _taskId, _gasUsed, msg.sender, _sig);
 
         uint deltaHashIndex = _stateDeltaHash != bytes32(0) ? secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 :
             0;
@@ -376,7 +376,7 @@ library TaskImpl {
 
         for (uint i = 0; i < _taskIds.length; i++) {
             // Verify the receipt
-            verifyReceipt(state, _scAddr, _taskIds[i], _stateDeltaHashes[i], _gasesUsed[i], msg.sender, _sig);
+            verifyReceipt(state, _scAddr, _taskIds[i], _gasesUsed[i], msg.sender, _sig);
             inputsHashes[i] = state.tasks[_taskIds[i]].inputsHash;
 
             // Append the new state delta hash
