@@ -447,23 +447,26 @@ export default class Enigma {
             resolve(response);
           });
         });
-        switch (getTaskResultResult.result.status) {
-          case 'SUCCESS':
-            task.delta = getTaskResultResult.result.delta;
-            task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
-            task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
-            task.preCodeHash = getTaskResultResult.result.preCodeHash;
-          case 'FAILED':
-            task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
-            task.usedGas = getTaskResultResult.result.usedGas;
-            task.workerTaskSig = getTaskResultResult.result.signature;
-          case 'null':
-          case 'UNVERIFIED':
-          case 'INPROGRESS':
-            task.engStatus = getTaskResultResult.result.status;
-            break;
-          default:
-            throw (new Error('Invalid task result status')).message;
+        if (getTaskResultResult) {
+          switch (getTaskResultResult.result.status) {
+            case 'SUCCESS':
+              task.delta = getTaskResultResult.result.delta;
+              task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
+              task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
+              task.preCodeHash = getTaskResultResult.result.preCodeHash;
+            case 'FAILED':
+              task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
+              task.usedGas = getTaskResultResult.result.usedGas;
+              task.workerTaskSig = getTaskResultResult.result.signature;
+            case 'UNVERIFIED':
+            case 'INPROGRESS':
+              task.engStatus = getTaskResultResult.result.status;
+              break;
+            default:
+              throw (new Error('Invalid task result status')).message;
+          }
+        } else {
+          task.engStatus = null;
         }
         emitter.emit(eeConstants.GET_TASK_RESULT_RESULT, task);
       } catch (err) {

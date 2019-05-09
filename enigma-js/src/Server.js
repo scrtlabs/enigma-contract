@@ -100,11 +100,7 @@ export default class RPCServer {
               break;
             case (1):
               _counter++;
-              callback(null, {
-                result: {
-                  status: 'null',
-                },
-              });
+              callback(null, null);
               break;
             case (2):
               _counter++;
