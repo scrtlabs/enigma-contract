@@ -1,4 +1,7 @@
 /* eslint-disable require-jsdoc */
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
@@ -41,19 +44,19 @@ describe('Init tests', () => {
     });
   });
 
-  it('initializes Sample contract', async () => {
-    sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
-      SampleContract.networks['4447'].address);
-    expect(sampleContract.options.address).toBeTruthy;
-  });
-
-  it('should move forward epochSize blocks by calling dummy contract', async () => {
-    const epochSize = await enigma.enigmaContract.methods.getEpochSize().call();
-    for (let i = 0; i < epochSize; i++) {
+  it('should move forward to the beginning of next epoch by calling dummy contract', async () => {
+    const homedir = os.homedir();
+    const sampleAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-sample.txt'), 'utf-8');
+    const sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'], sampleAddr);
+    const currentBlock = await enigma.web3.eth.getBlockNumber();
+    const firstBlock = parseInt(await enigma.enigmaContract.methods.getFirstBlockNumber(currentBlock).call());
+    const epochSize = parseInt(await enigma.enigmaContract.methods.getEpochSize().call());
+    const epochRemains = (firstBlock + epochSize) - currentBlock;
+    for (let i = 0; i < epochRemains; i++) {
       await sampleContract.methods.incrementCounter().send({from: accounts[8]});
     }
     // Wait for 2s for the Ppal node to pick up the new epoch
-    await sleep(2000);
+    await sleep(3000);
   }, 8000);
 
 });
