@@ -16,6 +16,12 @@ contract Sample {
         stateBool = _stateBool;
     }
 
+    function setStateVarRevert(uint _stateInt, bool _stateBool) public {
+        stateInt = _stateInt;
+        stateBool = _stateBool;
+        require(false, "Failed in eth call");
+    }
+
     function incrementCounter() public {
         counter++;
     }

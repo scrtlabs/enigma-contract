@@ -13,7 +13,7 @@ import "../utils/Base64.sol";
  *
  * Library that maintains functionality associated with workers
  */
-library WorkersImpl {
+library WorkersImplSimulation {
     using SafeMath for uint256;
 
     event Registered(address custodian, address signer);
@@ -97,10 +97,10 @@ library WorkersImpl {
 //
 //        // extract the needed fields. For reference see, pages 21-23
 //        // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
-//        bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
-//        bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
-//        bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
-//        bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
+//        // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
+//        // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
+//        // bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+//        // bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
 //        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
 //        address signerQuote = bytesToAddress(reportData);
 //
@@ -171,16 +171,16 @@ library WorkersImpl {
         emit DepositSuccessful(_custodian, _amount);
     }
 
-    function withdrawImpl(EnigmaState.State storage state, address _custodian, uint _amount)
+    function withdrawImpl(EnigmaState.State storage state, uint _amount)
     public
     {
-        EnigmaCommon.Worker storage worker = state.workers[_custodian];
+        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
         require(worker.balance >= _amount, "Not enough tokens in worker balance");
-        require(state.engToken.transfer(_custodian, _amount), "Token transfer failed");
+        require(state.engToken.transfer(msg.sender, _amount), "Token transfer failed");
 
         worker.balance = worker.balance.sub(_amount);
 
-        emit WithdrawSuccessful(_custodian, _amount);
+        emit WithdrawSuccessful(msg.sender, _amount);
     }
 
     function getWorkerParamsIndex(EnigmaState.State storage state, uint _blockNumber)
@@ -283,10 +283,9 @@ library WorkersImpl {
         return selectedWorkers;
     }
 
-    function getLatestWorkerLogImpl(EnigmaState.State storage state, EnigmaCommon.Worker memory worker,
-        uint _blockNumber)
+    function getLatestWorkerLogImpl(EnigmaCommon.Worker memory worker, uint _blockNumber)
     public
-    view
+    pure
     returns (EnigmaCommon.WorkerLog memory) {
         EnigmaCommon.WorkerLog memory workerLog;
         for (uint i = worker.workerLogs.length; i > 0; i--) {

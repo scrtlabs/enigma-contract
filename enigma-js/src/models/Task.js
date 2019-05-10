@@ -17,6 +17,7 @@ export default class Task {
    * @param {string} userPubKey
    * @param {Number} firstBlockNumber
    * @param {string} workerAddress
+   * @param {string} workerEncryptionKey
    * @param {string} sender
    * @param {string} userTaskSig
    * @param {Number} nonce
@@ -25,10 +26,11 @@ export default class Task {
    * @param {boolean} isContractDeploymentTask
    */
   constructor(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, msgId, userPubKey, firstBlockNumber,
-              workerAddress, sender, userTaskSig, nonce, preCode, preCodeHash, isContractDeploymentTask) {
+              workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode, preCodeHash,
+              isContractDeploymentTask) {
     // Initial task attributes
-    this.inputsHash = utils.generateTaskInputsHash(encryptedFn, encryptedAbiEncodedArgs,
-      isContractDeploymentTask ? preCodeHash : scAddr, userPubKey);
+    this.inputsHash = utils.hash([encryptedFn, encryptedAbiEncodedArgs,
+      isContractDeploymentTask ? preCodeHash : scAddr, userPubKey]);
     this.scAddr = scAddr;
     this.encryptedFn = encryptedFn;
     this.encryptedAbiEncodedArgs = encryptedAbiEncodedArgs;
@@ -38,6 +40,7 @@ export default class Task {
     this.userPubKey = userPubKey;
     this.firstBlockNumber = firstBlockNumber;
     this.workerAddress = workerAddress;
+    this.workerEncryptionKey = workerEncryptionKey;
     this.sender = sender;
     this.userTaskSig = userTaskSig;
     this.nonce = nonce;
@@ -63,5 +66,7 @@ export default class Task {
     this.ethereumAddress = '';
     this.workerTaskSig = '';
     this.engStatus = 'null';
+
+    this.decryptedOutput = '';
   }
 }

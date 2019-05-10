@@ -22,6 +22,23 @@ export default class Admin {
   }
 
   /**
+   * Find worker by signing address
+   *
+   * @param {string} sigAddr - The signing address
+   * @return {Promise}
+   */
+  async findBySigningAddress(sigAddr) {
+    const result = await this.enigmaContract.methods.getWorkerFromSigningAddress(sigAddr).call();
+    return {
+      account: result[0],
+      status: parseInt(result[1][1]),
+      report: result[1][2],
+      balance: parseInt(result[1][3]),
+      logs: result[1][4],
+    };
+  }
+
+  /**
    * Get the worker's status
    *
    * @param {string} account - Worker's address
@@ -93,31 +110,8 @@ export default class Admin {
    * @return {Promise} Resolves to boolean value for whether the state delta hash is valid
    */
   async isValidDeltaHash(scAddr, stateDeltaHash) {
-    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes
-      .includes(stateDeltaHash);
-  }
-
-  /**
-   * Fetch output hash at specified index position
-   *
-   * @param {string} scAddr - Secret contract address
-   * @param {number} index - Index of state delta hash to retrieve
-   * @return {Promise} - Resolves to output hash at the specified position
-   */
-  async getOutputHash(scAddr, index) {
-    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).outputHashes[index];
-  }
-
-  /**
-   * Fetch output hash in the specified range
-   *
-   * @param {string} scAddr - Secret contract address
-   * @param {number} start - Start index of output hash to retrieve (inclusive)
-   * @param {number} stop - Stop index of output hash to retrieve (exclusive)
-   * @return {Promise} - Resolves to the output hashes in the specified range
-   */
-  async getOutputHashes(scAddr, start, stop) {
-    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).outputHashes.slice(start, stop);
+    return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes.includes(
+      stateDeltaHash);
   }
 
   /**
@@ -130,16 +124,13 @@ export default class Admin {
     let emitter = new EventEmitter();
     (async () => {
       try {
-        await this.enigmaContract.methods.login().send({from: account})
-          .on('transactionHash', (hash) => {
-            emitter.emit(eeConstants.LOGIN_TRANSACTION_HASH, hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit(eeConstants.LOGIN_CONFIRMATION, confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
-            emitter.emit(eeConstants.LOGIN_RECEIPT, receipt);
-          });
+        await this.enigmaContract.methods.login().send({from: account}).on('transactionHash', (hash) => {
+          emitter.emit(eeConstants.LOGIN_TRANSACTION_HASH, hash);
+        }).on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit(eeConstants.LOGIN_CONFIRMATION, confirmationNumber, receipt);
+        }).on('receipt', (receipt) => {
+          emitter.emit(eeConstants.LOGIN_RECEIPT, receipt);
+        });
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
       }
@@ -157,16 +148,13 @@ export default class Admin {
     let emitter = new EventEmitter();
     (async () => {
       try {
-        await this.enigmaContract.methods.logout().send({from: account})
-          .on('transactionHash', (hash) => {
-            emitter.emit(eeConstants.LOGOUT_TRANSACTION_HASH, hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit(eeConstants.LOGOUT_CONFIRMATION, confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
-            emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
-          });
+        await this.enigmaContract.methods.logout().send({from: account}).on('transactionHash', (hash) => {
+          emitter.emit(eeConstants.LOGOUT_TRANSACTION_HASH, hash);
+        }).on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit(eeConstants.LOGOUT_CONFIRMATION, confirmationNumber, receipt);
+        }).on('receipt', (receipt) => {
+          emitter.emit(eeConstants.LOGOUT_RECEIPT, receipt);
+        });
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
       }
@@ -195,11 +183,12 @@ export default class Admin {
       }
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send({from: account});
       try {
-        const receipt = await this.enigmaContract.methods.deposit(account, amount).send({from: account})
-          .on('transactionHash', (hash) => {
+        const receipt = await this.enigmaContract.methods.deposit(account, amount).
+          send({from: account}).
+          on('transactionHash', (hash) => {
             emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
+          }).
+          on('confirmation', (confirmationNumber, receipt) => {
             emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
           });
         emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
@@ -221,14 +210,15 @@ export default class Admin {
     let emitter = new EventEmitter();
     (async () => {
       try {
-        await this.enigmaContract.methods.withdraw(account, amount).send({from: account})
-          .on('transactionHash', (hash) => {
+        await this.enigmaContract.methods.withdraw(amount).
+          send({from: account}).
+          on('transactionHash', (hash) => {
             emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
+          }).
+          on('confirmation', (confirmationNumber, receipt) => {
             emitter.emit(eeConstants.WITHDRAW_CONFIRMATION, confirmationNumber, receipt);
-          })
-          .on('receipt', (receipt) => {
+          }).
+          on('receipt', (receipt) => {
             emitter.emit(eeConstants.WITHDRAW_RECEIPT, receipt);
           });
       } catch (err) {

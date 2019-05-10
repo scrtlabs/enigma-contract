@@ -7,6 +7,7 @@
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
     "test": "jest",
+    "test:integration": "jest -c=test/integrationTests/jest.config.js",
     "test:watch": "jest --watch",
     "report-coverage": "codecov"
   },
@@ -43,11 +44,11 @@
     "eventemitter3": "^3.1.0",
     "filereader": "^0.10.3",
     "jayson": "^2.1.0",
-    "msgpack-lite": "^0.1.26",
+    "jsbi": "^2.0.5",
     "net": "^1.0.2",
     "node-fetch": "^2.3.0",
     "node-forge": "^0.7.6",
-    "openzeppelin-solidity": "^2.0.0",
+    "openzeppelin-solidity": "2.1",
     "rlp": "2.1.0",
     "source-map-support": "^0.5.9",
     "tls": "0.0.1",
@@ -61,7 +62,6 @@
     "@babel/core": "^7.2.0",
     "@babel/preset-env": "^7.0.0",
     "@babel/register": "^7.0.0",
-    "dockerode": "^2.5.8",
     "babel-core": "^7.0.0-bridge.0",
     "babel-eslint": "^9.0.0",
     "babel-jest": "^23.6.0",
@@ -70,6 +70,7 @@
     "chai": "^4.1.2",
     "chai-events": "0.0.1",
     "codecov": "^3.1.0",
+    "dockerode": "^2.5.8",
     "eslint": "^5.4.0",
     "eslint-config-google": "^0.9.1",
     "eslint-loader": "^2.0.0",
@@ -93,6 +94,10 @@
     "collectCoverageFrom": [
       "src/**/*.{js,jsx}",
       "!src/index.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/test/integrationTests/"
     ]
   }
 }
