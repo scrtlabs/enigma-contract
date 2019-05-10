@@ -447,7 +447,7 @@ export default class Enigma {
             resolve(response);
           });
         });
-        if (getTaskResultResult) {
+        if (getTaskResultResult.result) {
           switch (getTaskResultResult.result.status) {
             case 'SUCCESS':
               task.delta = getTaskResultResult.result.delta;
