@@ -87,7 +87,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     modifier canWithdraw(address _user) {
         EnigmaCommon.Worker memory worker = state.workers[_user];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
-        EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulation.getLatestWorkerLogImpl(state, worker, block.number);
+        EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulation.getLatestWorkerLogImpl(worker, block.number);
         require(workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogOut,
             "Worker's last log is not of LogOut type");
         require(getFirstBlockNumber(block.number) > workerLog.blockNumber,

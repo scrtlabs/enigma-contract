@@ -73,6 +73,7 @@ library EnigmaCommon {
 
     function appendMessage(bytes memory _message, bytes memory _var)
     internal
+    pure
     returns (bytes memory)
     {
         return (_message.concat(uint64(_var.length).toBytesFromUint64())).concat(_var);
@@ -80,6 +81,7 @@ library EnigmaCommon {
 
     function appendMessageArrayLength(uint256 arrayLength, bytes memory _message)
     internal
+    pure
     returns (bytes memory)
     {
         return _message.concat(uint64(arrayLength).toBytesFromUint64());
