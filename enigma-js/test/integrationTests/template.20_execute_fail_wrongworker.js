@@ -174,25 +174,15 @@ describe('Enigma tests', () => {
   });
 
   it('should get the failed task receipt', async () => {
+    let i = 0;
     do {
       await sleep(1000);
       task = await enigma.getTaskRecordStatus(task);
       process.stdout.write('Waiting. Current Task Status is '+task.ethStatus+'\r');
-    } while (task.ethStatus !== 3);
-    expect(task.ethStatus).toEqual(3);
+      i++;
+    } while (task.ethStatus === 1 && i < 6);
+    expect(task.ethStatus).toEqual(1);
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
-  }, 10000);
-
-  it('should get the failed result', async () => {
-    task = await new Promise((resolve, reject) => {
-      enigma.getTaskResult(task)
-        .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-        .on(eeConstants.ERROR, (error) => reject(error));
-    });
-    console.log('TASK', task);
-    expect(task.engStatus).toEqual('FAILED');
-    expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
-    expect(task.workerTaskSig).toBeTruthy();
-  });
+  }, 8000);
 
 });

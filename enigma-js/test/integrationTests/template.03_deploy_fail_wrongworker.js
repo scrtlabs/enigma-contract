@@ -170,14 +170,16 @@ describe('Enigma tests', () => {
   });
 
   it('should get the failed receipt', async () => {
+    let i=0;
     do {
       await sleep(1000);
       scTask2 = await enigma.getTaskRecordStatus(scTask2);
       process.stdout.write('Waiting. Current Task Status is '+scTask2.ethStatus+'\r');
-    } while (scTask2.ethStatus !== 3);
-    expect(scTask2.ethStatus).toEqual(3);
+      i++;
+    } while (scTask2.ethStatus === 1 && i < 6);
+    expect(scTask2.ethStatus).toEqual(1);
     process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
-  }, 10000);
+  }, 8000);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask2.scAddr);
