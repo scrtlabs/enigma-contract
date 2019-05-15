@@ -329,7 +329,7 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
 
   let clientKey = ec.keyFromPrivate(clientPrivateKey, 'hex');
   let enclaveKey = ec.keyFromPublic(enclavePublicKey, 'hex');
-  
+
   let sharedPoints = enclaveKey.getPublic().mul(clientKey.getPrivate());
   let y = 0x02 | (sharedPoints.getY().isOdd() ? 1 : 0);
   let x = sharedPoints.getX();
