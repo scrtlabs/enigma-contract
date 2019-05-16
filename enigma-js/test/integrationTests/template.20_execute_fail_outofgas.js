@@ -81,16 +81,19 @@ describe('Enigma tests', () => {
   }, 10000);
 
   it('should get the failed result', async () => {
-    task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
-    });
+    do {
+      await sleep(1000);
+      task = await new Promise((resolve, reject) => {
+          enigma.getTaskResult(task)
+            .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+      });
+    } while(!task.engStatus);
     expect(task.engStatus).toEqual('FAILED');
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
     task = await enigma.decryptTaskResult(task);
-    console.log('Output is: '+task.decryptedOutput);
+    console.log('Output is: ' + task.decryptedOutput);
   });
 
 });
