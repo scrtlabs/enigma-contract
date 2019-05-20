@@ -9,6 +9,7 @@ import jaysonBrowserClient from 'jayson/lib/client/browser';
 import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
+import JSBI from 'jsbi';
 import * as abi from 'ethereumjs-abi';
 import EthCrypto from 'eth-crypto';
 import * as eeConstants from './emitterConstants';
@@ -306,6 +307,16 @@ export default class Enigma {
   }
 
   /**
+   * Fetch output hash at specified index position
+   *
+   * @param {Task} task - Task wrapper
+   * @return {Promise} - Resolves to output hash at the specified position
+   */
+  async getTaskOutputHash(task) {
+    return (await this.enigmaContract.methods.getTaskRecord(task.taskId).call()).outputHash;
+  }
+
+  /**
    * Find SGX report
    *
    * @param {string} custodian - Worker's address
@@ -331,9 +342,9 @@ export default class Enigma {
       const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
       this.workerParamsCache = {
         firstBlockNumber: parseInt(getWorkerParamsResult[0]),
-        seed: web3Utils.toBN(getWorkerParamsResult[1]),
+        seed: JSBI.BigInt(getWorkerParamsResult[1]),
         workers: getWorkerParamsResult[2],
-        stakes: getWorkerParamsResult[3].map((x) => web3Utils.toBN(x)),
+        stakes: getWorkerParamsResult[3].map((x) => JSBI.BigInt(x)),
       };
     }
     return this.workerParamsCache;
@@ -350,24 +361,24 @@ export default class Enigma {
    */
   selectWorkerGroup(scAddr, params, workerGroupSize = 5) {
     // Find total number of staked tokens for workers
-    let tokenCpt = params.stakes.reduce((a, b) => a.add(b), web3Utils.toBN('0'));
+    let tokenCpt = params.stakes.reduce((a, b) => JSBI.add(a, b), JSBI.BigInt(0));
     let nonce = 0;
     let selectedWorkers = [];
     do {
       // Unique hash for epoch, secret contract address, and nonce
       const msg = abi.rawEncode(
         ['uint256', 'bytes32', 'uint256'],
-        [params.seed, scAddr, nonce],
+        [params.seed.toString(10), scAddr, nonce],
       );
       const hash = web3Utils.keccak256(msg);
       // Find random number between [0, tokenCpt)
-      let randVal = web3Utils.toBN(hash).mod(tokenCpt);
+      let randVal = JSBI.remainder(JSBI.BigInt(hash), tokenCpt);
       let selectedWorker = params.workers[params.workers.length - 1];
       // Loop through each worker, subtracting worker's balance from the random number computed above. Once the
       // decrementing randVal becomes negative, add the worker whose balance caused this to the list of selected
       // workers. If worker has already been selected, increase nonce by one, resulting in a new hash computed above.
       for (let i = 0; i < params.workers.length; i++) {
-        randVal = randVal.sub(params.stakes[i]);
+        randVal = JSBI.subtract(randVal, params.stakes[i]);
         if (randVal <= 0) {
           selectedWorker = params.workers[i];
           break;
@@ -436,23 +447,26 @@ export default class Enigma {
             resolve(response);
           });
         });
-        switch (getTaskResultResult.result.status) {
-          case 'SUCCESS':
-            task.delta = getTaskResultResult.result.delta;
-            task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
-            task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
-            task.preCodeHash = getTaskResultResult.result.preCodeHash;
-          case 'FAILED':
-            task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
-            task.usedGas = getTaskResultResult.result.usedGas;
-            task.workerTaskSig = getTaskResultResult.result.signature;
-          case 'null':
-          case 'UNVERIFIED':
-          case 'INPROGRESS':
-            task.engStatus = getTaskResultResult.result.status;
-            break;
-          default:
-            throw (new Error('Invalid task result status')).message;
+        if (getTaskResultResult.result) {
+          switch (getTaskResultResult.result.status) {
+            case 'SUCCESS':
+              task.delta = getTaskResultResult.result.delta;
+              task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
+              task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
+              task.preCodeHash = getTaskResultResult.result.preCodeHash;
+            case 'FAILED':
+              task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
+              task.usedGas = getTaskResultResult.result.usedGas;
+              task.workerTaskSig = getTaskResultResult.result.signature;
+            case 'UNVERIFIED':
+            case 'INPROGRESS':
+              task.engStatus = getTaskResultResult.result.status;
+              break;
+            default:
+              throw (new Error('Invalid task result status')).message;
+          }
+        } else {
+          task.engStatus = null;
         }
         emitter.emit(eeConstants.GET_TASK_RESULT_RESULT, task);
       } catch (err) {

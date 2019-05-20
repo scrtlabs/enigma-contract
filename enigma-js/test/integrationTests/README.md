@@ -15,7 +15,7 @@ $ cp testList.template.txt testList.txt
 and editing `testList.txt` to match your needs. It is a simple text file, with one test filename per line, as documented below. Keep in mind that the list is of the actual test files, not the templates.
 ```
 01_init.spec.js
-02_deploy_addition.spec.js
+02_deploy_calculator.spec.js
 03_deploy_fail.spec.js
 ```
 

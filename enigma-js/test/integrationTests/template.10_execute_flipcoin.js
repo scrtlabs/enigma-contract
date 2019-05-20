@@ -31,7 +31,6 @@ describe('Enigma tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,
@@ -61,7 +60,6 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    console.log(task);
   });
 
   it('should get the pending task', async () => {
@@ -71,11 +69,12 @@ describe('Enigma tests', () => {
 
   it('should get the confirmed task', async () => {
     do {
-      task = await enigma.getTaskRecordStatus(task);
-      console.log(task.ethStatus);
       await sleep(1000);
+      task = await enigma.getTaskRecordStatus(task);
+      process.stdout.write('Waiting. Current Task Status is '+task.ethStatus+'\r');
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
+    process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
   }, 10000);
 
   it('should get and validate the result', async () => {
@@ -89,10 +88,8 @@ describe('Enigma tests', () => {
     expect(task.usedGas).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
     task = await enigma.decryptTaskResult(task);
-    console.log(task);
     const result = parseInt(task.decryptedOutput, 16);
     expect(result === 1 || result === 0).toBe(true);
-
   });
 
 });

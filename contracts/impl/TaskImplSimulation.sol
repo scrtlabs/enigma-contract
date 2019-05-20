@@ -451,7 +451,7 @@ library TaskImplSimulation {
                     task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
                     task.proof = _sig;
                     secretContract.stateDeltaHashes.push(_stateDeltaHashes[i]);
-                    secretContract.outputHashes.push(_outputHashes[i]);
+                    task.outputHash = _outputHashes[i];
                 }
                 emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
                     _optionalEthereumContractAddress, _sig);
@@ -471,7 +471,7 @@ library TaskImplSimulation {
                 task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
                 task.proof = _sig;
                 secretContract.stateDeltaHashes.push(_stateDeltaHashes[i]);
-                secretContract.outputHashes.push(_outputHashes[i]);
+                task.outputHash = _outputHashes[i];
             }
             emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
                 _optionalEthereumContractAddress, _sig);

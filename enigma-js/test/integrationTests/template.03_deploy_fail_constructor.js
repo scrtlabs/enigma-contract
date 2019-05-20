@@ -31,7 +31,6 @@ describe('Enigma tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,
@@ -59,7 +58,7 @@ describe('Enigma tests', () => {
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
-      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/addition.wasm'));
+      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/calculator.wasm'));
       preCode = preCode.toString('hex');
     } catch(e) {
       console.log('Error:', e.stack);
@@ -74,11 +73,12 @@ describe('Enigma tests', () => {
 
   it('should get the failed receipt', async () => {
     do {
-      scTask2 = await enigma.getTaskRecordStatus(scTask2);
-      console.log(scTask2.ethStatus);
       await sleep(1000);
+      scTask2 = await enigma.getTaskRecordStatus(scTask2);
+      process.stdout.write('Waiting. Current Task Status is '+scTask2.ethStatus+'\r');
     } while (scTask2.ethStatus != 3);
     expect(scTask2.ethStatus).toEqual(3);   // <- it succeeds and returns 2 instead for a successful deployment
+    process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
   }, 10000);
 
   it('should fail to verify deployed contract', async () => {

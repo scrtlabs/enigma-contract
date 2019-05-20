@@ -1,7 +1,11 @@
 /* eslint-disable require-jsdoc */
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import dotenv from 'dotenv';
 import forge from 'node-forge';
 import Web3 from 'web3';
+import JSBI from 'jsbi';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import EnigmaContract from '../../../build/contracts/Enigma';
@@ -49,10 +53,17 @@ describe('Init tests', () => {
     });
   });
 
+  const homedir = os.homedir();
   it('initializes Sample contract', async () => {
     sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
       SampleContract.networks['4447'].address);
     expect(sampleContract.options.address).toBeTruthy;
+
+    fs.writeFile(path.join(homedir, '.enigma', 'addr-sample.txt'), sampleContract.options.address, 'utf8', function(err) {
+      if(err) {
+        return console.log(err);
+      }
+    });
   });
 
   it('should distribute ENG tokens', async () => {
@@ -83,7 +94,6 @@ describe('Init tests', () => {
       workerAddress[i] = await enigma.admin.getWorkerSignerAddr(accounts[i]);
     }
     expect(workerStatuses).toEqual(arrayResults);
-    console.log('WorkerAddresses are '+workerAddress);
   });
 
   it('should check worker\'s stake balance is empty', async () => {
@@ -170,7 +180,7 @@ describe('Init tests', () => {
       await sleep(1000);
     } while (!workerParams)
     expect(workerParams.workers.sort()).toEqual(workerAddress.sort());  // they may come in a different order
-    expect(workerParams.stakes).toEqual(new Array(nodes).fill(web3.utils.toBN(900 * 10 ** 8)));
+    expect(workerParams.stakes).toEqual(new Array(nodes).fill(JSBI.BigInt(900 * 10 ** 8)));
   }, 5000);
 
   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec'+
@@ -185,8 +195,6 @@ describe('Init tests', () => {
             resolve(response);
         });
       });
-    console.log(encryptionKeyResult)
-
     expect(encryptionKeyResult.result.workerEncryptionKey.length).toBe(128);
     expect(encryptionKeyResult.result.workerSig.length).toBe(130);
   });

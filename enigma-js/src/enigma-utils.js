@@ -1,4 +1,4 @@
-import BN from 'bn.js';
+import JSBI from 'jsbi';
 import web3Utils from 'web3-utils';
 // import RLP from 'rlp';
 import forge from 'node-forge';
@@ -191,7 +191,7 @@ function appendMessages(hexStr, inputsArray) {
   for (let input of inputsArray) {
     input = remove0x(input);
     // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += (new BN(input.length/2).toString(16, 16)) + input;
+    hexStr += JSBI.BigInt(input.length/2).toString(16).padStart(16, '0') + input;
   }
   return hexStr;
 }
@@ -206,7 +206,7 @@ function appendMessages(hexStr, inputsArray) {
  */
 function appendArrayMessages(hexStr, inputsArray) {
   for (let array of inputsArray) {
-    hexStr += (new BN(array.length)).toString(16, 16);
+    hexStr += JSBI.BigInt(array.length).toString(16).padStart(16, '0');
     hexStr = appendMessages(hexStr, array);
   }
   return hexStr;
