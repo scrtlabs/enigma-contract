@@ -161,7 +161,6 @@ describe('Enigma tests', () => {
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    console.log('TASK', task);
     expect(task.engStatus).toEqual('FAILED');
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();

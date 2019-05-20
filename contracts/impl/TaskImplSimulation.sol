@@ -322,13 +322,15 @@ library TaskImplSimulation {
 
         task.proof = _sig;
         if (_optionalEthereumContractAddress != address(0)) {
-            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
+            uint256 gasLeftInit = gasleft();
+            (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
             transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
             if (success) {
                 task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-                secretContract.stateDeltaHashes.push(_stateDeltaHash);
-                uint hashIndex = secretContract.outputHashes.push(_outputHash) - 1;
-                emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, hashIndex, _optionalEthereumData,
+                uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
+                    secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
+                state.tasks[_taskId].outputHash = _outputHash;
+                emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
                     _optionalEthereumContractAddress, _sig);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
@@ -337,9 +339,10 @@ library TaskImplSimulation {
         } else {
             transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
             task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-            secretContract.stateDeltaHashes.push(_stateDeltaHash);
-            uint hashIndex = secretContract.outputHashes.push(_outputHash) - 1;
-            emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, hashIndex, _optionalEthereumData,
+            uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
+                secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
+            state.tasks[_taskId].outputHash = _outputHash;
+            emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
                 _optionalEthereumContractAddress, _sig);
         }
     }
