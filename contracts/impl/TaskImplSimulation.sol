@@ -107,39 +107,16 @@ library TaskImplSimulation {
         emit ReceiptFailed(_taskId, _sig);
     }
 
-    function verifyDeployReceipt(EnigmaState.State storage state, bytes32 _taskId, uint _gasUsed, address _sender,
-        bytes memory _sig)
+    function verifyDeployReceipt(EnigmaState.State storage state, bytes32 _taskId, bytes32 _codeHash,
+        bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData, address _optionalEthereumContractAddress,
+        uint64 _gasUsed, address _sender, bytes memory _sig)
     internal
     {
-        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
-        require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
-
-        EnigmaCommon.Worker memory worker = state.workers[_sender];
-        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
-            "Not the selected worker for this task");
-
-        // Check that worker isn't charging the user too high of a fee
-        require(task.gasLimit >= _gasUsed, "Too much gas used for task");
-
-        // Update proof and status attributes of TaskRecord
-        task.proof = _sig;
-        task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-
-        transferFundsAfterTask(state, _sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
-    }
-
-    function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
-        bytes32 _codeHash, bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress, uint64 _gasUsed, bytes memory _sig)
-    public
-    {
-        verifyDeployReceipt(state, _taskId, _gasUsed, msg.sender, _sig);
-        EnigmaCommon.TaskRecord memory task = state.tasks[_taskId];
+        validateReceipt(state, _gasUsed, _sender, _taskId, _taskId);
 
         // Verify the worker's signature
         bytes memory message;
-        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _codeHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _initStateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
@@ -148,23 +125,95 @@ library TaskImplSimulation {
         message = EnigmaCommon.appendMessage(message, hex"01");
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
+    }
 
-        // Set the secret contract's attributes in registry
+    function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
+        bytes32 _codeHash, bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData,
+        address _optionalEthereumContractAddress, uint64 _gasUsed, bytes memory _sig)
+    public
+    {
         EnigmaCommon.SecretContract storage secretContract = state.contracts[_taskId];
-        secretContract.owner = task.sender;
-        secretContract.preCodeHash = _preCodeHash;
-        secretContract.codeHash = _codeHash;
-        secretContract.status = EnigmaCommon.SecretContractStatus.Deployed;
-        secretContract.stateDeltaHashes.push(_initStateDeltaHash);
-        state.scAddresses.push(_taskId);
+        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
+        verifyDeployReceipt(state, _taskId, _codeHash, _initStateDeltaHash, _optionalEthereumData,
+            _optionalEthereumContractAddress, _gasUsed, msg.sender, _sig);
+        task.proof = _sig;
 
         if (_optionalEthereumContractAddress != address(0)) {
-            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
-            require(success, "Ethereum call failed");
+            uint256 gasLeftInit = gasleft();
+            (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
+            transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
+            if (success) {
+                task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
+                secretContract.owner = task.sender;
+                secretContract.preCodeHash = _preCodeHash;
+                secretContract.codeHash = _codeHash;
+                secretContract.status = EnigmaCommon.SecretContractStatus.Deployed;
+                secretContract.stateDeltaHashes.push(_initStateDeltaHash);
+                state.scAddresses.push(_taskId);
+                emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash);
+            } else {
+                task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
+                emit ReceiptFailedETH(_taskId, _sig);
+            }
+        } else {
+            transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
+            task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
+            secretContract.owner = task.sender;
+            secretContract.preCodeHash = _preCodeHash;
+            secretContract.codeHash = _codeHash;
+            secretContract.status = EnigmaCommon.SecretContractStatus.Deployed;
+            secretContract.stateDeltaHashes.push(_initStateDeltaHash);
+            state.scAddresses.push(_taskId);
+            emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash);
         }
-
-        emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash);
     }
+
+//    function commitReceiptImpl(
+//        EnigmaState.State storage state,
+//        bytes32 _scAddr,
+//        bytes32 _taskId,
+//        bytes32 _stateDeltaHash,
+//        bytes32 _outputHash,
+//        bytes memory _optionalEthereumData,
+//        address _optionalEthereumContractAddress,
+//        uint64 _gasUsed,
+//        bytes memory _sig
+//    )
+//    public
+//    {
+//        EnigmaCommon.SecretContract storage secretContract = state.contracts[_scAddr];
+//        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
+//
+//        // Verify the receipt
+//        verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+//            _optionalEthereumContractAddress, _gasUsed, msg.sender, _sig);
+//
+//        task.proof = _sig;
+//        if (_optionalEthereumContractAddress != address(0)) {
+//            uint256 gasLeftInit = gasleft();
+//            (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
+//            transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
+//            if (success) {
+//                task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
+//                uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
+//                secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
+//                state.tasks[_taskId].outputHash = _outputHash;
+//                emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
+//                    _optionalEthereumContractAddress, _sig);
+//            } else {
+//                task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
+//                emit ReceiptFailedETH(_taskId, _sig);
+//            }
+//        } else {
+//            transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
+//            task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
+//            uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
+//            secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
+//            state.tasks[_taskId].outputHash = _outputHash;
+//            emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
+//                _optionalEthereumContractAddress, _sig);
+//        }
+//    }
 
     function transferFundsAfterTask(EnigmaState.State storage state, address _worker, address _user, uint _gasUsed,
         uint _gasUnused, uint _gasPx)
