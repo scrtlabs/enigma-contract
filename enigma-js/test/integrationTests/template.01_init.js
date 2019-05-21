@@ -1,4 +1,7 @@
 /* eslint-disable require-jsdoc */
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import dotenv from 'dotenv';
 import forge from 'node-forge';
 import Web3 from 'web3';
@@ -50,10 +53,17 @@ describe('Init tests', () => {
     });
   });
 
+  const homedir = os.homedir();
   it('initializes Sample contract', async () => {
     sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
       SampleContract.networks['4447'].address);
     expect(sampleContract.options.address).toBeTruthy;
+
+    fs.writeFile(path.join(homedir, '.enigma', 'addr-sample.txt'), sampleContract.options.address, 'utf8', function(err) {
+      if(err) {
+        return console.log(err);
+      }
+    });
   });
 
   it('should distribute ENG tokens', async () => {
@@ -84,7 +94,6 @@ describe('Init tests', () => {
       workerAddress[i] = await enigma.admin.getWorkerSignerAddr(accounts[i]);
     }
     expect(workerStatuses).toEqual(arrayResults);
-    console.log('WorkerAddresses are '+workerAddress);
   });
 
   it('should check worker\'s stake balance is empty', async () => {
@@ -186,8 +195,6 @@ describe('Init tests', () => {
             resolve(response);
         });
       });
-    console.log(encryptionKeyResult)
-
     expect(encryptionKeyResult.result.workerEncryptionKey.length).toBe(128);
     expect(encryptionKeyResult.result.workerSig.length).toBe(130);
   });

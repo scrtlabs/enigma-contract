@@ -97,10 +97,10 @@ library WorkersImpl {
 
         // extract the needed fields. For reference see, pages 21-23
         // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
-        bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
-        bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
-        bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
-        bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
+        // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
+        // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
+        // bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+        // bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
         address signerQuote = bytesToAddress(reportData);
 
@@ -283,10 +283,9 @@ library WorkersImpl {
         return selectedWorkers;
     }
 
-    function getLatestWorkerLogImpl(EnigmaState.State storage state, EnigmaCommon.Worker memory worker,
-        uint _blockNumber)
+    function getLatestWorkerLogImpl(EnigmaCommon.Worker memory worker, uint _blockNumber)
     public
-    view
+    pure
     returns (EnigmaCommon.WorkerLog memory) {
         EnigmaCommon.WorkerLog memory workerLog;
         for (uint i = worker.workerLogs.length; i > 0; i--) {

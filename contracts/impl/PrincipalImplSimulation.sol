@@ -96,7 +96,7 @@ library PrincipalImplSimulation {
 
         for (uint i = 0; i < maxLength; i++) {
             EnigmaCommon.Worker memory worker = state.workers[state.workerAddresses[i]];
-            EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulation.getLatestWorkerLogImpl(state, worker, _blockNumber);
+            EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulation.getLatestWorkerLogImpl(worker, _blockNumber);
             if (((workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogIn) ||
                 (workerLog.workerEventType == EnigmaCommon.WorkerLogType.Compound)) &&
                 worker.signer != state.principal)
