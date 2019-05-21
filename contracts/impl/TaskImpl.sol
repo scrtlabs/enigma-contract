@@ -111,6 +111,7 @@ library TaskImpl {
         bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData, address _optionalEthereumContractAddress,
         uint64 _gasUsed, address _sender, bytes memory _sig)
     internal
+    view
     {
         validateReceipt(state, _gasUsed, _sender, _taskId, _taskId);
 
@@ -139,7 +140,7 @@ library TaskImpl {
         task.proof = _sig;
 
         if (_optionalEthereumContractAddress != address(0)) {
-            uint256 gasLeftInit = gasleft();
+            require(gasleft() > 150000, "Not enough gas from worker for eth callback");
             (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
             transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
             if (success) {
@@ -167,53 +168,6 @@ library TaskImpl {
             emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash);
         }
     }
-
-//    function commitReceiptImpl(
-//        EnigmaState.State storage state,
-//        bytes32 _scAddr,
-//        bytes32 _taskId,
-//        bytes32 _stateDeltaHash,
-//        bytes32 _outputHash,
-//        bytes memory _optionalEthereumData,
-//        address _optionalEthereumContractAddress,
-//        uint64 _gasUsed,
-//        bytes memory _sig
-//    )
-//    public
-//    {
-//        EnigmaCommon.SecretContract storage secretContract = state.contracts[_scAddr];
-//        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
-//
-//        // Verify the receipt
-//        verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
-//            _optionalEthereumContractAddress, _gasUsed, msg.sender, _sig);
-//
-//        task.proof = _sig;
-//        if (_optionalEthereumContractAddress != address(0)) {
-//            uint256 gasLeftInit = gasleft();
-//            (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
-//            transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
-//            if (success) {
-//                task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-//                uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
-//                secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
-//                state.tasks[_taskId].outputHash = _outputHash;
-//                emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
-//                    _optionalEthereumContractAddress, _sig);
-//            } else {
-//                task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-//                emit ReceiptFailedETH(_taskId, _sig);
-//            }
-//        } else {
-//            transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
-//            task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-//            uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
-//            secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
-//            state.tasks[_taskId].outputHash = _outputHash;
-//            emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
-//                _optionalEthereumContractAddress, _sig);
-//        }
-//    }
 
     function transferFundsAfterTask(EnigmaState.State storage state, address _worker, address _user, uint _gasUsed,
         uint _gasUnused, uint _gasPx)
@@ -327,6 +281,7 @@ library TaskImpl {
         bytes32 _outputHash, bytes memory _optionalEthereumData, address _optionalEthereumContractAddress,
         uint64 _gasUsed, address _sender, bytes memory _sig)
     internal
+    view
     {
         EnigmaCommon.SecretContract memory secretContract = state.contracts[_scAddr];
         validateReceipt(state, _gasUsed, _sender, _scAddr, _taskId);
@@ -371,7 +326,7 @@ library TaskImpl {
 
         task.proof = _sig;
         if (_optionalEthereumContractAddress != address(0)) {
-            uint256 gasLeftInit = gasleft();
+            require(gasleft() > 150000, "Not enough gas from worker for minimum eth callback");
             (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
             transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
             if (success) {
@@ -437,6 +392,7 @@ library TaskImpl {
         bytes32[] memory _stateDeltaHashes, bytes32[] memory _outputHashes, bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress, uint64[] memory _gasesUsed, address _sender, bytes memory _sig)
     internal
+    view
     {
         EnigmaCommon.SecretContract memory secretContract = state.contracts[_scAddr];
         bytes32[] memory inputsHashes = new bytes32[](_taskIds.length);

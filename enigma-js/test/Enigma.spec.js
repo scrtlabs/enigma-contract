@@ -12,7 +12,6 @@ import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import data from './data';
 import * as eeConstants from '../src/emitterConstants';
 import SampleContract from '../../build/contracts/Sample';
-import EthereumCallbackGasMockContract from '../../build/contracts/EthereumCallbackGasMock';
 import {execInContainer, getStateKeysInContainer} from './principal-utils';
 
 dotenv.config();
@@ -38,7 +37,6 @@ describe('Enigma tests', () => {
     let web3;
     let enigma;
     let sampleContract;
-    let ethereumCallbackGasMockContract;
     it('initializes', () => {
       const provider = new Web3.providers.HttpProvider('http://localhost:9545');
       web3 = new Web3(provider);
@@ -67,9 +65,6 @@ describe('Enigma tests', () => {
       sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
         SampleContract.networks['4447'].address);
       expect(sampleContract.options.address).toBeTruthy();
-      ethereumCallbackGasMockContract = new enigma.web3.eth.Contract(EthereumCallbackGasMockContract['abi'],
-        EthereumCallbackGasMockContract.networks['4447'].address);
-      expect(ethereumCallbackGasMockContract.options.address).toBeTruthy();
     });
 
     it('should generate and save key/pair', () => {
@@ -1807,6 +1802,55 @@ describe('Enigma tests', () => {
     it('should get output hash', async () => {
       const output = await enigma.getTaskOutputHash(task);
       expect(outputHash).toEqual(output);
+    });
+
+    it('should fail to simulate task receipt with insufficient gas from worker', async () => {
+      let taskFn = 'medianWealth(int32,int32)';
+      let taskArgs = [
+        [200000, 'int32'],
+        [300000, 'int32'],
+      ];
+      let taskGasLimit = 100;
+      let taskGasPx = utils.toGrains(1);
+      task = await new Promise((resolve, reject) => {
+        enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr).
+        on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
+        on(eeConstants.ERROR, (error) => reject(error));
+      });
+      const gasUsed = 25;
+      const jsonInterface = {
+        name: 'setStateVarGasFail',
+        type: 'function',
+        inputs: [
+          {
+            type: 'uint256',
+            name: '_stateInt',
+          }, {
+            type: 'bool',
+            name: '_stateBool',
+          }],
+      };
+      const parameters = [10, false];
+      const optionalEthereumData = enigma.web3.eth.abi.encodeFunctionCall(jsonInterface, parameters);
+      const optionalEthereumContractAddress = sampleContract.options.address;
+      const proof = utils.hash([
+        codeHash, task.inputsHash, stateDeltaHash, stateDeltaHash, outputHash,
+        JSBI.BigInt(gasUsed).toString(16).padStart(16, '0'), optionalEthereumData,
+        optionalEthereumContractAddress, '0x01']);
+      const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.commitReceipt(scAddr, task.taskId, stateDeltaHash, outputHash,
+          optionalEthereumData,
+          optionalEthereumContractAddress, gasUsed, sig).send({
+          from: worker.account,
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not enough gas from ' +
+        'worker for minimum eth callback');
     });
 
     it('should fail to simulate task receipt with eth call that exceeds gas limit', async () => {

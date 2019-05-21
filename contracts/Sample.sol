@@ -16,7 +16,11 @@ contract Sample {
         stateBool = _stateBool;
     }
 
+    // Used in unit tests to simulate graceful deploy and compute receipt handling of callbacks that fail due to
+    // out of gas errors. This function contains a very large loop, that eventually fails due to out of gas.
     function setStateVarGasFail(uint _stateInt, bool _stateBool) public {
+        stateInt = _stateInt;
+        stateBool = _stateBool;
         for (uint i = 0; i < 1000000; i++) {
             stateInt = i;
             stateBool = (i % 2 == 0);
