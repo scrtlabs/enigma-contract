@@ -61,7 +61,8 @@ library EnigmaCommon {
 
     // ========================================== Enums ==========================================
 
-    enum TaskStatus {RecordUndefined, RecordCreated, ReceiptVerified, ReceiptFailed}
+    enum TaskStatus {RecordUndefined, RecordCreated, ReceiptVerified, ReceiptFailedENG, ReceiptFailedETH,
+        ReceiptFailedReturn}
 
     enum WorkerStatus {Unregistered, LoggedIn, LoggedOut}
 
