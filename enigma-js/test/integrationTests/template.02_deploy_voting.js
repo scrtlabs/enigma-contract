@@ -12,7 +12,6 @@ import VotingETHContract from '../../../build/contracts/VotingETH';
 import * as eeConstants from '../../src/emitterConstants';
 import data from '../data';
 import EthCrypto from 'eth-crypto';
-import SampleContract from "../../../build/contracts/Sample";
 
 
 forge.options.usePureJavaScript = true;
@@ -32,7 +31,6 @@ describe('Enigma tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,
@@ -83,16 +81,17 @@ describe('Enigma tests', () => {
         return console.log(err);
       }
     });
-  });
+  }, 30000);
 
   it('should get the confirmed deploy contract task', async () => {
     do {
-      scTask = await enigma.getTaskRecordStatus(scTask);
-      console.log(scTask.ethStatus);
       await sleep(1000);
+      scTask = await enigma.getTaskRecordStatus(scTask);
+      process.stdout.write('Waiting. Current Task Status is '+scTask.ethStatus+'\r');
     } while (scTask.ethStatus != 2);
     expect(scTask.ethStatus).toEqual(2);
-  }, 10000);
+    process.stdout.write('Completed. Final Task Status is '+scTask.ethStatus+'\n');
+  }, 30000);
 
   it('should verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask.scAddr);
@@ -102,7 +101,6 @@ describe('Enigma tests', () => {
   it('should get deployed contract bytecode hash', async () => {
     const result = await enigma.admin.getCodeHash(scTask.scAddr);
     expect(result).toBeTruthy;
-    console.log('Deployed contract bytecode hash is:')
-    console.log(result);
+    console.log('Deployed contract bytecode hash is: '+result);
   });
 });

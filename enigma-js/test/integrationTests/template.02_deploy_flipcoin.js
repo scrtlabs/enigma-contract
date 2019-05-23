@@ -73,7 +73,7 @@ describe('Enigma tests', () => {
         return console.log(err);
       }
     });
-  });
+  }, 30000);
 
   it('should get the confirmed deploy contract task', async () => {
     do {
@@ -83,7 +83,7 @@ describe('Enigma tests', () => {
     } while (scTask.ethStatus != 2);
     expect(scTask.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+scTask.ethStatus+'\n');
-  }, 20000);
+  }, 30000);
 
   it('should verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask.scAddr);
