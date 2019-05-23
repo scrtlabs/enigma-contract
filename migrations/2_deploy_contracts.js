@@ -83,7 +83,6 @@ async function deployProtocol(deployer) {
       }
     });
     fs.writeFile(path.join(homedir, '.enigma', 'votingethcontract.txt'), VotingETH.address, 'utf8', function(err) {
-        console.log('VOTING CONTRACT WRITTEN TO ', VotingETH.address);
         if(err) {
             return console.log(err);
         }
