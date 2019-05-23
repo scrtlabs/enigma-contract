@@ -31,7 +31,6 @@ describe('Enigma tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,
@@ -76,11 +75,12 @@ describe('Enigma tests', () => {
 
   it('should get the confirmed task', async () => {
     do {
-      task1 = await enigma.getTaskRecordStatus(task1);
-      console.log(task1.ethStatus);
       await sleep(1000);
+      task1 = await enigma.getTaskRecordStatus(task1);
+      process.stdout.write('Waiting. Current Task Status is '+task1.ethStatus+'\r');
     } while (task1.ethStatus != 2);
     expect(task1.ethStatus).toEqual(2);
+    process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
   }, 10000);
 
   let task2;
@@ -106,11 +106,12 @@ describe('Enigma tests', () => {
 
   it('should get the confirmed task', async () => {
     do {
-      task2 = await enigma.getTaskRecordStatus(task2);
-      console.log(task2.ethStatus);
       await sleep(1000);
+      task2 = await enigma.getTaskRecordStatus(task2);
+      process.stdout.write('Waiting. Current Task Status is '+task2.ethStatus+'\r');
     } while (task2.ethStatus != 2);
     expect(task2.ethStatus).toEqual(2);
+    process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
   }, 10000);
 
   let task3;
@@ -133,11 +134,12 @@ describe('Enigma tests', () => {
 
   it('should get the confirmed task', async () => {
     do {
-      task3 = await enigma.getTaskRecordStatus(task3);
-      console.log(task3.ethStatus);
       await sleep(1000);
+      task3 = await enigma.getTaskRecordStatus(task3);
+      process.stdout.write('Waiting. Current Task Status is '+task3.ethStatus+'\r');
     } while (task3.ethStatus != 2);
     expect(task3.ethStatus).toEqual(2);
+    process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
   }, 10000);
 
   it('should get and validate the result', async () => {

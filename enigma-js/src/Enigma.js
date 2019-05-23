@@ -307,6 +307,16 @@ export default class Enigma {
   }
 
   /**
+   * Fetch output hash at specified index position
+   *
+   * @param {Task} task - Task wrapper
+   * @return {Promise} - Resolves to output hash at the specified position
+   */
+  async getTaskOutputHash(task) {
+    return (await this.enigmaContract.methods.getTaskRecord(task.taskId).call()).outputHash;
+  }
+
+  /**
    * Find SGX report
    *
    * @param {string} custodian - Worker's address
@@ -326,13 +336,13 @@ export default class Enigma {
    * in at the start of the epoch), and list of active worker balances
    */
   async getWorkerParams(blockNumber) {
-    let epochSize = await this.enigmaContract.methods.getEpochSize().call();
     if ((Object.keys(this.workerParamsCache).length === 0) ||
-      (blockNumber - this.workerParamsCache.firstBlockNumber >= epochSize)) {
+      (blockNumber - this.workerParamsCache.firstBlockNumber >= this.epochSize)) {
+      this.epochSize = await this.enigmaContract.methods.getEpochSize().call();
       const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
       this.workerParamsCache = {
         firstBlockNumber: parseInt(getWorkerParamsResult[0]),
-        seed: getWorkerParamsResult[1],
+        seed: JSBI.BigInt(getWorkerParamsResult[1]),
         workers: getWorkerParamsResult[2],
         stakes: getWorkerParamsResult[3].map((x) => JSBI.BigInt(x)),
       };
@@ -358,7 +368,7 @@ export default class Enigma {
       // Unique hash for epoch, secret contract address, and nonce
       const msg = abi.rawEncode(
         ['uint256', 'bytes32', 'uint256'],
-        [params.seed, scAddr, nonce],
+        [params.seed.toString(10), scAddr, nonce],
       );
       const hash = web3Utils.keccak256(msg);
       // Find random number between [0, tokenCpt)
@@ -437,23 +447,26 @@ export default class Enigma {
             resolve(response);
           });
         });
-        switch (getTaskResultResult.result.status) {
-          case 'SUCCESS':
-            task.delta = getTaskResultResult.result.delta;
-            task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
-            task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
-            task.preCodeHash = getTaskResultResult.result.preCodeHash;
-          case 'FAILED':
-            task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
-            task.usedGas = getTaskResultResult.result.usedGas;
-            task.workerTaskSig = getTaskResultResult.result.signature;
-          case 'null':
-          case 'UNVERIFIED':
-          case 'INPROGRESS':
-            task.engStatus = getTaskResultResult.result.status;
-            break;
-          default:
-            throw (new Error('Invalid task result status')).message;
+        if (getTaskResultResult.result) {
+          switch (getTaskResultResult.result.status) {
+            case 'SUCCESS':
+              task.delta = getTaskResultResult.result.delta;
+              task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
+              task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
+              task.preCodeHash = getTaskResultResult.result.preCodeHash;
+            case 'FAILED':
+              task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
+              task.usedGas = getTaskResultResult.result.usedGas;
+              task.workerTaskSig = getTaskResultResult.result.signature;
+            case 'UNVERIFIED':
+            case 'INPROGRESS':
+              task.engStatus = getTaskResultResult.result.status;
+              break;
+            default:
+              throw (new Error('Invalid task result status')).message;
+          }
+        } else {
+          task.engStatus = null;
         }
         emitter.emit(eeConstants.GET_TASK_RESULT_RESULT, task);
       } catch (err) {

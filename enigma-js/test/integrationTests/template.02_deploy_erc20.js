@@ -12,6 +12,9 @@ import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
 import data from '../data';
 import EthCrypto from 'eth-crypto';
+import elliptic from 'elliptic';
+
+let ec = new elliptic.ec('secp256k1');
 
 
 forge.options.usePureJavaScript = true;
@@ -31,7 +34,6 @@ describe('Enigma tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,
@@ -53,7 +55,15 @@ describe('Enigma tests', () => {
   const homedir = os.homedir();
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
-    let scTaskArgs =  [[accounts[0],'bytes32'],[1000000,'uint256']];
+    const account_zero_private_key = '4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d';
+    const keyPair0 = ec.keyFromPrivate(account_zero_private_key);
+    const addr0 = web3.utils.keccak256(new Buffer.from(keyPair0.getPublic().encode("hex").substring(2), 'hex'));
+
+    // Sanity Checks
+    expect(keyPair0.getPrivate().toString(16)).toEqual(account_zero_private_key);
+    expect(addr0.slice(-40)).toString(utils.remove0x(accounts[0]));
+
+    let scTaskArgs =  [[addr0, 'bytes32'],[1000000, 'uint256']];
     let scTaskGasLimit = 4000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
@@ -74,15 +84,16 @@ describe('Enigma tests', () => {
         return console.log(err);
       }
     });
-  });
+  }, 10000);
 
   it('should get the confirmed deploy contract task', async () => {
     do {
-      scTask = await enigma.getTaskRecordStatus(scTask);
-      console.log(scTask.ethStatus);
       await sleep(1000);
+      scTask = await enigma.getTaskRecordStatus(scTask);
+      process.stdout.write('Waiting. Current Task Status is '+scTask.ethStatus+'\r');
     } while (scTask.ethStatus != 2);
     expect(scTask.ethStatus).toEqual(2);
+    process.stdout.write('Completed. Final Task Status is '+scTask.ethStatus+'\n');
   }, 25000);
 
   it('should verify deployed contract', async () => {
@@ -93,7 +104,6 @@ describe('Enigma tests', () => {
   it('should get deployed contract bytecode hash', async () => {
     const result = await enigma.admin.getCodeHash(scTask.scAddr);
     expect(result).toBeTruthy;
-    console.log('Deployed contract bytecode hash is:')
-    console.log(result);
+    console.log('Deployed contract bytecode hash is: '+result);
   });
 });

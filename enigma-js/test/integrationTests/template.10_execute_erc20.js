@@ -13,6 +13,9 @@ import * as eeConstants from '../../src/emitterConstants';
 import data from '../data';
 import EthCrypto from 'eth-crypto';
 import BN from 'bn.js';
+import elliptic from 'elliptic';
+
+let ec = new elliptic.ec('secp256k1');
 
 
 forge.options.usePureJavaScript = true;
@@ -32,7 +35,6 @@ describe('Enigma tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,
@@ -54,24 +56,36 @@ describe('Enigma tests', () => {
   let task;
   it('should execute compute task', async () => {
     const amount = 100000;
-    const msg = utils.hash(accounts[1],(new BN(amount).toString(16, 16)));
-    const account_zero_private_key = '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d'
+    const account_zero_private_key = '4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d';
+    const account_one_private_key = '6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1';
+    const keyPair0 = ec.keyFromPrivate(account_zero_private_key);
+    const keyPair1 = ec.keyFromPrivate(account_one_private_key);
+    const addr0 = web3.utils.keccak256(new Buffer.from(keyPair0.getPublic().encode("hex").substring(2), 'hex'));
+    const addr1 = web3.utils.keccak256(new Buffer.from(keyPair1.getPublic().encode("hex").substring(2), 'hex'));
+
+    // Sanity Checks
+    expect(keyPair0.getPrivate().toString(16)).toEqual(account_zero_private_key);
+    expect(keyPair1.getPrivate().toString(16)).toEqual(account_one_private_key);
+    expect(addr0.slice(-40)).toString(utils.remove0x(accounts[0]));
+    expect(addr1.slice(-40)).toString(utils.remove0x(accounts[1]));
+
+    const msg = utils.hash([addr1,(new BN(amount).toString(16, 16))]);
     const sig = EthCrypto.sign(account_zero_private_key, msg);
+
     let taskFn = 'mint(bytes32,bytes32,uint256,bytes)';
     let taskArgs = [
-      [accounts[0],'bytes20'],
-      [accounts[1],'bytes20'],
+      [addr0,'bytes32'],
+      [addr1,'bytes32'],
       [amount,'uint256'],
       [sig, 'bytes']
     ];
-    let taskGasLimit = 10000000;
+    let taskGasLimit = 20000000;
     let taskGasPx = utils.toGrains(1);
     task = await new Promise((resolve, reject) => {
       enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], erc20Addr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    console.log(task);
   });
 
   it('should get the pending task', async () => {
@@ -81,14 +95,15 @@ describe('Enigma tests', () => {
 
   it('should get the confirmed task', async () => {
     do {
-      task = await enigma.getTaskRecordStatus(task);
-      console.log(task.ethStatus);
       await sleep(1000);
+      task = await enigma.getTaskRecordStatus(task);
+      process.stdout.write('Waiting. Current Task Status is '+task.ethStatus+'\r');
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
-  }, 10000);
+    process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
+  }, 20000);
 
-  xit('should get the result', async () => {
+  it('should get the result', async () => {
     task = await new Promise((resolve, reject) => {
       enigma.getTaskResult(task)
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
@@ -98,9 +113,9 @@ describe('Enigma tests', () => {
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task.delta).toBeTruthy();
     expect(task.usedGas).toBeTruthy();
-    expect(task.ethereumPayload).toBeTruthy();
-    expect(task.ethereumAddress).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
+    task = await enigma.decryptTaskResult(task);
+    expect(task.decryptedOutput).toBe('');
   });
 
 });

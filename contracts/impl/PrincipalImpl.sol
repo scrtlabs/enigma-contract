@@ -68,7 +68,7 @@ library PrincipalImpl {
             message = EnigmaCommon.appendMessage(message, workerParams.stakes[j].toBytes());
         }
         bytes32 msgHash = keccak256(message);
-        // require(msgHash.recover(_sig) == state.principal, "Invalid signature");
+        require(msgHash.recover(_sig) == state.principal, "Invalid signature");
 
         for (uint wi = 0; wi < workerParams.workers.length; wi++) {
             EnigmaCommon.Worker storage worker = state.workers[workerParams.workers[wi]];
@@ -96,7 +96,7 @@ library PrincipalImpl {
 
         for (uint i = 0; i < maxLength; i++) {
             EnigmaCommon.Worker memory worker = state.workers[state.workerAddresses[i]];
-            EnigmaCommon.WorkerLog memory workerLog = WorkersImpl.getLatestWorkerLogImpl(state, worker, _blockNumber);
+            EnigmaCommon.WorkerLog memory workerLog = WorkersImpl.getLatestWorkerLogImpl(worker, _blockNumber);
             if (((workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogIn) ||
                 (workerLog.workerEventType == EnigmaCommon.WorkerLogType.Compound)) &&
                 worker.signer != state.principal)

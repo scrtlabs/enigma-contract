@@ -31,7 +31,6 @@ describe('Enigma tests', () => {
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
-      console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
         EnigmaContract.networks['4447'].address,
@@ -66,11 +65,12 @@ describe('Enigma tests', () => {
 
   it('should get the failed receipt', async () => {
     do {
-      scTask1 = await enigma.getTaskRecordStatus(scTask1);
-      console.log(scTask1.ethStatus);
       await sleep(1000);
+      scTask1 = await enigma.getTaskRecordStatus(scTask1);
+      process.stdout.write('Waiting. Current Task Status is '+scTask1.ethStatus+'\r');
     } while (scTask1.ethStatus != 3);
     expect(scTask1.ethStatus).toEqual(3);
+    process.stdout.write('Completed. Final Task Status is '+scTask1.ethStatus+'\n');
   }, 10000);
 
   it('should fail to verify deployed contract', async () => {
