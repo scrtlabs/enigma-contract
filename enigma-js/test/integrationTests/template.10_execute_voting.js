@@ -211,49 +211,49 @@ describe('Enigma tests', () => {
     process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
   }, 10000);
 
-  // it('checks poll is still pending on ETH', async () => {
-  //   const polls = await votingETHContract.methods.getPolls().call();
-  //   const pollId = polls.length - 1;
-  //   expect(polls[pollId].status).toEqual('1');
-  // });
-  //
-  // let task4;
-  // it('should execute compute task: tally poll', async () => {
-  //   const polls = await votingETHContract.methods.getPolls().call();
-  //   const pollId = polls.length - 1;
-  //   expect(polls[pollId].status).toEqual('1');
-  //   let taskFn = 'tally_poll(uint256)';
-  //   let taskArgs = [
-  //     [pollId, 'uint256'],
-  //   ];
-  //   let taskGasLimit = 1000000;
-  //   let taskGasPx = utils.toGrains(1);
-  //   await sleep(30000);
-  //   console.log('Poll has definitely expired...');
-  //   task4 = await new Promise((resolve, reject) => {
-  //     enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], votingAddr)
-  //       .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
-  //       .on(eeConstants.ERROR, (error) => reject(error));
-  //   });
-  // }, 40000);
-  //
-  // it('should get the pending task', async () => {
-  //   task4 = await enigma.getTaskRecordStatus(task4);
-  //   expect(task4.ethStatus).toEqual(1);
-  // });
-  //
-  // it('should get the confirmed task', async () => {
-  //   do {
-  //     task4 = await enigma.getTaskRecordStatus(task4);
-  //     console.log(task4.ethStatus);
-  //     await sleep(1000);
-  //   } while (task4.ethStatus != 2);
-  //   expect(task4.ethStatus).toEqual(2);
-  // }, 15000);
-  //
-  // it('checks poll has registered as passed on ETH', async () => {
-  //   const polls = await votingETHContract.methods.getPolls().call();
-  //   const pollId = polls.length - 1;
-  //   expect(polls[pollId].status).toEqual('2');
-  // });
+  it('checks poll is still pending on ETH', async () => {
+    const polls = await votingETHContract.methods.getPolls().call();
+    const pollId = polls.length - 1;
+    expect(polls[pollId].status).toEqual('1');
+  });
+
+  let task4;
+  it('should execute compute task: tally poll', async () => {
+    const polls = await votingETHContract.methods.getPolls().call();
+    const pollId = polls.length - 1;
+    expect(polls[pollId].status).toEqual('1');
+    let taskFn = 'tally_poll(uint256)';
+    let taskArgs = [
+      [pollId, 'uint256'],
+    ];
+    let taskGasLimit = 1000000;
+    let taskGasPx = utils.toGrains(1);
+    await sleep(30000);
+    task4 = await new Promise((resolve, reject) => {
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], votingAddr)
+        .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    });
+  }, 40000);
+
+  it('should get the pending task', async () => {
+    task4 = await enigma.getTaskRecordStatus(task4);
+    expect(task4.ethStatus).toEqual(1);
+  });
+
+  it('should get the confirmed task', async () => {
+    do {
+      await sleep(1000);
+      task4 = await enigma.getTaskRecordStatus(task4);
+      process.stdout.write('Waiting. Current Task Status is '+task4.ethStatus+'\r');
+    } while (task4.ethStatus !== 2);
+    expect(task4.ethStatus).toEqual(2);
+    process.stdout.write('Completed. Final Task Status is '+task4.ethStatus+'\n');
+  }, 15000);
+
+  it('checks poll has registered as passed on ETH', async () => {
+    const polls = await votingETHContract.methods.getPolls().call();
+    const pollId = polls.length - 1;
+    expect(polls[pollId].status).toEqual('2');
+  });
 });
