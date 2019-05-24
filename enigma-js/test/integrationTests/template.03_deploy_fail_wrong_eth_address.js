@@ -8,7 +8,6 @@ import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import EnigmaContract from '../../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import VotingETHContract from '../../../build/contracts/VotingETH';
 import * as eeConstants from '../../src/emitterConstants';
 import data from '../data';
 import EthCrypto from 'eth-crypto';
@@ -24,8 +23,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let votingETHContract;
-  let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
@@ -45,12 +42,6 @@ describe('Enigma tests', () => {
       enigma.admin();
       expect(Enigma.version()).toEqual('0.0.1');
     });
-  });
-
-  it('initializes VotingETH contract', async () => {
-    votingETHContract = new enigma.web3.eth.Contract(VotingETHContract['abi'],
-      VotingETHContract.networks['4447'].address);
-    expect(votingETHContract.options.address).toBeTruthy();
   });
 
   let scTask;
@@ -76,7 +67,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
 
-    fs.writeFile(path.join(homedir, '.enigma', 'addr-voting.txt'), scTask.scAddr, 'utf8', function(err) {
+    fs.writeFile(path.join(homedir, '.enigma', 'addr-voting-wrongeth.txt'), scTask.scAddr, 'utf8', function(err) {
       if(err) {
         return console.log(err);
       }

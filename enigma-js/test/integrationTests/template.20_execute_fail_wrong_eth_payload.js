@@ -15,6 +15,10 @@ import data from '../data';
 import EthCrypto from 'eth-crypto';
 
 
+/**
+ * Be sure to run this after 02_deploy_voting.spec
+ */
+
 forge.options.usePureJavaScript = true;
 
 function sleep(ms) {
@@ -59,8 +63,9 @@ describe('Enigma tests', () => {
 
   let task1;
   const addr1 = '0x0000000000000000000000000000000000000000000000000000000000000001';
-  it('should execute compute task: voter 1 casting vote', async () => {
+  it('should fail to execute compute task: voter 1 casting vote', async () => {
     const pollId = (await votingETHContract.methods.getPolls().call()).length - 1;
+    // there is no function signature cast_vote_bad, should be cast_vote, thus this is an incorrect payload
     let taskFn = 'cast_vote_bad(uint256,bytes32,uint256)';
     let taskArgs = [
       [pollId, 'uint256'],
@@ -81,7 +86,7 @@ describe('Enigma tests', () => {
     expect(task1.ethStatus).toEqual(1);
   });
 
-  it('should get the confirmed task success', async () => {
+  it('should get the confirmed task failure (ENG)', async () => {
     do {
       await sleep(1000);
       task1 = await enigma.getTaskRecordStatus(task1);

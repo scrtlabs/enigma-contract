@@ -14,6 +14,9 @@ import * as eeConstants from '../../src/emitterConstants';
 import data from '../data';
 import EthCrypto from 'eth-crypto';
 
+/**
+ * Be sure to run this after 03_deploy_fail_wrong_eth_address.spec
+ */
 
 forge.options.usePureJavaScript = true;
 
@@ -26,7 +29,6 @@ describe('Enigma tests', () => {
   let web3;
   let enigma;
   let votingETHContract;
-  let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
@@ -55,11 +57,11 @@ describe('Enigma tests', () => {
   });
 
   const homedir = os.homedir();
-  const votingAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-voting.txt'), 'utf-8');
+  const votingAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-voting-wrongeth.txt'), 'utf-8');
 
   let task1;
   const addr1 = '0x0000000000000000000000000000000000000000000000000000000000000001';
-  it('should execute compute task: voter 1 casting vote', async () => {
+  it('should fail to execute compute task: voter 1 casting vote', async () => {
     const pollId = (await votingETHContract.methods.getPolls().call()).length - 1;
     let taskFn = 'cast_vote(uint256,bytes32,uint256)';
     let taskArgs = [
@@ -81,7 +83,7 @@ describe('Enigma tests', () => {
     expect(task1.ethStatus).toEqual(1);
   });
 
-  it('should get the confirmed task success', async () => {
+  it('should get the confirmed task failure (ENG)', async () => {
     do {
       await sleep(1000);
       task1 = await enigma.getTaskRecordStatus(task1);
