@@ -91,5 +91,5 @@ describe('Enigma tests', () => {
     } while (task1.ethStatus !== 3);
     expect(task1.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
-  }, 10000);
+  }, 30000);
 });

@@ -74,10 +74,10 @@ describe('Enigma tests', () => {
     do {
       await sleep(1000);
       task1 = await enigma.getTaskRecordStatus(task1);
-      process.stdout.write('Waiting. Current Task Status is '+scTask1.ethStatus+'\r');
+      process.stdout.write('Waiting. Current Task Status is '+task1.ethStatus+'\r');
     } while (task1.ethStatus != 2);
     expect(task1.ethStatus).toEqual(2);
-    process.stdout.write('Completed. Final Task Status is '+scTask1.ethStatus+'\n');
+    process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
   }, 10000);
 
   it('should get the result and verify the computation is correct', async () => {
@@ -108,7 +108,6 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    console.log(task2);
   });
 
   it('should get the pending task', async () => {
@@ -120,10 +119,10 @@ describe('Enigma tests', () => {
     do {
       await sleep(1000);
       task2 = await enigma.getTaskRecordStatus(task2);
-      process.stdout.write('Waiting. Current Task Status is '+scTask2.ethStatus+'\r');
+      process.stdout.write('Waiting. Current Task Status is '+task2.ethStatus+'\r');
     } while (task2.ethStatus != 2);
     expect(task2.ethStatus).toEqual(2);
-    process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
+    process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
   }, 10000);
 
   it('should get and validate the result', async () => {
