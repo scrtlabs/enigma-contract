@@ -8,7 +8,6 @@ import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import EnigmaContract from '../../../build/contracts/Enigma';
 import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
 import data from '../data';
 import EthCrypto from 'eth-crypto';
@@ -24,8 +23,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
-  let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
     web3 = new Web3(provider);
@@ -51,13 +48,15 @@ describe('Enigma tests', () => {
   let task;
   const homedir = os.homedir();
   it('should deploy secret contract', async () => {
-    let scTaskFn = 'construct()';
-    let scTaskArgs = '';
-    let scTaskGasLimit = 1000000;
+    let scTaskFn = `construct(address)`;
+    let scTaskArgs = [
+      ['0x0000000000000000000000000000000000000102', 'address'],
+    ];
+    let scTaskGasLimit = 4000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
-      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/flipcoin.wasm'));
+      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/voting.wasm'));
       preCode = preCode.toString('hex');
     } catch(e) {
       console.log('Error:', e.stack);
@@ -68,7 +67,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
 
-    fs.writeFile(path.join(homedir, '.enigma', 'addr-flipcoin.txt'), scTask.scAddr, 'utf8', function(err) {
+    fs.writeFile(path.join(homedir, '.enigma', 'addr-voting-wrongeth.txt'), scTask.scAddr, 'utf8', function(err) {
       if(err) {
         return console.log(err);
       }
@@ -80,7 +79,7 @@ describe('Enigma tests', () => {
       await sleep(1000);
       scTask = await enigma.getTaskRecordStatus(scTask);
       process.stdout.write('Waiting. Current Task Status is '+scTask.ethStatus+'\r');
-    } while (scTask.ethStatus != 2);
+    } while (scTask.ethStatus !== 2);
     expect(scTask.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+scTask.ethStatus+'\n');
   }, 30000);
@@ -92,7 +91,7 @@ describe('Enigma tests', () => {
 
   it('should get deployed contract bytecode hash', async () => {
     const result = await enigma.admin.getCodeHash(scTask.scAddr);
-    expect(result).toBeTruthy;
+    expect(result).toBeTruthy();
     console.log('Deployed contract bytecode hash is: '+result);
   });
 });

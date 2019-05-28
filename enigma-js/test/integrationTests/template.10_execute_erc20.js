@@ -101,7 +101,7 @@ describe('Enigma tests', () => {
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
-  }, 20000);
+  }, 30000);
 
   it('should get the result', async () => {
     task = await new Promise((resolve, reject) => {
