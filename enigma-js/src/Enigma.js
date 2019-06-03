@@ -53,6 +53,7 @@ export default class Enigma {
     this.client = jaysonBrowserClient(callServer, {});
     this.workerParamsCache = {};
     this.selectedWorkerGroupCache = {};
+    this.taskKeyLocalStorage = {};
     this.createContracts(enigmaContractAddr, tokenContractAddr);
   }
 
@@ -575,8 +576,10 @@ export default class Enigma {
    */
   obtainTaskKeyPair() {
     // TODO: Developer tool to allow users to select their own unique passphrase to generate private key
+    const isBrowser = typeof window !== 'undefined';
     let privateKey;
-    let encodedPrivateKey = window.localStorage.getItem('encodedPrivateKey');
+    let encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
+      this.taskKeyLocalStorage['encodedPrivateKey'];
     if (encodedPrivateKey == null) {
       let random = forge.random.createInstance();
       // TODO: Query user for passphrase
@@ -584,9 +587,10 @@ export default class Enigma {
         return forge.util.fillString('cupcake', needed);
       };
       privateKey = forge.util.bytesToHex(random.getBytes(32));
-      window.localStorage.setItem('encodedPrivateKey', btoa(privateKey));
+      isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
+        this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
     } else {
-      privateKey = atob(encodedPrivateKey);
+      privateKey = isBrowser ? atob(encodedPrivateKey) : Buffer.from(encodedPrivateKey, 'base64').toString('binary');
     }
     let publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
     return {publicKey, privateKey};
