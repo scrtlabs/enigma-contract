@@ -2,20 +2,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import dotenv from 'dotenv';
-import forge from 'node-forge';
 import Web3 from 'web3';
 import JSBI from 'jsbi';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
-
-dotenv.config();
-
-forge.options.usePureJavaScript = true;
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
 
 function sleep(ms) {
