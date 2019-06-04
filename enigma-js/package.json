@@ -37,6 +37,7 @@
     "body-parser": "^1.18.3",
     "buffer": "^5.1.0",
     "connect": "^3.6.6",
+    "create-file-webpack": "^1.0.2",
     "elliptic": "6.4.0",
     "eth-crypto": "^1.2.2",
     "ethereumjs-abi": "^0.6.5",
@@ -55,6 +56,7 @@
     "truffle-contract": "^4.0.0",
     "uuid": "^3.3.2",
     "web3-utils": "1.0.0-beta.37",
+    "webpack-node-externals": "^1.7.2",
     "whatwg-fetch": "^3.0.0"
   },
   "devDependencies": {
