@@ -2,23 +2,17 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
-import data from '../data';
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 import EthCrypto from 'eth-crypto';
 import BN from 'bn.js';
 import elliptic from 'elliptic';
 
+
 let ec = new elliptic.ec('secp256k1');
-
-
-forge.options.usePureJavaScript = true;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -101,7 +95,7 @@ describe('Enigma tests', () => {
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
-  }, 20000);
+  }, 30000);
 
   it('should get the result', async () => {
     task = await new Promise((resolve, reject) => {

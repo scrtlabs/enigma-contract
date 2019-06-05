@@ -7,6 +7,7 @@ import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
 import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import EthCrypto from 'eth-crypto';
 import Task from "../../src/models/Task";
 import EventEmitter from "eventemitter3";
 
@@ -43,7 +44,7 @@ describe('Enigma tests', () => {
     });
   });
 
-  function createWrongEncryptionKeyTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
+  function createWrongWorkerTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
       const nonce = parseInt(await enigma.enigmaContract.methods.getUserTaskDeployments(sender).call());
@@ -68,12 +69,16 @@ describe('Enigma tests', () => {
       const workerParams = await enigma.getWorkerParams(blockNumber);
       const firstBlockNumber = workerParams.firstBlockNumber;
       workerAddress = await enigma.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
-      workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
+
+      let wrongWorkerAddress = workerParams.workers.filter(function(value, index, arr) { 
+        return value != workerAddress;})[0];
+
+      wrongWorkerAddress = wrongWorkerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
       const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           enigma.client.request('getWorkerEncryptionKey',
-            {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
+            {workerAddress: wrongWorkerAddress, userPubKey: publicKey}, (err, response) => {
               if (err) {
                 reject(err);
                 return;
@@ -82,21 +87,45 @@ describe('Enigma tests', () => {
             });
         });
         const {result, id} = getWorkerEncryptionKeyResult;
-        const {workerSig} = result;
-        const workerEncryptionKey = 'c54ba8ead9b94f6672da002d08caa3423695ad03842537e64317890f05fa0771457175b0f92bbe22ad8914a1f04b012a3f9883d5559f2c2749e0114fe56e7000';
-        // Generate derived key from worker's encryption key and user's private key
-        const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
-        // Encrypt function and ABI-encoded args
-        const encryptedFn = utils.encryptMessage(derivedKey, fn);
-        const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, Buffer.from(abiEncodedArgsArray));
-        const msg = enigma.web3.utils.soliditySha3(
-          {t: 'bytes', v: encryptedFn},
-          {t: 'bytes', v: encryptedAbiEncodedArgs},
-        );
-        const userTaskSig = await enigma.web3.eth.sign(msg, sender);
-        emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-          id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
-          preCodeArray, preCodeHash, isContractDeploymentTask));
+        const {workerEncryptionKey, workerSig} = result;
+
+        // The signature of the workerEncryptionKey is generated
+        // concatenating the following elements in a bytearray:
+        // len('Enigma User Message') + b'Enigma User Message' + len(workerEncryptionKey) + workerEncryptionKey
+        // Because the first 3 elements are constant, they are hardcoded as follows:
+        // len('Enigma User Message') as a uint64 => 19 in hex => 0000000000000013
+        // bytes of 'Enigma User Message' in hex => 456e69676d612055736572204d657373616765
+        // len(workerEncryptionKey) as a unit64 => 64 in hex => 0000000000000040
+        const hexToVerify = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040' +
+          workerEncryptionKey;
+
+        // the hashing function soliditySha3 expects hex instead of bytes
+        let recAddress = EthCrypto.recover('0x'+workerSig,
+          enigma.web3.utils.soliditySha3({t: 'bytes', value: hexToVerify}));
+
+        recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
+
+        if (wrongWorkerAddress !== recAddress) {
+          console.error('Worker address', wrongWorkerAddress, '!= recovered address', recAddress);
+          emitter.emit(eeConstants.ERROR, {
+            name: 'InvalidWorker',
+            message: `Invalid worker encryption key + signature combo ${wrongWorkerAddress} != ${recAddress}`,
+          });
+        } else {
+          // Generate derived key from worker's encryption key and user's private key
+          const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
+          // Encrypt function and ABI-encoded args
+          const encryptedFn = utils.encryptMessage(derivedKey, fn);
+          const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, Buffer.from(abiEncodedArgsArray));
+          const msg = enigma.web3.utils.soliditySha3(
+            {t: 'bytes', v: encryptedFn},
+            {t: 'bytes', v: encryptedAbiEncodedArgs},
+          );
+          const userTaskSig = await enigma.web3.eth.sign(msg, sender);
+          emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
+            id, publicKey, firstBlockNumber, wrongWorkerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
+            preCodeArray, preCodeHash, isContractDeploymentTask));
+        }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
       }
@@ -118,7 +147,7 @@ describe('Enigma tests', () => {
       console.log('Error:', e.stack);
     }
     scTask2 = await new Promise((resolve, reject) => {
-      createWrongEncryptionKeyTask(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode, true)
+      createWrongWorkerTask(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode, true)
         .on(eeConstants.CREATE_TASK, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
@@ -135,14 +164,16 @@ describe('Enigma tests', () => {
   });
 
   it('should get the failed receipt', async () => {
+    let i=0;
     do {
       await sleep(1000);
       scTask2 = await enigma.getTaskRecordStatus(scTask2);
       process.stdout.write('Waiting. Current Task Status is '+scTask2.ethStatus+'\r');
-    } while (scTask2.ethStatus !== 3);
-    expect(scTask2.ethStatus).toEqual(3);
+      i++;
+    } while (scTask2.ethStatus === 1 && i < 6);
+    expect(scTask2.ethStatus).toEqual(1);
     process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
-  }, 10000);
+  }, 8000);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask2.scAddr);

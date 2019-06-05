@@ -2,19 +2,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
-import data from '../data';
-import EthCrypto from 'eth-crypto';
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
-
-forge.options.usePureJavaScript = true;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -81,16 +74,19 @@ describe('Enigma tests', () => {
   }, 10000);
 
   it('should get the failed result', async () => {
-    task = await new Promise((resolve, reject) => {
-        enigma.getTaskResult(task)
-          .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
-          .on(eeConstants.ERROR, (error) => reject(error));
-    });
+    do {
+      await sleep(1000);
+      task = await new Promise((resolve, reject) => {
+          enigma.getTaskResult(task)
+            .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
+            .on(eeConstants.ERROR, (error) => reject(error));
+      });
+    } while(!task.engStatus);
     expect(task.engStatus).toEqual('FAILED');
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
     task = await enigma.decryptTaskResult(task);
-    console.log('Output is: '+task.decryptedOutput);
+    console.log('Output is: ' + task.decryptedOutput);
   });
 
 });

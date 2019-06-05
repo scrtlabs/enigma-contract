@@ -2,19 +2,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
-import data from '../data';
-import EthCrypto from 'eth-crypto';
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
-
-forge.options.usePureJavaScript = true;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -73,7 +66,7 @@ describe('Enigma tests', () => {
         return console.log(err);
       }
     });
-  });
+  }, 30000);
 
   it('should get the confirmed deploy contract task', async () => {
     do {
@@ -83,7 +76,7 @@ describe('Enigma tests', () => {
     } while (scTask.ethStatus != 2);
     expect(scTask.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+scTask.ethStatus+'\n');
-  }, 10000);
+  }, 30000);
 
   it('should verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask.scAddr);

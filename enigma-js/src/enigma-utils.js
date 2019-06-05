@@ -180,6 +180,39 @@ function generateScAddr(sender, nonce) {
 }
 
 /**
+ * Generate a taskId using a hash of all inputs
+ * The Enigma contract uses the same logic to generate a matching taskId
+ *
+ * @param {string} hexStr
+ * @param {Array} inputsArray
+ * @return {string}
+ */
+function appendMessages(hexStr, inputsArray) {
+  for (let input of inputsArray) {
+    input = remove0x(input);
+    // since the inputs are in hex string, they are twice as long as their bytes
+    hexStr += JSBI.BigInt(input.length/2).toString(16).padStart(16, '0') + input;
+  }
+  return hexStr;
+}
+
+/**
+ * Generate a taskId using a hash of all inputs
+ * The Enigma contract uses the same logic to generate a matching taskId
+ *
+ * @param {string} hexStr
+ * @param {Array} inputsArray
+ * @return {string}
+ */
+function appendArrayMessages(hexStr, inputsArray) {
+  for (let array of inputsArray) {
+    hexStr += JSBI.BigInt(array.length).toString(16).padStart(16, '0');
+    hexStr = appendMessages(hexStr, array);
+  }
+  return hexStr;
+}
+
+/**
  * Generate a hash of all inputs
  * The Enigma contract uses the same logic to generate a matching taskId
  *
@@ -187,12 +220,7 @@ function generateScAddr(sender, nonce) {
  * @return {string} hash of inputs
  */
 function hash(inputsArray) {
-  let hexStr = '';
-  for (let e of inputsArray) {
-    e = remove0x(e);
-    // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += JSBI.BigInt(e.length/2).toString(16).padStart(16, '0') + e;
-  }
+  let hexStr = appendMessages('', inputsArray);
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
 
@@ -208,23 +236,35 @@ function hash(inputsArray) {
  */
 function principalHash(seed, nonce, workerAddresses, workerStakes) {
   let hexStr = '';
-  for (let e of [seed, nonce]) {
-    let val = JSBI.BigInt(e).toString(16).padStart(64, '0');
-    // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += JSBI.BigInt(val.length/2).toString(16).padStart(16, '0') + val;
-  }
-  hexStr += JSBI.BigInt(workerAddresses.length).toString(16).padStart(16, '0');
-  for (let e of workerAddresses) {
-    e = remove0x(e);
-    // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += JSBI.BigInt(e.length/2).toString(16).padStart(16, '0') + e;
-  }
-  hexStr += JSBI.BigInt(workerStakes.length).toString(16).padStart(16, '0');
-  for (let e of workerStakes) {
-    let val = JSBI.BigInt(e).toString(16).padStart(64, '0');
-    // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += JSBI.BigInt(val.length/2).toString(16).padStart(16, '0') + val;
-  }
+  hexStr = appendMessages(hexStr, [seed, nonce]);
+  hexStr = appendArrayMessages(hexStr, [workerAddresses, workerStakes]);
+  return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
+}
+
+/**
+ * Generate a taskId using a hash of all inputs
+ * The Enigma contract uses the same logic to generate a matching taskId
+ *
+ * @param {string} codeHash
+ * @param {Array} inputsHashes
+ * @param {string} lastStateDeltaHash
+ * @param {Array} stateDeltaHashes
+ * @param {Array} outputHashes
+ * @param {Array} gasesUsed
+ * @param {string} optionalEthereumData
+ * @param {string} optionalEthereumContractAddress
+ * @param {string} successFlag
+ * @return {string} hash of inputs
+ */
+function commitReceiptsHash(codeHash, inputsHashes, lastStateDeltaHash, stateDeltaHashes, outputHashes, gasesUsed,
+                            optionalEthereumData, optionalEthereumContractAddress, successFlag) {
+  let hexStr = '';
+  hexStr = appendMessages(hexStr, [codeHash]);
+  hexStr = appendArrayMessages(hexStr, [inputsHashes]);
+  hexStr = appendMessages(hexStr, [lastStateDeltaHash]);
+  hexStr = appendArrayMessages(hexStr, [stateDeltaHashes, outputHashes, gasesUsed]);
+  hexStr = appendMessages(hexStr, [optionalEthereumData, optionalEthereumContractAddress, successFlag]);
+
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
 
@@ -329,11 +369,13 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
 
   let clientKey = ec.keyFromPrivate(clientPrivateKey, 'hex');
   let enclaveKey = ec.keyFromPublic(enclavePublicKey, 'hex');
+
   let sharedPoints = enclaveKey.getPublic().mul(clientKey.getPrivate());
   let y = 0x02 | (sharedPoints.getY().isOdd() ? 1 : 0);
   let x = sharedPoints.getX();
   let yBuffer = Buffer.from([y]);
-  let xBuffer = Buffer.from(x.toString(16), 'hex');
+  let xBuffer = x.toArrayLike(Buffer, 'be', 32);
+
   let sha256 = forge.md.sha256.create();
 
   sha256.update(yBuffer.toString('binary'));
@@ -454,6 +496,7 @@ utils.test = () => 'hello2';
 utils.generateScAddr = generateScAddr;
 utils.hash = hash;
 utils.principalHash = principalHash;
+utils.commitReceiptsHash = commitReceiptsHash;
 // utils.verifyWorker = verifyWorker;
 // utils.checkMethodSignature = checkMethodSignature;
 // utils.toAddress = toAddress;

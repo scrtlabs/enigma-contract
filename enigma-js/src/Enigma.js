@@ -336,9 +336,9 @@ export default class Enigma {
    * in at the start of the epoch), and list of active worker balances
    */
   async getWorkerParams(blockNumber) {
-    let epochSize = await this.enigmaContract.methods.getEpochSize().call();
     if ((Object.keys(this.workerParamsCache).length === 0) ||
-      (blockNumber - this.workerParamsCache.firstBlockNumber >= epochSize)) {
+      (blockNumber - this.workerParamsCache.firstBlockNumber >= this.epochSize)) {
+      this.epochSize = await this.enigmaContract.methods.getEpochSize().call();
       const getWorkerParamsResult = await this.enigmaContract.methods.getWorkerParams(blockNumber).call();
       this.workerParamsCache = {
         firstBlockNumber: parseInt(getWorkerParamsResult[0]),
