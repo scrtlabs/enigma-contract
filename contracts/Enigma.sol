@@ -341,7 +341,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
 
     /**
     * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
-    * The task record is finalized and the worker is credited with the task's fee.
+    * The task record is finalized and the worker is credited with the task fee.
     *
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
@@ -402,7 +402,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-    * Commit the computation task failure on chain - the task's fee is transfered to the worker and the status is
+    * Commit the computation task failure on chain - the task fee is transfered to the worker and the status is
     * updated to indicate task failure.
     *
     * @param _scAddr Secret contract address
@@ -464,7 +464,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-    * Get first block number of epoch a given block number falls within
+    * Get the first block number of an epoch that a given block number belongs to
     *
     * @param _blockNumber Block number
     * @return Block number
@@ -477,7 +477,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-    * Get worker params for the epoch given a particular block number
+    * Get worker params for an epoch given a particular block number
     *
     * @param _blockNumber Block number
     * @return Epoch's first block number
