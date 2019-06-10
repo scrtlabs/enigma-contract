@@ -1,6 +1,6 @@
 {
   "name": "enigma-js",
-  "version": "0.0.1",
+  "version": "0.0.6",
   "description": "The Javascript client for the Enigma Network",
   "main": "lib/enigma-js.js",
   "scripts": {

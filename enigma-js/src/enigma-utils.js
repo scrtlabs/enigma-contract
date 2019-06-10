@@ -473,19 +473,30 @@ function remove0x(hexString) {
  * @return {string}
  */
 function hexToAscii(hexString) {
-    if (!(typeof hexString === 'number' || typeof hexString == 'string')) {
-      return '';
-    }
-    hexString = hexString.toString().replace(/\s+/gi, '');
-    const stack = [];
-    for (let n = 0; n < hexString.length; n += 2) {
-      const code = parseInt(hexString.substr(n, 2), 16);
-      if (!isNaN(code) && code !== 0) {
-        stack.push(String.fromCharCode(code));
-      }
-    }
-    return stack.join('');
+  if (!(typeof hexString === 'number' || typeof hexString == 'string')) {
+    return '';
   }
+  hexString = hexString.toString().replace(/\s+/gi, '');
+  const stack = [];
+  for (let n = 0; n < hexString.length; n += 2) {
+    const code = parseInt(hexString.substr(n, 2), 16);
+    if (!isNaN(code) && code !== 0) {
+      stack.push(String.fromCharCode(code));
+    }
+  }
+  return stack.join('');
+}
+
+/**
+ * Sleeps
+ *
+ * @param {int} ms
+ * @return {undefined}
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 
 let utils = {};
 
@@ -510,5 +521,6 @@ utils.toGrains = toGrains;
 // utils.fromGrains = fromGrains;
 utils.remove0x = remove0x;
 utils.hexToAscii = hexToAscii;
+utils.sleep = sleep;
 
 export default utils;
