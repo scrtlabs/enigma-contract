@@ -97,15 +97,19 @@ export default class Enigma {
       // TODO: never larger that 53-bit?
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
-      const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
-
-      let preCodeArray = [];
-      for (let n = 0; n < preCode.length; n += 2) {
-        preCodeArray.push(parseInt(preCode.substr(n, 2), 16));
+      let preCode;
+      if (isContractDeploymentTask) {
+        if (Buffer.isBuffer(scAddrOrPreCode)) {
+          preCode = scAddrOrPreCode;
+        } else {
+          throw Error('PreCode expected to be a Buffer, instead got '+typeof scAddrOrPreCode);
+        }
+      } else {
+        preCode = '';
       }
 
       const preCodeHash = isContractDeploymentTask ?
-        this.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
+        this.web3.utils.soliditySha3({t: 'bytes', value: preCode.toString('hex')}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = utils.remove0x(this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
@@ -168,7 +172,7 @@ export default class Enigma {
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
             id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
-            preCodeArray, preCodeHash, isContractDeploymentTask));
+            preCode.toString('base64'), preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
