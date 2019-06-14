@@ -5,6 +5,9 @@ sudo: true
 node_js:
   - "10.14"
 
+services:
+  - docker
+
 install:
   - ./scripts/checkSimulationContracts.bash
   - yarn install
@@ -26,3 +29,8 @@ script:
 after_success:
   - pushd enigma-js && yarn report-coverage
 
+deploy:
+  provider: script
+  script: bash scripts/deploy.sh
+  on:
+    branch: docker
