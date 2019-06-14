@@ -6,9 +6,11 @@
 02_deploy_voting.spec.js
 03_deploy_fail_bytecode.spec.js
 03_deploy_fail_outofgas.spec.js
+90_advance_epoch.spec.js
 03_deploy_fail_parameters.spec.js
 03_deploy_fail_wrong_encryption_key.spec.js
 03_deploy_fail_wrong_eth_address.spec.js
+90_advance_epoch.spec.js
 10_execute_calculator.spec.js
 10_execute_flipcoin.spec.js
 10_execute_millionaire.spec.js
