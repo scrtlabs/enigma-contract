@@ -8,6 +8,15 @@ node_js:
 services:
   - docker
 
+env:
+  - DOCKER_COMPOSE_VERSION=1.23.2
+
+before_install:
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+
 install:
   - ./scripts/checkSimulationContracts.bash
   - yarn install
@@ -25,6 +34,15 @@ script:
   - pushd enigma-js && yarn build && popd
   - SGX_MODE=SW truffle migrate --reset --network development
   - pushd enigma-js && SGX_MODE=SW yarn test && popd
+  - git clone https://github.com/enigmampc/discovery-docker-network.git
+  - |
+    pushd discovery-docker-network &&
+    cp .env-template .env &&
+    sed -i "s/SGX_MODE=HW/SGX_MODE=SW/" .env &&
+    sed -i "s/-vv/-v/" enigma-core/start_core.bash &&
+    popd
+  - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=$TRAVIS_BRANCH -t enigmampc/enigma_contract:latest --no-cache . && popd
+  - pushd discovery-docker-network && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --exit-code-from client && popd
 
 after_success:
   - pushd enigma-js && yarn report-coverage && popd
