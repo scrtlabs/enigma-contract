@@ -60,6 +60,26 @@ export default class Admin {
   }
 
   /**
+   * Count the number of deployed secret contracts.
+   *
+   * @return {Promise} - Resolves to number of deployed secret contracts
+   */
+  async countSecretContracts() {
+    return parseInt(await this.enigmaContract.methods.countSecretContracts().call());
+  }
+
+  /**
+   * Get the addresses of deployed secret contracts within a specified range.
+   *
+   * @param {number} start - Start index of secret contract address to retrieve (inclusive)
+   * @param {number} stop - Stop index of secret contract address to retrieve (exclusive)
+   * @return {Promise} - Resolves to the addresses of deployed secret contracts within range
+   */
+  async getSecretContractAddresses(start, stop) {
+    return (await this.enigmaContract.methods.getSecretContractAddresses(start, stop).call());
+  }
+
+  /**
    * Fetches the secret contract bytecode hash
    *
    * @param {string} scAddr - Secret contract address
