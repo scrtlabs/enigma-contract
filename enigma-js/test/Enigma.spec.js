@@ -1532,6 +1532,11 @@ describe('Enigma tests', () => {
       expect(result.events.ReceiptVerified).toBeTruthy();
     });
 
+    it('should poll ETH for task', async () => {
+      task = await enigma.pollTaskETH(task);
+      expect(task.ethStatus).toEqual(2);
+    });
+
     it('should count state deltas after task failure', async () => {
       const count = await enigma.admin.countStateDeltas(scAddr);
       expect(count).toEqual(2);
