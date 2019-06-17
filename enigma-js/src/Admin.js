@@ -25,7 +25,7 @@ export default class Admin {
    * Find worker by signing address
    *
    * @param {string} sigAddr - The signing address
-   * @return {Promise}
+   * @return {Promise} Resolves to worker's details
    */
   async findBySigningAddress(sigAddr) {
     const result = await this.enigmaContract.methods.getWorkerFromSigningAddress(sigAddr).call();
@@ -41,8 +41,8 @@ export default class Admin {
   /**
    * Get the worker's status
    *
-   * @param {string} account - Worker's address
-   * @return {Promise} Resolves to status of worker (0=Unregistered, 1=Registered, 2=LoggedIn, 3=LoggedOut)
+   * @param {string} account - Worker's ETH address
+   * @return {Promise} Resolves to status of worker (0=Unregistered, 1=LoggedIn, 2=LoggedOut)
    */
   async getWorkerStatus(account) {
     const worker = await this.enigmaContract.methods.getWorker(account).call();
@@ -106,7 +106,7 @@ export default class Admin {
    * Check that the specified state delta hash is valid.
    *
    * @param {string} scAddr - Secret contract address
-   * @param {string} stateDeltaHash
+   * @param {string} stateDeltaHash - State delta hash for a given task
    * @return {Promise} Resolves to boolean value for whether the state delta hash is valid
    */
   async isValidDeltaHash(scAddr, stateDeltaHash) {
@@ -117,7 +117,7 @@ export default class Admin {
   /**
    * Login the selected worker
    *
-   * @param {string} account
+   * @param {string} account - ETH address for worker being logged in
    * @return {EventEmitter} EventEmitter to be listened to track login transaction
    */
   login(account) {
@@ -141,7 +141,7 @@ export default class Admin {
   /**
    * Logout the selected worker
    *
-   * @param {string} account
+   * @param {string} account - ETH address for worker being logged out
    * @return {EventEmitter} EventEmitter to be listened to track logout transaction
    */
   logout(account) {
@@ -163,9 +163,9 @@ export default class Admin {
   }
 
   /**
-   * Deposit ENG tokens in the worker's bank
+   * Deposit ENG tokens in the worker's bank. Worker must be registered prior to this.
    *
-   * @param {string} account - Worker's address
+   * @param {string} account - Worker's ETH address
    * @param {number} amount - Number of ENG tokens to deposit, in grains (10**8 multiplier) format
    * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
@@ -200,9 +200,10 @@ export default class Admin {
   }
 
   /**
-   * Withdraw ENG tokens from the worker's bank
+   * Withdraw ENG tokens from the worker's bank. Worker must be in the logged out state and cannot withdraw in the
+   * same epoch as logging out.
    *
-   * @param {string} account - Worker's address
+   * @param {string} account - Worker's ETH address
    * @param {number} amount - Number of ENG tokens to deposit, in grains (10**8 multiplier) format
    * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
@@ -231,7 +232,7 @@ export default class Admin {
   /**
    * Get token balance for worker
    *
-   * @param {string} account - Worker's address
+   * @param {string} account - Worker's ETH address
    * @return {Promise} Resolves to ENG token balance in grains (10**8 multiplier) format
    */
   async getBalance(account) {
@@ -241,7 +242,7 @@ export default class Admin {
   /**
    * Get worker's signer address
    *
-   * @param {string} account - Worker's address
+   * @param {string} account - Worker's ETH address
    * @return {Promise} Resolves to worker's signer address
    */
   async getWorkerSignerAddr(account) {
