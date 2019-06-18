@@ -503,8 +503,7 @@ function gzip(buffer) {
     zlib.gzip(buffer, (error, result)=>{
       if (error) {
         reject(error);
-      }
-      else {
+      } else {
         resolve(result);
       }
     });
@@ -512,7 +511,7 @@ function gzip(buffer) {
 }
 
 /** Unzip using GZIP
- *  @param {Buffer} compressed buffer
+ *  @param {Buffer} buffer compressed
  *  @return {Promise}
  * */
 function gunzip(buffer) {
@@ -520,8 +519,7 @@ function gunzip(buffer) {
     zlib.gunzip(buffer, (error, result) => {
       if (error) {
         reject(error);
-      }
-      else {
+      } else {
         resolve(result);
       }
     });
