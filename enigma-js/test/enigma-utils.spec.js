@@ -76,7 +76,6 @@ describe('enigma-utils', () => {
   it('should compress and decompress', async () => {
     const testString = 'hello world'
     let compressed = await utils.gzip(testString)
-    expect(compressed.toString('base64')).toEqual('H4sIAAAAAAAAE8tIzcnJVyjPL8pJAQCFEUoNCwAAAA==');
     const decompressed = await utils.gunzip(compressed);
     expect(decompressed.toString('ascii')).toEqual(testString);
   })
