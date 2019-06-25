@@ -40,7 +40,7 @@ script:
     pushd discovery-docker-network &&
     cp .env-template .env &&
     sed -i "s/SGX_MODE=HW/SGX_MODE=SW/" .env &&
-    if [[ $TAG == "develop "]]; then sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=develop" .env; fi &&
+    if [[ $TAG == "develop" ]]; then sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=develop/" .env; fi &&
     sed -i "s/-vv/-v/" enigma-core/start_core.bash &&
     popd
   - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=$TRAVIS_BRANCH -t enigmampc/enigma_contract:$TAG --no-cache . && popd
