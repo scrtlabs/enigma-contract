@@ -35,13 +35,15 @@ script:
   - SGX_MODE=SW truffle migrate --reset --network development
   - pushd enigma-js && SGX_MODE=SW yarn test && popd
   - git clone https://github.com/enigmampc/discovery-docker-network.git
+  - if [[ $TRAVIS_BRANCH == "master" ]]; then export TAG=latest; else export TAG=develop; fi
   - |
     pushd discovery-docker-network &&
     cp .env-template .env &&
     sed -i "s/SGX_MODE=HW/SGX_MODE=SW/" .env &&
+    if [[ $TAG == "develop "]]; then sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=develop" .env; fi &&
     sed -i "s/-vv/-v/" enigma-core/start_core.bash &&
     popd
-  - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=$TRAVIS_BRANCH -t enigmampc/enigma_contract:latest --no-cache . && popd
+  - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=$TRAVIS_BRANCH -t enigmampc/enigma_contract:$TAG --no-cache . && popd
   - pushd discovery-docker-network && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --exit-code-from client && popd
 
 after_success:
