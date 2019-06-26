@@ -48,15 +48,24 @@ describe('Enigma tests', () => {
     (async () => {
       const nonce = parseInt(await enigma.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
-      const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
 
-      let preCodeArray = [];
-      for (let n = 0; n < preCode.length; n += 2) {
-        preCodeArray.push(parseInt(preCode.substr(n, 2), 16));
+      let preCode;
+      let preCodeGzip;
+      if (isContractDeploymentTask) {
+        if (Buffer.isBuffer(scAddrOrPreCode)) {
+          preCode = scAddrOrPreCode;
+          // gzip the preCode
+          preCodeGzip = await utils.gzip(preCode);
+        } else {
+          throw Error('PreCode expected to be a Buffer, instead got '+typeof scAddrOrPreCode);
+        }
+      } else {
+        preCode = '';
+        preCodeGzip = '';
       }
 
       const preCodeHash = isContractDeploymentTask ?
-        enigma.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
+        enigma.web3.utils.soliditySha3({t: 'bytes', value: preCode.toString('hex')}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = utils.remove0x(enigma.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
@@ -96,7 +105,7 @@ describe('Enigma tests', () => {
         const userTaskSig = await enigma.web3.eth.sign(msg, sender);
         emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
           id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
-          preCodeArray, preCodeHash, isContractDeploymentTask));
+          preCodeGzip.toString('base64'), preCodeHash, isContractDeploymentTask));
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
       }
@@ -113,7 +122,6 @@ describe('Enigma tests', () => {
     let preCode;
     try {
       preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/calculator.wasm'));
-      preCode = preCode.toString('hex');
     } catch(e) {
       console.log('Error:', e.stack);
     }

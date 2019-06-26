@@ -49,7 +49,6 @@ describe('Enigma tests', () => {
     let preCode;
     try {
       preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/voting.wasm'));
-      preCode = preCode.toString('hex');
     } catch(e) {
       console.log('Error:', e.stack);
     }
