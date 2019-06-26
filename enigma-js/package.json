@@ -1,6 +1,6 @@
 {
   "name": "enigma-js",
-  "version": "0.0.1",
+  "version": "0.0.6",
   "description": "The Javascript client for the Enigma Network",
   "main": "lib/enigma-js.js",
   "scripts": {
@@ -33,10 +33,11 @@
   "dependencies": {
     "@babel/polyfill": "^7.0.0",
     "any-promise": "^1.3.0",
-    "axios": "^0.18.0",
+    "axios": "0.18.1",
     "body-parser": "^1.18.3",
     "buffer": "^5.1.0",
     "connect": "^3.6.6",
+    "create-file-webpack": "^1.0.2",
     "elliptic": "6.4.0",
     "eth-crypto": "^1.2.2",
     "ethereumjs-abi": "^0.6.5",
@@ -55,6 +56,7 @@
     "truffle-contract": "^4.0.0",
     "uuid": "^3.3.2",
     "web3-utils": "1.0.0-beta.37",
+    "webpack-node-externals": "^1.7.2",
     "whatwg-fetch": "^3.0.0"
   },
   "devDependencies": {
@@ -80,7 +82,7 @@
     "mock-local-storage": "^1.1.7",
     "regenerator-runtime": "^0.13.1",
     "uglifyjs-webpack-plugin": "^1.2.7",
-    "web3": "^1.0.0-beta.37",
+    "web3": "1.0.0-beta.37",
     "webpack": "^4.12.2",
     "webpack-cli": "^3.0.8",
     "yargs": "^10.0.3"

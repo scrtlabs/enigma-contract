@@ -53,6 +53,7 @@ export default class Enigma {
     this.client = jaysonBrowserClient(callServer, {});
     this.workerParamsCache = {};
     this.selectedWorkerGroupCache = {};
+    this.taskKeyLocalStorage = {};
     this.createContracts(enigmaContractAddr, tokenContractAddr);
   }
 
@@ -66,8 +67,8 @@ export default class Enigma {
   /**
    * Initialize the Enigma and Enigma token contracts
    *
-   * @param {string} enigmaContractAddr
-   * @param {string} tokenContractAddr
+   * @param {string} enigmaContractAddr - Address the Enigma contract is deployed to on Ethereum
+   * @param {string} tokenContractAddr - Address the Enigma token contract is deployed to on Ethereum
    */
   createContracts(enigmaContractAddr, tokenContractAddr) {
     this.enigmaContract = new this.web3.eth.Contract(EnigmaContract['abi'],
@@ -77,18 +78,18 @@ export default class Enigma {
   }
 
   /**
-   * Create a base Task - a wrapper for a task (either contract deployments or regular tasks)
+   * Create a base Task - a wrapper for a task (either contract deployments or compute tasks)
    *
    * @param {string} fn - Function name
    * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
-   *
    * @param {Number} gasLimit - ENG gas limit for task computation
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
-   * @param {string} scAddrOrPreCode - Either secret contract address or precode, depending on if user is running a
-   * contract deployment or regular task
-   * @param {boolean} isContractDeploymentTask - Is this task a contract deployment task (if not, it's a regular task)
-   * @return {Task} Task with base attributes to be used for remainder of task lifecycle
+   * @param {string/Buffer} scAddrOrPreCode - Either secret contract address (string) or precode (Buffer), depending
+   * on if user is running a contract deployment or compute task
+   * @param {boolean} isContractDeploymentTask - Is this task a contract deployment task (if not, it's a compute task)
+   * @returns {EventEmitter} EventEmitter to be listened to track creation of task. Emits a Task with base attributes
+   * to be used for remainder of task lifecycle
    */
   createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
@@ -96,15 +97,23 @@ export default class Enigma {
       // TODO: never larger that 53-bit?
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
-      const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
-
-      let preCodeArray = [];
-      for (let n = 0; n < preCode.length; n += 2) {
-        preCodeArray.push(parseInt(preCode.substr(n, 2), 16));
+      let preCode;
+      let preCodeGzip;
+      if (isContractDeploymentTask) {
+        if (Buffer.isBuffer(scAddrOrPreCode)) {
+          preCode = scAddrOrPreCode;
+          // gzip the preCode
+          preCodeGzip = await utils.gzip(preCode);
+        } else {
+          throw Error('PreCode expected to be a Buffer, instead got '+typeof scAddrOrPreCode);
+        }
+      } else {
+        preCode = '';
+        preCodeGzip = '';
       }
 
       const preCodeHash = isContractDeploymentTask ?
-        this.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
+        this.web3.utils.soliditySha3({t: 'bytes', value: preCode.toString('hex')}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = utils.remove0x(this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
@@ -167,7 +176,7 @@ export default class Enigma {
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
             id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
-            preCodeArray, preCodeHash, isContractDeploymentTask));
+            preCodeGzip.toString('base64'), preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
@@ -178,12 +187,11 @@ export default class Enigma {
 
   /**
    * Create and store a task record on chain (ETH). Task records are necessary for collecting the ENG computation fee
-   * and computing the immutable taskId (a unique value for each task computed from hash(hash(encrypted function
-   * signature, encrypted ABI-encoded arguments, gas limit, gas price, user's public key), user's nonce value
-   * monotonically increasing for every task deployment). Thus, task records have important implications for task
-   * ordering, fee payments, and verification.
+   * and computing the immutable taskId (a unique value for each task computed from hash(user's ETH address, user's
+   * nonce value monotonically increasing for every task deployment). Thus, task records have important implications for
+   * task ordering, fee payments, and verification.
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
    * @returns {EventEmitter} EventEmitter to be listened to track creation of task record. Emits a Task with task
    * record creation attributes to be used for remainder of task lifecycle
    */
@@ -237,12 +245,11 @@ export default class Enigma {
 
   /**
    * Create and store task records on chain (ETH). Task records are necessary for collecting the ENG computation fee
-   * and computing the immutable taskId (a unique value for each task computed from hash(hash(encrypted function
-   * signature, encrypted ABI-encoded arguments, gas limit, gas price, user's public key), user's nonce value
-   * monotonically increasing for every task deployment). Thus, task records have important implications for task
-   * ordering, fee payments, and verification.
+   * and computing the immutable taskId (a unique value for each task computed from hash(user's ETH address, user's
+   * nonce value monotonically increasing for every task deployment). Thus, task records have important implications for
+   * task ordering, fee payments, and verification.
    *
-   * @param {Array} tasks - Task wrappers for contract deployment and regular tasks
+   * @param {Array} tasks - Task wrappers for contract deployment and compute tasks
    * @returns {EventEmitter} EventEmitter to be listened to track creation of task records. Emits Tasks with task
    * record creation attributes to be used for remainder of task lifecycle
    */
@@ -296,7 +303,7 @@ export default class Enigma {
   /**
    * Get the Task's task record status from Ethereum
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
    * @return {Promise} Resolves to Task wrapper with updated ethStatus and proof properties
    */
   async getTaskRecordStatus(task) {
@@ -307,10 +314,10 @@ export default class Enigma {
   }
 
   /**
-   * Fetch output hash at specified index position
+   * Fetch output hash for a given task
    *
    * @param {Task} task - Task wrapper
-   * @return {Promise} - Resolves to output hash at the specified position
+   * @return {Promise} - Resolves to output hash for the task
    */
   async getTaskOutputHash(task) {
     return (await this.enigmaContract.methods.getTaskRecord(task.taskId).call()).outputHash;
@@ -332,8 +339,8 @@ export default class Enigma {
    *
    * @param {int} blockNumber - Block number of task record's mining
    * @return {Promise} Resolves to the worker params, which includes a seed (random int generated from the principal
-   * node), first block number for the epoch, list of active work addresses (ordered list of workers that were logged
-   * in at the start of the epoch), and list of active worker balances
+   * node), first block number for the epoch, list of active work addresses (ordered list of worker signing addresses
+   * that were logged in at the start of the epoch), and list of active worker balances
    */
   async getWorkerParams(blockNumber) {
     if ((Object.keys(this.workerParamsCache).length === 0) ||
@@ -354,7 +361,7 @@ export default class Enigma {
    * Select the workers weighted-randomly based on the staked token amount that will run the computation task
    *
    * @param {string} scAddr - Secret contract address
-   * @param {Object} params - Worker params: 1) Worker addresses; 2) Worker stakes; 3) Network seed
+   * @param {Object} params - Worker params (epoch first block number, seed, worker signing addresses, worker stakes)
    * @param {number} workerGroupSize - Number of workers to be selected for task
    * @return {Array} An array of selected workers where each selected worker is chosen with probability equal to
    * number of staked tokens
@@ -396,7 +403,7 @@ export default class Enigma {
   /**
    * Send Task to Enigma p2p network for computation
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
    * @return {EventEmitter} EventEmitter to be listened to track submission of Task to Enigma p2p network. Emits
    * a response from the ENG network indicating whether client is ready to track the remainder of the task lifecycle
    */
@@ -430,7 +437,7 @@ export default class Enigma {
   /**
    * Get task result from p2p network
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
    * @return {EventEmitter} EventEmitter to be listened to track getting result from Enigma network. Emits
    * a response from the ENG network.
    */
@@ -479,8 +486,8 @@ export default class Enigma {
   /**
    * Decrypt task result
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
-   * @return {Task} Decrypted task result wrapper
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @return {Task} Task result wrapper with an updated decrypted output attribute
    */
   async decryptTaskResult(task) {
     const {privateKey} = this.obtainTaskKeyPair();
@@ -492,8 +499,8 @@ export default class Enigma {
   /**
    * Generator function for polling the Enigma p2p network for task status
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
-   * @param {boolean} withResult - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @param {boolean} withResult - Task wrapper for contract deployment and compute tasks
    */
   * pollTaskStatusGen(task, withResult) {
     while (true) {
@@ -519,7 +526,7 @@ export default class Enigma {
   /**
    * Inner poll status function that continues to poll the Enigma p2p network until the task has been verified
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
    * @param {pollTaskStatusGen} generator - Generator function for polling Enigma p2p network for task status
    * @param {EventEmitter} emitter - EventEmitter to track Enigma p2p network polling for Task status
    */
@@ -538,8 +545,8 @@ export default class Enigma {
   /**
    * Poll the Enigma p2p network for a TaskInput's status
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
-   * @param {boolean} withResult - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @param {boolean} withResult - Task wrapper for contract deployment and compute tasks
    * @return {EventEmitter} EventEmitter to be listened to track polling the Enigma p2p network for a Task status.
    * Emits a Task with task result attributes
    */
@@ -551,9 +558,9 @@ export default class Enigma {
   }
 
   /**
-   * Serialize Task for submission to the Enigma p2p network
+   * Serialize Task for submission to the Enigma p2p network depending on whether it is a deployment or compute task
    *
-   * @param {Task} task - Task wrapper for contract deployment and regular tasks
+   * @param {Task} task - Task wrapper for contract deployment or compute task
    * @return {Object} Serialized Task for submission to the Enigma p2p network
    */
   static serializeTask(task) {
@@ -576,8 +583,11 @@ export default class Enigma {
    * @return {Object} Public key-private key pair
    */
   obtainTaskKeyPair() {
+    // TODO: Developer tool to allow users to select their own unique passphrase to generate private key
+    const isBrowser = typeof window !== 'undefined';
     let privateKey;
-    let encodedPrivateKey = window.localStorage.getItem('encodedPrivateKey');
+    let encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
+      this.taskKeyLocalStorage['encodedPrivateKey'];
     if (encodedPrivateKey == null) {
       let random = forge.random.createInstance();
       // TODO: Query user for passphrase
@@ -585,9 +595,10 @@ export default class Enigma {
         return forge.util.fillString('cupcake', needed);
       };
       privateKey = forge.util.bytesToHex(random.getBytes(32));
-      window.localStorage.setItem('encodedPrivateKey', btoa(privateKey));
+      isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
+        this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
     } else {
-      privateKey = atob(encodedPrivateKey);
+      privateKey = isBrowser ? atob(encodedPrivateKey) : Buffer.from(encodedPrivateKey, 'base64').toString('binary');
     }
     let publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
     return {publicKey, privateKey};
@@ -595,11 +606,11 @@ export default class Enigma {
 
   /**
    * Create a task to deploy a secret contract - creates base task, creates task record, and sends task to the
-   * Enigma network.
+   * Enigma network. This is the most efficient and likely most common method for creating and deploying a secret
+   * contract.
    *
    * @param {string} fn - Function name
    * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
-   *
    * @param {Number} gasLimit - ENG gas limit for task computation
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
@@ -636,11 +647,11 @@ export default class Enigma {
   }
 
   /**
-   * Create a compute task - creates base task, creates task record, and sends task to the Enigma network.
+   * Create a compute task - creates base task, creates task record, and sends task to the Enigma network. This is the
+   * most efficient and likely most common method for creating and sending a compute task.
    *
    * @param {string} fn - Function name
    * @param {Array} args - Inputs for task in the form of [[arg1, '<type>'], ..., [argn, '<type>']]
-   *
    * @param {Number} gasLimit - ENG gas limit for task computation
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender

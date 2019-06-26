@@ -67,6 +67,8 @@ coverage.lcov
 # IDE
 .idea/
 
+.DS_Store
+
 build
 enigmacontract.txt
 enigmatokencontract.txt

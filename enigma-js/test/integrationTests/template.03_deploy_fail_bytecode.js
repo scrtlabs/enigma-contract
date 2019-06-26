@@ -2,19 +2,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
-import data from '../data';
-import EthCrypto from 'eth-crypto';
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
-
-forge.options.usePureJavaScript = true;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -54,7 +47,7 @@ describe('Enigma tests', () => {
     let scTaskArgs = '';
     let scTaskGasLimit = 100;
     let scTaskGasPx = utils.toGrains(1);
-    let preCode = '5468697369736e6f746170726f706572736563726574636f6e74726163742e456e69676d6172756c65732e'
+    let preCode = Buffer.from('5468697369736e6f746170726f706572736563726574636f6e74726163742e456e69676d6172756c65732e', 'hex');
     
     scTask1 = await new Promise((resolve, reject) => {
       enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode)

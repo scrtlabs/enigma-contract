@@ -31,4 +31,11 @@ node_modules
 .vscode
 
 .DS_Store
-node.js
+
+test
+.nvmrc 
+.eslintrc 
+.nyc_output
+jest.init.js
+.editorconfig
+*.map

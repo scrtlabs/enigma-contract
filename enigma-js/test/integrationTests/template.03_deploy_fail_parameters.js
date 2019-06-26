@@ -2,19 +2,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
-import data from '../data';
-import EthCrypto from 'eth-crypto';
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
-
-forge.options.usePureJavaScript = true;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -50,13 +43,12 @@ describe('Enigma tests', () => {
   let scTask2;
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
-    let scTaskArgs =  '';   // Wrong parameters, expecting owner address and token supply
+    let scTaskArgs =  '';   // Wrong parameters, expecting ETH address
     let scTaskGasLimit = 1000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
-      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/erc20.wasm'));
-      preCode = preCode.toString('hex');
+      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/voting.wasm'));
     } catch(e) {
       console.log('Error:', e.stack);
     }
@@ -65,7 +57,8 @@ describe('Enigma tests', () => {
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, 30000);
+
   it('should get the failed receipt', async () => {
     do {
       await sleep(1000);
@@ -74,7 +67,7 @@ describe('Enigma tests', () => {
     } while (scTask2.ethStatus != 3);
     expect(scTask2.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
-  }, 10000);
+  }, 30000);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask2.scAddr);

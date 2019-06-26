@@ -2,19 +2,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import forge from 'node-forge';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import EnigmaContract from '../../../build/contracts/Enigma';
-import EnigmaTokenContract from '../../../build/contracts/EnigmaToken';
-import SampleContract from '../../../build/contracts/Sample';
 import * as eeConstants from '../../src/emitterConstants';
-import data from '../data';
-import EthCrypto from 'eth-crypto';
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
-
-forge.options.usePureJavaScript = true;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -59,7 +52,6 @@ describe('Enigma tests', () => {
     let preCode;
     try {
       preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/calculator.wasm'));
-      preCode = preCode.toString('hex');
     } catch(e) {
       console.log('Error:', e.stack);
     }
