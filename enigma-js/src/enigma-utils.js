@@ -4,6 +4,7 @@ import web3Utils from 'web3-utils';
 import forge from 'node-forge';
 import elliptic from 'elliptic';
 import {Buffer} from 'buffer';
+import zlib from 'zlib';
 
 forge.options.usePureJavaScript = true;
 
@@ -493,6 +494,38 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Compress using GZIP
+ *  @param {Buffer} buffer to compress
+ *  @return {Promise}
+ * */
+function gzip(buffer) {
+  return new Promise((resolve, reject)=> {
+    zlib.gzip(buffer, (error, result)=>{
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
+
+/** Unzip using GZIP
+ *  @param {Buffer} buffer compressed
+ *  @return {Promise}
+ * */
+function gunzip(buffer) {
+  return new Promise((resolve, reject) => {
+    zlib.gunzip(buffer, (error, result) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
+
 
 let utils = {};
 
@@ -518,5 +551,7 @@ utils.toGrains = toGrains;
 utils.remove0x = remove0x;
 utils.hexToAscii = hexToAscii;
 utils.sleep = sleep;
+utils.gzip = gzip;
+utils.gunzip = gunzip;
 
 export default utils;

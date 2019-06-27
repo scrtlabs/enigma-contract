@@ -85,8 +85,8 @@ export default class Enigma {
    * @param {Number} gasLimit - ENG gas limit for task computation
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
-   * @param {string} scAddrOrPreCode - Either secret contract address or precode, depending on if user is running a
-   * contract deployment or compute task
+   * @param {string/Buffer} scAddrOrPreCode - Either secret contract address (string) or precode (Buffer), depending
+   * on if user is running a contract deployment or compute task
    * @param {boolean} isContractDeploymentTask - Is this task a contract deployment task (if not, it's a compute task)
    * @returns {EventEmitter} EventEmitter to be listened to track creation of task. Emits a Task with base attributes
    * to be used for remainder of task lifecycle
@@ -97,15 +97,23 @@ export default class Enigma {
       // TODO: never larger that 53-bit?
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
-      const preCode = isContractDeploymentTask ? scAddrOrPreCode : '';
-
-      let preCodeArray = [];
-      for (let n = 0; n < preCode.length; n += 2) {
-        preCodeArray.push(parseInt(preCode.substr(n, 2), 16));
+      let preCode;
+      let preCodeGzip;
+      if (isContractDeploymentTask) {
+        if (Buffer.isBuffer(scAddrOrPreCode)) {
+          preCode = scAddrOrPreCode;
+          // gzip the preCode
+          preCodeGzip = await utils.gzip(preCode);
+        } else {
+          throw Error('PreCode expected to be a Buffer, instead got '+typeof scAddrOrPreCode);
+        }
+      } else {
+        preCode = '';
+        preCodeGzip = '';
       }
 
       const preCodeHash = isContractDeploymentTask ?
-        this.web3.utils.soliditySha3({t: 'bytes', value: scAddrOrPreCode}) : '';
+        this.web3.utils.soliditySha3({t: 'bytes', value: preCode.toString('hex')}) : '';
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = utils.remove0x(this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
@@ -168,7 +176,7 @@ export default class Enigma {
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
             id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
-            preCodeArray, preCodeHash, isContractDeploymentTask));
+            preCodeGzip.toString('base64'), preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
