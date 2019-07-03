@@ -488,7 +488,7 @@ describe('Enigma tests', () => {
     let scTask;
     let preCode;
     it('should create deploy contract task', async () => {
-      preCode = '0x9d075aef';
+      preCode = Buffer.from('9d075aef', 'hex');
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -600,7 +600,7 @@ describe('Enigma tests', () => {
       server.close(true);
       const consoleError = console.error; // save original console for future use
       console.error = jest.fn(); // mock console output to be disregarded, we know the following will error out
-      preCode = '0x9d075aef';
+      preCode = Buffer.from('9d075aef', 'hex');
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -619,7 +619,7 @@ describe('Enigma tests', () => {
 
     it('should fail to create/send deploy contract task using wrapper function due to insufficient funds',
       async () => {
-        preCode = '0x9d075aef';
+        preCode = Buffer.from('9d075aef', 'hex');
         let scTaskFn = 'deployContract(string,uint)';
         let scTaskArgs = [
           ['first_sc', 'string'],
@@ -635,7 +635,7 @@ describe('Enigma tests', () => {
       });
 
     it('should create/send deploy contract task using wrapper function', async () => {
-      preCode = '0x9d075aef';
+      preCode = Buffer.from('9d075aef', 'hex');
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -729,7 +729,7 @@ describe('Enigma tests', () => {
     });
 
     it('should create/send deploy contract task using wrapper function', async () => {
-      preCode = '0x9d075aef';
+      preCode = Buffer.from('9d075aef', 'hex');
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -820,7 +820,7 @@ describe('Enigma tests', () => {
     });
 
     it('should create/send a new deploy contract task using wrapper function to test eth call', async () => {
-      preCode = '0x9d075aef';
+      preCode = Buffer.from('9d075aef', 'hex');
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -924,7 +924,7 @@ describe('Enigma tests', () => {
     });
 
     it('should simulate the contract deployment with eth call', async () => {
-      preCode = '0x9d075aef';
+      preCode = Buffer.from('9d075aef', 'hex');
       let scTaskFn = 'deployContract(string,uint)';
       let scTaskArgs = [
         ['first_sc', 'string'],
@@ -1081,7 +1081,7 @@ describe('Enigma tests', () => {
       });
       expect(task).toBeTruthy();
       expect(task.scAddr).toBeTruthy();
-      expect(task.preCode).toEqual([]);
+      expect(task.preCode).toEqual('');
       expect(task.preCodeHash).toEqual('');
       expect(task.encryptedFn).toBeTruthy();
       expect(task.encryptedAbiEncodedArgs).toBeTruthy();
@@ -1251,7 +1251,7 @@ describe('Enigma tests', () => {
       );
       expect(task).toBeTruthy();
       expect(task.scAddr).toBeTruthy();
-      expect(task.preCode).toEqual([]);
+      expect(task.preCode).toEqual('');
       expect(task.preCodeHash).toEqual('');
       expect(task.encryptedFn).toBeTruthy();
       expect(task.encryptedAbiEncodedArgs).toBeTruthy();
@@ -1573,7 +1573,7 @@ describe('Enigma tests', () => {
       );
       expect(task).toBeTruthy();
       expect(task.scAddr).toBeTruthy();
-      expect(task.preCode).toEqual([]);
+      expect(task.preCode).toEqual('');
       expect(task.preCodeHash).toEqual('');
       expect(task.encryptedFn).toBeTruthy();
       expect(task.encryptedAbiEncodedArgs).toBeTruthy();
