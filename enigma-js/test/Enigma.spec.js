@@ -814,6 +814,11 @@ describe('Enigma tests', () => {
       expect(result.events.SecretContractDeployed).toBeTruthy();
     });
 
+    it('should count deployed secret contract addresses', async () => {
+      const deployedSCAddrCount = await enigma.admin.countSecretContracts();
+      expect(deployedSCAddrCount).toEqual(1);
+    });
+
     it('should create/send a new deploy contract task using wrapper function to test eth call', async () => {
       preCode = Buffer.from('9d075aef', 'hex');
       let scTaskFn = 'deployContract(string,uint)';
@@ -982,6 +987,13 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(scTask.gasLimit * scTask.gasPx);
       expect(endingSenderBalance).toEqual(startingSenderBalance);
       expect(result.events.SecretContractDeployed).toBeTruthy();
+    });
+
+    it('should retrieve deployed secret contract addresses', async () => {
+      const deployedSCAddrCount = await enigma.admin.countSecretContracts();
+      const deployedSCAddresses = await enigma.admin.getSecretContractAddresses(1, 2);
+      expect(deployedSCAddrCount).toEqual(2);
+      expect(deployedSCAddresses).toEqual([scTask.scAddr]);
     });
 
     it('should count state deltas after contract deployment', async () => {
@@ -1518,6 +1530,11 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsed) * task.gasPx);
       expect(result.events.ReceiptVerified).toBeTruthy();
+    });
+
+    it('should poll ETH for task', async () => {
+      task = await enigma.pollTaskETH(task);
+      expect(task.ethStatus).toEqual(2);
     });
 
     it('should count state deltas after task failure', async () => {

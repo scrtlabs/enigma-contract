@@ -558,6 +558,21 @@ export default class Enigma {
   }
 
   /**
+   * Poll the ETH for a Task's status
+   *
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @param {Number} interval - Polling interval in ms
+   * @return {Task} Task wrapper with updated ETH status.
+   */
+  async pollTaskETH(task, interval=1000) {
+    while (task.ethStatus === 1) {
+      task = await this.getTaskRecordStatus(task);
+      await utils.sleep(interval);
+    }
+    return task;
+  }
+
+  /**
    * Serialize Task for submission to the Enigma p2p network depending on whether it is a deployment or compute task
    *
    * @param {Task} task - Task wrapper for contract deployment or compute task
