@@ -446,7 +446,7 @@ export default class Enigma {
     (async () => {
       try {
         const getTaskResultResult = await new Promise((resolve, reject) => {
-          this.client.request('getTaskResult', {taskId: task.taskId}, (err, response) => {
+          this.client.request('getTaskResult', {taskId: utils.remove0x(task.taskId)}, (err, response) => {
             if (err) {
               reject(err);
               return;
@@ -506,7 +506,7 @@ export default class Enigma {
     while (true) {
       yield new Promise((resolve, reject) => {
         this.client.request('getTaskStatus', {
-          taskId: task.taskId, workerAddress: task.workerAddress,
+          taskId: utils.remove0x(task.taskId), workerAddress: task.workerAddress,
           withResult: withResult,
         }, (err, response) => {
           if (err) {
@@ -585,7 +585,7 @@ export default class Enigma {
       userDHKey: utils.remove0x(task.userPubKey), contractAddress: utils.remove0x(task.scAddr),
       workerAddress: task.workerAddress,
     } : {
-      taskId: task.taskId, workerAddress: task.workerAddress,
+      taskId: utils.remove0x(task.taskId), workerAddress: task.workerAddress,
       encryptedFn: utils.remove0x(task.encryptedFn), encryptedArgs: utils.remove0x(task.encryptedAbiEncodedArgs),
       contractAddress: utils.remove0x(task.scAddr), userDHKey: utils.remove0x(task.userPubKey),
     };
