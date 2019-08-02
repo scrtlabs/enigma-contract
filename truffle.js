@@ -1,7 +1,8 @@
 require ('@babel/register') ({
     ignore: [ /node_modules\/(?!openzeppelin-solidity\/test\/helpers)/ ]
 });
-require ('@babel/polyfill');
+require ("core-js/stable");
+require ("regenerator-runtime/runtime");
 
 // See <http://truffleframework.com/docs/advanced/configuration>
 // to customize your Truffle configuration!
