@@ -47,7 +47,7 @@ describe('Enigma tests', () => {
     let scTaskArgs = '';
     let scTaskGasLimit = 100;
     let scTaskGasPx = utils.toGrains(1);
-    let preCode = '5468697369736e6f746170726f706572736563726574636f6e74726163742e456e69676d6172756c65732e'
+    let preCode = Buffer.from('5468697369736e6f746170726f706572736563726574636f6e74726163742e456e69676d6172756c65732e', 'hex');
     
     scTask1 = await new Promise((resolve, reject) => {
       enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode)
