@@ -45,7 +45,6 @@
     "filereader": "^0.10.3",
     "jayson": "^2.1.0",
     "jsbi": "^2.0.5",
-    "lodash": "^4.17.13",
     "net": "^1.0.2",
     "node-fetch": "^2.3.0",
     "node-forge": "^0.7.6",
