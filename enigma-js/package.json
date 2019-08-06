@@ -43,7 +43,7 @@
     "ethereumjs-util": "^6.0.0",
     "eventemitter3": "^3.1.0",
     "filereader": "^0.10.3",
-    "jayson": "^2.1.0",
+    "jayson": "^3.0.1",
     "jsbi": "^2.0.5",
     "net": "^1.0.2",
     "node-fetch": "^2.3.0",
@@ -69,13 +69,14 @@
     "babel-loader": "^8.0.0-beta.4",
     "chai": "^4.1.2",
     "chai-events": "0.0.1",
-    "core-js": "^3.1.4",
     "codecov": "^3.5.0",
+    "core-js": "^3.1.4",
     "dockerode": "^2.5.8",
     "eslint": "^5.4.0",
     "eslint-config-google": "^0.9.1",
     "eslint-loader": "^2.0.0",
     "jest": "^24.8.0",
+    "jest-circus": "^24.8.0",
     "jsdom": "11.11.0",
     "jsdom-global": "3.0.2",
     "mock-local-storage": "^1.1.7",
@@ -99,6 +100,7 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/test/integrationTests/"
-    ]
+    ],
+    "testRunner": "jest-circus/runner"
   }
 }
