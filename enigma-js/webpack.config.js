@@ -3,14 +3,11 @@
 const path = require('path');
 const webpack = require('webpack');
 const nodeExternals = require('webpack-node-externals');
-const CreateFileWebpack = require('create-file-webpack')
+const CreateFileWebpack = require('create-file-webpack');
 const env = require('yargs').argv.env; // use --env with webpack 2
 const pkg = require('./package.json');
 
-
 let libraryName = pkg.name;
-
-let outputFile, mode;
 
 if (env === 'build') {
   mode = 'production';
@@ -60,14 +57,15 @@ const config = {
 const serverConfig = {
   target: 'async-node',
   mode: mode,
-  entry:  [__dirname + '/src/index.js'],
+  entry: [__dirname + '/src/index.js'],
   devtool: 'source-map',
   plugins: [
     new CreateFileWebpack({
       path: __dirname,
       fileName: 'node.js',
-      content: `const {Enigma, utils, eeConstants} = require('./lib/${outputFileNode}');\nmodule.exports = {Enigma, utils, eeConstants};`,
-    })
+      content: `const {Enigma, utils, eeConstants} = require('./lib/${outputFileNode}');\n`
+        + `module.exports = {Enigma, utils, eeConstants};`,
+    }),
   ],
   output: {
     path: __dirname + '/lib',
@@ -91,6 +89,6 @@ const serverConfig = {
     ],
   },
   externals: [nodeExternals()],
-}
+};
 
 module.exports = [config, serverConfig];
