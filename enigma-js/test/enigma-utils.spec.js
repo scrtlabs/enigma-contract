@@ -72,4 +72,11 @@ describe('enigma-utils', () => {
     expect(utils.remove0x('0x12345')).toEqual('12345');
     expect(utils.remove0x('12345')).toEqual('12345');
   });
+
+  it('should compress and decompress', async () => {
+    const testString = 'hello world'
+    let compressed = await utils.gzip(testString)
+    const decompressed = await utils.gunzip(compressed);
+    expect(decompressed.toString('ascii')).toEqual(testString);
+  })
 });

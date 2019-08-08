@@ -16,11 +16,9 @@ export default class RPCServer {
       _counter = 0;
     };
     this.server = jayson.server({
-      getWorkerEncryptionKey: function(workerAddress, callback) {
-        if (!workerAddress) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else {
-          const worker = data.workers.find((w) => w[0] === '0x' + workerAddress);
+      getWorkerEncryptionKey: function(args, callback) {
+        if(args.userPubKey && args.workerAddress){
+          const worker = data.workers.find((w) => w[0] === '0x' + args.workerAddress);
           const identity = EthCrypto.createIdentity();
           // see the corresponding implementation in Enigma.js for an explanation of this hardcoded hex string
           const hexToSign = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040'+identity.publicKey;
@@ -31,50 +29,30 @@ export default class RPCServer {
               workerSig: utils.remove0x(signature),
             }, id: 'ldotj6nghv7a',
           });
+        } else {
+          callback({code: -32602, message: 'Invalid params'});
         }
       },
-      deploySecretContract: function(preCode, encryptedArgs, encryptedFn, userDHKey, contractAddress, callback) {
-        if (!preCode) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!encryptedArgs) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!encryptedFn) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!userDHKey) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!contractAddress) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else {
+      deploySecretContract: function(args, callback) {
+        if (args.preCode && args.encryptedArgs && args.encryptedFn && args.userDHKey && args.contractAddress) {
           callback(null, {
             deploySentResult: true,
           });
+        } else {
+          callback({code: -32602, message: 'Invalid params'});
         }
       },
-      sendTaskInput: function(taskId, workerAddress, encryptedFn, encryptedArgs, contractAddress, userDHKey, callback) {
-        if (!taskId) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!workerAddress) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!encryptedFn) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!encryptedArgs) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!contractAddress) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!userDHKey) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else {
+      sendTaskInput: function(args, callback) {
+        if (args.taskId && args.workerAddress && args.encryptedFn && args.encryptedArgs && args.contractAddress && args.userDHKey) {
           callback(null, {
             sendTaskResult: true,
           });
+        } else {
+          callback({code: -32602, message: 'Invalid params'});
         }
       },
-      getTaskStatus: function(taskId, workerAddress, withResult, callback) {
-        if (!taskId) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else if (!workerAddress) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else {
+      getTaskStatus: function(args, callback) {
+        if (args.taskId && args.workerAddress) {
           _counter++;
           let status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
           callback(null, {
@@ -83,12 +61,12 @@ export default class RPCServer {
               status: status,
             },
           });
+        } else {
+          callback({code: -32602, message: 'Invalid params'});
         }
       },
-      getTaskResult: function(taskId, callback) {
-        if (!taskId) {
-          callback({code: -32602, message: 'Invalid params'});
-        } else {
+      getTaskResult: function(args, callback) {
+        if (args.taskId) {
           switch (_counter) {
             case (0):
               _counter++;
@@ -147,6 +125,8 @@ export default class RPCServer {
                 },
               });
           }
+        } else {
+          callback({code: -32602, message: 'Invalid params'});
         }
       },
     }, {

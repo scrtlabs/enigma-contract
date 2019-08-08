@@ -62,7 +62,6 @@ describe('Enigma tests', () => {
     let preCode;
     try {
       preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/erc20.wasm'));
-      preCode = preCode.toString('hex');
     } catch(e) {
       console.log('Error:', e.stack);
     }
