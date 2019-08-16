@@ -28,8 +28,8 @@ library TaskImpl {
     event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint[] gasLimits, uint[] gasPxs, address sender,
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, uint hashIndex,
-        bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
+    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
+        uint hashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes sig);
@@ -334,8 +334,8 @@ library TaskImpl {
                 uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
                     secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
                 state.tasks[_taskId].outputHash = _outputHash;
-                emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
-                    _optionalEthereumContractAddress, _sig);
+                emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _scAddr, _gasUsed, deltaHashIndex,
+                    _optionalEthereumData, _optionalEthereumContractAddress, _sig);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
                 emit ReceiptFailedETH(_taskId, _sig);
@@ -346,8 +346,8 @@ library TaskImpl {
             uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
                 secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
             state.tasks[_taskId].outputHash = _outputHash;
-            emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, deltaHashIndex, _optionalEthereumData,
-                _optionalEthereumContractAddress, _sig);
+            emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _scAddr, _gasUsed, deltaHashIndex,
+                _optionalEthereumData, _optionalEthereumContractAddress, _sig);
         }
     }
 
