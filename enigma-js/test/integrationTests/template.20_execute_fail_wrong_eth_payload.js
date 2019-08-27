@@ -6,7 +6,7 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
 import VotingETHContract from '../../../build/contracts/VotingETH';
 
 
