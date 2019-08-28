@@ -28,7 +28,7 @@ library TaskImpl {
     event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint[] gasLimits, uint[] gasPxs, address sender,
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
+    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 deltaHashIndex, bytes32 scAddr, uint gasUsed,
         uint hashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
