@@ -6,7 +6,7 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
 
 function sleep(ms) {
@@ -17,6 +17,7 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
+  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');

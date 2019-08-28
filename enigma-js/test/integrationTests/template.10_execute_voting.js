@@ -6,7 +6,7 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 import VotingETHContract from '../../../build/contracts/VotingETH';
 
 
@@ -130,6 +130,18 @@ describe('Enigma tests', () => {
   }, 10000);
 
   it('should execute compute task: voter 2 casting vote', async () => {
+    let sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
+      SampleContract.networks['4447'].address);
+    const currentBlock = await enigma.web3.eth.getBlockNumber();
+    const firstBlock = parseInt(await enigma.enigmaContract.methods.getFirstBlockNumber(currentBlock).call());
+    const epochSize = parseInt(await enigma.enigmaContract.methods.getEpochSize().call());
+    const epochRemains = (firstBlock + epochSize) - currentBlock;
+    for (let i = 0; i < epochRemains; i++) {
+      await sampleContract.methods.incrementCounter().send({from: accounts[8]});
+    }
+    // Wait for 2s for the Ppal node to pick up the new epoch
+    await sleep(3000);
+
     const pollId = (await votingETHContract.methods.getPolls().call()).length - 1;
     let taskFn = 'cast_vote(uint256,bytes32,uint256)';
     let taskArgs = [

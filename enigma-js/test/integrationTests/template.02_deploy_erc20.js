@@ -7,7 +7,7 @@ import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
 import elliptic from 'elliptic';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
 
 
 let ec = new elliptic.ec('secp256k1');
@@ -20,6 +20,7 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
+  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
