@@ -80,6 +80,15 @@ export default class Admin {
   }
 
   /**
+   * Get the addresses of all deployed secret contracts.
+   *
+   * @return {Promise} - Resolves to the addresses of deployed secret contracts within range
+   */
+  async getAllSecretContractAddresses() {
+    return (await this.enigmaContract.methods.getAllSecretContractAddresses().call());
+  }
+
+  /**
    * Fetches the secret contract bytecode hash
    *
    * @param {string} scAddr - Secret contract address
