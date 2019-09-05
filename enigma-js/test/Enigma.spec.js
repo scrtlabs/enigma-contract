@@ -773,7 +773,9 @@ describe('Enigma tests', () => {
       expect(scTask).toBeTruthy();
     });
 
+    let firstSCAddr;
     it('should simulate the contract deployment', async () => {
+      firstSCAddr = scTask.scAddr;
       const gasUsed = 25;
       codeHash = web3.utils.soliditySha3('1a2b3c4d');
       initStateDeltaHash = web3.utils.soliditySha3('initialized');
@@ -992,8 +994,10 @@ describe('Enigma tests', () => {
     it('should retrieve deployed secret contract addresses', async () => {
       const deployedSCAddrCount = await enigma.admin.countSecretContracts();
       const deployedSCAddresses = await enigma.admin.getSecretContractAddresses(1, 2);
+      const allDeployedSCAddresses = await enigma.admin.getAllSecretContractAddresses();
       expect(deployedSCAddrCount).toEqual(2);
       expect(deployedSCAddresses).toEqual([scTask.scAddr]);
+      expect(allDeployedSCAddresses).toEqual([firstSCAddr, scTask.scAddr]);
     });
 
     it('should count state deltas after contract deployment', async () => {
