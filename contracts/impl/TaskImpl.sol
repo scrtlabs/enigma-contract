@@ -32,7 +32,7 @@ library TaskImpl {
         uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
-    event ReceiptFailedENG(bytes32 taskId, bytes sig);
+    event ReceiptFailed(bytes32 taskId, bytes sig);
     event ReceiptFailedETH(bytes32 taskId, bytes sig);
     event TaskFeeReturned(bytes32 taskId);
 
@@ -91,7 +91,7 @@ library TaskImpl {
 
         // Update proof and status attributes of TaskRecord
         task.proof = _sig;
-        task.status = EnigmaCommon.TaskStatus.ReceiptFailedENG;
+        task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
@@ -103,7 +103,7 @@ library TaskImpl {
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptFailedENG(_taskId, _sig);
+        emit ReceiptFailed(_taskId, _sig);
     }
 
     function verifyDeployReceipt(EnigmaState.State storage state, bytes32 _taskId, bytes32 _codeHash,
@@ -243,7 +243,7 @@ library TaskImpl {
 
         // Update proof and status attributes of TaskRecord
         task.proof = _sig;
-        task.status = EnigmaCommon.TaskStatus.ReceiptFailedENG;
+        task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
@@ -256,7 +256,7 @@ library TaskImpl {
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptFailedENG(_taskId, _sig);
+        emit ReceiptFailed(_taskId, _sig);
     }
 
     function validateReceipt(EnigmaState.State storage state, uint64 _gasUsed, address _sender, bytes32 _scAddr,

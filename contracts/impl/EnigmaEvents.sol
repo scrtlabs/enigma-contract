@@ -20,7 +20,7 @@ contract EnigmaEvents {
         uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
-    event ReceiptFailedENG(bytes32 taskId, bytes sig);
+    event ReceiptFailed(bytes32 taskId, bytes sig);
     event ReceiptFailedETH(bytes32 taskId, bytes sig);
     event TaskFeeReturned(bytes32 taskId);
     event DepositSuccessful(address from, uint value);

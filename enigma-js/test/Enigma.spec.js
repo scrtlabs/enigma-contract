@@ -701,7 +701,7 @@ describe('Enigma tests', () => {
       const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * scTask.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((scTask.gasLimit - gasUsed) * scTask.gasPx);
-      expect(result.events.ReceiptFailedENG).toBeTruthy();
+      expect(result.events.ReceiptFailed).toBeTruthy();
     });
 
     it('should fail to simulate contract deployment of already failed task', async () => {
@@ -1370,7 +1370,7 @@ describe('Enigma tests', () => {
       const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsed) * task.gasPx);
-      expect(result.events.ReceiptFailedENG).toBeTruthy();
+      expect(result.events.ReceiptFailed).toBeTruthy();
     });
 
     it('should count state deltas after task failure', async () => {
