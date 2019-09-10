@@ -32,9 +32,8 @@ library TaskImpl {
         uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
-    event ReceiptFailed(bytes32 taskId, bytes sig);
+    event ReceiptFailedENG(bytes32 taskId, bytes sig);
     event ReceiptFailedETH(bytes32 taskId, bytes sig);
-    event ReceiptsFailedETH(bytes32[] taskIds, bytes sig);
     event TaskFeeReturned(bytes32 taskId);
 
     function createDeploymentTaskRecordImpl(
@@ -104,7 +103,7 @@ library TaskImpl {
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptFailed(_taskId, _sig);
+        emit ReceiptFailedENG(_taskId, _sig);
     }
 
     function verifyDeployReceipt(EnigmaState.State storage state, bytes32 _taskId, bytes32 _codeHash,
@@ -257,7 +256,7 @@ library TaskImpl {
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptFailed(_taskId, _sig);
+        emit ReceiptFailedENG(_taskId, _sig);
     }
 
     function validateReceipt(EnigmaState.State storage state, uint64 _gasUsed, address _sender, bytes32 _scAddr,
@@ -429,61 +428,6 @@ library TaskImpl {
         message = EnigmaCommon.appendMessage(message, hex"01");
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[_sender].signer, "Invalid signature");
-    }
-
-    function commitReceiptsImpl(
-        EnigmaState.State storage state,
-        bytes32 _scAddr,
-        bytes32[] memory _taskIds,
-        bytes32[] memory _stateDeltaHashes,
-        bytes32[] memory _outputHashes,
-        bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress,
-        uint64[] memory _gasesUsed,
-        bytes memory _sig
-    )
-    public
-    {
-        EnigmaCommon.SecretContract storage secretContract = state.contracts[_scAddr];
-
-        // Verify the receipt
-        verifyReceipts(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
-            _optionalEthereumContractAddress, _gasesUsed, msg.sender, _sig);
-
-        if (_optionalEthereumContractAddress != address(0)) {
-            (bool success,) = _optionalEthereumContractAddress.call(_optionalEthereumData);
-            if (success) {
-                for (uint i = 0; i < _taskIds.length; i++) {
-                    EnigmaCommon.TaskRecord storage task = state.tasks[_taskIds[i]];
-                    transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
-                    task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-                    task.proof = _sig;
-                    secretContract.stateDeltaHashes.push(_stateDeltaHashes[i]);
-                    task.outputHash = _outputHashes[i];
-                }
-                emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
-                    _optionalEthereumContractAddress, _sig);
-            } else {
-                for (uint i = 0; i < _taskIds.length; i++) {
-                    EnigmaCommon.TaskRecord storage task = state.tasks[_taskIds[i]];
-                    transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
-                    task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-                    task.proof = _sig;
-                }
-                emit ReceiptsFailedETH(_taskIds, _sig);
-            }
-        } else {
-            for (uint i = 0; i < _taskIds.length; i++) {
-                EnigmaCommon.TaskRecord storage task = state.tasks[_taskIds[i]];
-                transferFundsAfterTask(state, msg.sender, task.sender, _gasesUsed[i], task.gasLimit.sub(_gasesUsed[i]), task.gasPx);
-                task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-                task.proof = _sig;
-                secretContract.stateDeltaHashes.push(_stateDeltaHashes[i]);
-                task.outputHash = _outputHashes[i];
-            }
-            emit ReceiptsVerified(_taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
-                _optionalEthereumContractAddress, _sig);
-        }
     }
 
     function returnFeesForTaskImpl(
