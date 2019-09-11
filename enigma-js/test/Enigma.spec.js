@@ -2027,62 +2027,6 @@ describe('Enigma tests', () => {
       }
     });
 
-
-    let stateDeltaHashes;
-    let outputHashes;
-    it('should simulate multiple task receipts', async () => {
-      const gasesUsed = [25, 10];
-      const stateDeltaHash2 = web3.utils.soliditySha3('stateDeltaHash2');
-      const stateDeltaHash3 = web3.utils.soliditySha3('stateDeltaHash3');
-      stateDeltaHashes = [stateDeltaHash2, stateDeltaHash3];
-      const outputHash2 = web3.utils.soliditySha3('outputHash2');
-      const outputHash3 = web3.utils.soliditySha3('outputHash3');
-      outputHashes = [outputHash2, outputHash3];
-      const taskIds = tasks.map((task) => task.taskId);
-      const inputsHashes = tasks.map((task) => task.inputsHash);
-      const optionalEthereumData = '0x00';
-      const optionalEthereumContractAddress = '0x0000000000000000000000000000000000000000';
-      const proof = utils.commitReceiptsHash(codeHash, inputsHashes, stateDeltaHash, stateDeltaHashes, outputHashes,
-        gasesUsed.map((gasUsed) => web3.utils.toBN(gasUsed).toString(16, 16)), optionalEthereumData, optionalEthereumContractAddress, '0x01');
-      const workerParams = await enigma.getWorkerParams(task.creationBlockNumber);
-      const selectedWorkerAddr = (await enigma.selectWorkerGroup(task.scAddr, workerParams, 1))[0];
-      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
-      const sig = EthCrypto.sign(priv, proof);
-      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
-      const startingWorkerBalance = worker.balance;
-      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
-      const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.commitReceipts(scAddr, taskIds, stateDeltaHashes, outputHashes,
-          optionalEthereumData,
-          optionalEthereumContractAddress, gasesUsed, sig).send({
-          from: worker.account,
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
-      });
-      worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
-      const endingWorkerBalance = worker.balance;
-      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
-      expect(endingWorkerBalance - startingWorkerBalance).toEqual((gasesUsed[0] * tasks[0].gasPx) +
-        (gasesUsed[1] * tasks[1].gasPx));
-      expect(endingSenderBalance - startingSenderBalance).
-        toEqual(((tasks[0].gasLimit - gasesUsed[0]) * tasks[0].gasPx) +
-          ((tasks[1].gasLimit - gasesUsed[1]) * tasks[1].gasPx));
-      expect(result.events.ReceiptsVerified).toBeTruthy();
-    });
-
-    it('should get the confirmed tasks', async () => {
-      for (let i = 0; i < tasks.length; i++) {
-        tasks[i] = await enigma.getTaskRecordStatus(tasks[i]);
-        expect(tasks[i].ethStatus).toEqual(2);
-      }
-    });
-
-    it('should get state delta hash range', async () => {
-      const hashes = await enigma.admin.getStateDeltaHashes(scAddr, 0, 5);
-      expect(hashes).toEqual([
-        initStateDeltaHash, stateDeltaHash, stateDeltaHash, stateDeltaHashes[0],
-        stateDeltaHashes[1]]);
-    });
-
     it('should verify the report', async () => {
       let worker = data.workers[0];
 
