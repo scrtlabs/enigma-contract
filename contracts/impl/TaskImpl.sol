@@ -223,6 +223,7 @@ library TaskImpl {
         EnigmaState.State storage state,
         bytes32 _scAddr,
         bytes32 _taskId,
+        bytes32 _outputHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -244,6 +245,7 @@ library TaskImpl {
         // Update proof and status attributes of TaskRecord
         task.proof = _sig;
         task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
+        task.outputHash = _outputHash;
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 

@@ -497,6 +497,20 @@ export default class Enigma {
   }
 
   /**
+   * Verify ENG network output matches output registed on ETH
+   *
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @return {boolean} True/false on whether outputs match
+   */
+  async verifyTaskOutput(task) {
+    const ethOutputHash = await this.getTaskOutputHash(task);
+    const engOutputHash = this.web3.utils.soliditySha3(
+      {t: 'bytes', value: task.encryptedAbiEncodedOutputs.toString('hex')}
+    );
+    return ethOutputHash === engOutputHash;
+  }
+
+  /**
    * Generator function for polling the Enigma p2p network for task status
    *
    * @param {Task} task - Task wrapper for contract deployment and compute tasks

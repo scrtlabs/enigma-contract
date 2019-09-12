@@ -376,12 +376,14 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     *
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
+    * @param _outputHash Output state hash
     * @param _gasUsed Gas used for task computation
     * @param _sig Worker's signature
     */
     function commitTaskFailure(
         bytes32 _scAddr,
         bytes32 _taskId,
+        bytes32 _outputHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -389,7 +391,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
+        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _outputHash, _gasUsed, _sig);
     }
 
     /**

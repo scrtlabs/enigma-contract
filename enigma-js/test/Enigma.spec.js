@@ -18,6 +18,7 @@ dotenv.config();
 
 // Launch local mock JSON RPC Server
 import RPCServer from '../src/Server';
+import {Buffer} from "buffer";
 
 forge.options.usePureJavaScript = true;
 
@@ -1361,7 +1362,8 @@ describe('Enigma tests', () => {
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, gasUsed, sig).send({
+        enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, web3.utils.soliditySha3('failure'),
+          gasUsed, sig).send({
           from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
