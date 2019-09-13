@@ -74,8 +74,8 @@ library TaskImplSimulation {
         emit TaskRecordCreated(taskId, _inputsHash, _gasLimit, _gasPx, msg.sender, block.number);
     }
 
-    function deploySecretContractFailureImpl(EnigmaState.State storage state, bytes32 _taskId, uint64 _gasUsed,
-        bytes memory _sig)
+    function deploySecretContractFailureImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _codeHash,
+        uint64 _gasUsed, bytes memory _sig)
     public
     {
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
@@ -92,6 +92,7 @@ library TaskImplSimulation {
         // Update proof and status attributes of TaskRecord
         task.proof = _sig;
         task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
+        task.outputHash = _codeHash;
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 

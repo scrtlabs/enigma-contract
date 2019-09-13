@@ -497,7 +497,7 @@ export default class Enigma {
   }
 
   /**
-   * Verify ENG network output matches output registed on ETH
+   * Verify ENG network output matches output registered on ETH
    *
    * @param {Task} task - Task wrapper for contract deployment and compute tasks
    * @return {boolean} True/false on whether outputs match
@@ -508,6 +508,30 @@ export default class Enigma {
       {t: 'bytes', value: task.encryptedAbiEncodedOutputs.toString('hex')}
     );
     return ethOutputHash === engOutputHash;
+  }
+
+  /**
+   * Verify ENG network status matches status registered on ETH
+   *
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @return {boolean} True/false on whether statuses match
+   */
+  async verifyTaskStatus(task) {
+    const ethStatus = (await this.getTaskRecordStatus(task)).ethStatus;
+    switch (task.engStatus) {
+      case 'SUCCESS':
+        return ethStatus === 2;
+        break;
+      case 'FAILED':
+        return ethStatus === 3;
+        break;
+      case 'UNVERIFIED':
+      case 'INPROGRESS':
+        return ethStatus === 1;
+        break;
+      default:
+        return ethStatus === 0;
+    }
   }
 
   /**

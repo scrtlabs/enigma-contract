@@ -159,6 +159,10 @@ describe('Enigma tests', () => {
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
+    const verifyTaskOutput = await enigma.verifyTaskOutput(task3);
+    const verifyTaskStatus = await enigma.verifyTaskStatus(task3);
+    expect(verifyTaskOutput).toEqual(true);
+    expect(verifyTaskStatus).toEqual(true);
     expect(task3.engStatus).toEqual('SUCCESS');
     expect(task3.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task3.usedGas).toBeTruthy();

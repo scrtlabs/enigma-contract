@@ -199,11 +199,13 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     * Deploy secret contract from user, called by the worker.
     *
     * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
+    * @param _codeHash Deployed bytecode hash
     * @param _gasUsed Gas used for task
     * @param _sig Worker's signature for deployment
     */
     function deploySecretContractFailure(
         bytes32 _taskId,
+        bytes32 _codeHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -211,7 +213,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     workerLoggedIn(msg.sender)
     contractUndefined(_taskId)
     {
-        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _gasUsed, _sig);
+        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _codeHash, _gasUsed, _sig);
     }
 
     /**

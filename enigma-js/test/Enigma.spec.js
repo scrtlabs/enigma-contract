@@ -693,7 +693,7 @@ describe('Enigma tests', () => {
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, gasUsed, sig).send({
+        enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, '0x00', gasUsed, sig).send({
           from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
@@ -1321,13 +1321,17 @@ describe('Enigma tests', () => {
       expect(task.workerTaskSig).toBeTruthy();
     });
 
+    let encryptedAbiEncodedOutputs;
+    let engStatus;
     it('should get task result of successful computation', async () => {
       task = await new Promise((resolve, reject) => {
         enigma.getTaskResult(task).
           on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
           on(eeConstants.ERROR, (error) => reject(error));
       });
+      engStatus = task.engStatus;
       expect(task.engStatus).toEqual('SUCCESS');
+      encryptedAbiEncodedOutputs = task.encryptedAbiEncodedOutputs;
       expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
       expect(task.delta).toBeTruthy();
       expect(task.usedGas).toBeTruthy();
@@ -1484,7 +1488,13 @@ describe('Enigma tests', () => {
 
     it('should get output hash', async () => {
       const output = await enigma.getTaskOutputHash(task);
+      task.encryptedAbiEncodedOutputs = enigma.web3.utils.toHex('outputHash1');
+      task.engStatus = 'SUCCESS';
       expect(outputHash).toEqual(output);
+      const verifyTaskOutput = await enigma.verifyTaskOutput(task);
+      const verifyTaskStatus = await enigma.verifyTaskStatus(task);
+      expect(verifyTaskOutput).toEqual(true);
+      expect(verifyTaskStatus).toEqual(true);
     });
 
     it('should simulate successful task receipt with state delta', async () => {
