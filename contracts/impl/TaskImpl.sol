@@ -30,8 +30,6 @@ library TaskImpl {
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
         uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
-        bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes sig);
     event ReceiptFailedETH(bytes32 taskId, bytes sig);
     event TaskFeeReturned(bytes32 taskId);
