@@ -630,32 +630,41 @@ export default class Enigma {
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
    * @param {string} preCode - Precode for contract deployment
+   * @param {Number} maxRetries - Max number of retries if submitted around epoch change
    * @return {Task} Task with attributes necessary for task record and Enigma network
    */
-  deploySecretContract(fn, args, gasLimit, gasPx, sender, preCode) {
+  deploySecretContract(fn, args, gasLimit, gasPx, sender, preCode, maxRetries=1) {
     let emitter = new EventEmitter();
     (async () => {
-      try {
-        let scTask = await new Promise((resolve, reject) => {
-          this.createTask(fn, args, gasLimit, gasPx, sender, preCode, true).
+      let retryCount = 0;
+      while (true) {
+        try {
+          let scTask = await new Promise((resolve, reject) => {
+            this.createTask(fn, args, gasLimit, gasPx, sender, preCode, true).
             on(eeConstants.CREATE_TASK, (result) => resolve(result)).
             on(eeConstants.ERROR, (error) => reject(error));
-        });
-        emitter.emit(eeConstants.CREATE_TASK, scTask);
-        scTask = await new Promise((resolve, reject) => {
-          this.createTaskRecord(scTask).
+          });
+          emitter.emit(eeConstants.CREATE_TASK, scTask);
+          scTask = await new Promise((resolve, reject) => {
+            this.createTaskRecord(scTask).
             on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result)).
             on(eeConstants.ERROR, (error) => reject(error));
-        });
-        emitter.emit(eeConstants.CREATE_TASK_RECORD, scTask);
-        await new Promise((resolve, reject) => {
-          this.sendTaskInput(scTask).
+          });
+          emitter.emit(eeConstants.CREATE_TASK_RECORD, scTask);
+          await new Promise((resolve, reject) => {
+            this.sendTaskInput(scTask).
             on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
             on(eeConstants.ERROR, (error) => reject(error));
-        });
-        emitter.emit(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, scTask);
-      } catch (err) {
-        emitter.emit(eeConstants.ERROR, err);
+          });
+          emitter.emit(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, scTask);
+          break;
+        } catch (err) {
+          if ((retryCount++ >= maxRetries) ||
+            (err !== 'Returned error: VM Exception while processing transaction: revert Wrong epoch for this task')) {
+            emitter.emit(eeConstants.ERROR, err);
+            break;
+          }
+        }
       }
     })();
     return emitter;
@@ -671,32 +680,41 @@ export default class Enigma {
    * @param {Number} gasPx - ENG gas price for task computation
    * @param {string} sender - ETH address for task sender
    * @param {string} scAddr - Secret contract address
+   * @param {Number} maxRetries - Max number of retries if submitted around epoch change
    * @return {Task} Task with attributes necessary for task record and Enigma network
    */
-  computeTask(fn, args, gasLimit, gasPx, sender, scAddr) {
+  computeTask(fn, args, gasLimit, gasPx, sender, scAddr, maxRetries=1) {
     let emitter = new EventEmitter();
     (async () => {
-      try {
-        let task = await new Promise((resolve, reject) => {
-          this.createTask(fn, args, gasLimit, gasPx, sender, scAddr, false).
+      let retryCount = 0;
+      while (true) {
+        try {
+          let task = await new Promise((resolve, reject) => {
+            this.createTask(fn, args, gasLimit, gasPx, sender, scAddr, false).
             on(eeConstants.CREATE_TASK, (result) => resolve(result)).
             on(eeConstants.ERROR, (error) => reject(error));
-        });
-        emitter.emit(eeConstants.CREATE_TASK, task);
-        task = await new Promise((resolve, reject) => {
-          this.createTaskRecord(task).
+          });
+          emitter.emit(eeConstants.CREATE_TASK, task);
+          task = await new Promise((resolve, reject) => {
+            this.createTaskRecord(task).
             on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result)).
             on(eeConstants.ERROR, (error) => reject(error));
-        });
-        emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
-        await new Promise((resolve, reject) => {
-          this.sendTaskInput(task).
+          });
+          emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
+          await new Promise((resolve, reject) => {
+            this.sendTaskInput(task).
             on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt)).
             on(eeConstants.ERROR, (error) => reject(error));
-        });
-        emitter.emit(eeConstants.SEND_TASK_INPUT_RESULT, task);
-      } catch (err) {
-        emitter.emit(eeConstants.ERROR, err);
+          });
+          emitter.emit(eeConstants.SEND_TASK_INPUT_RESULT, task);
+          break;
+        } catch (err) {
+          if ((retryCount++ >= maxRetries) ||
+            (err !== 'Returned error: VM Exception while processing transaction: revert Wrong epoch for this task')) {
+            emitter.emit(eeConstants.ERROR, err);
+            break;
+          }
+        }
       }
     })();
     return emitter;

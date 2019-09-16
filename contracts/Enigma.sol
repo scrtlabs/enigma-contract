@@ -371,37 +371,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-   * Commit the computation task results on chain by first verifying the receipts and then the worker's signature.
-   * The task records are finalized and the worker is credited with the tasks' fees.
-   *
-   * @param _scAddr Secret contract address
-   * @param _taskIds Unique taskId
-   * @param _stateDeltaHashes Input state delta hashes
-   * @param _outputHashes Output state hashes
-   * @param _optionalEthereumData Output state hashes
-   * @param _optionalEthereumContractAddress Output state hashes
-   * @param _gasesUsed Output state hashes
-   * @param _sig Worker's signature
-   */
-    function commitReceipts(
-        bytes32 _scAddr,
-        bytes32[] memory _taskIds,
-        bytes32[] memory _stateDeltaHashes,
-        bytes32[] memory _outputHashes,
-        bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress,
-        uint64[] memory _gasesUsed,
-        bytes memory _sig
-    )
-    public
-    workerLoggedIn(msg.sender)
-    contractDeployed(_scAddr)
-    {
-        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
-            _optionalEthereumContractAddress, _gasesUsed, _sig);
-    }
-
-    /**
     * Commit the computation task failure on chain - the task fee is transfered to the worker and the status is
     * updated to indicate task failure.
     *
