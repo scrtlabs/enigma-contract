@@ -63,7 +63,7 @@ describe('Enigma tests', () => {
 
   it('should get the pending task', async () => {
     task1 = await enigma.getTaskRecordStatus(task1);
-    expect(task1.ethStatus).toEqual(1);
+    expect(task1.ethStatus).toEqual(eeConstants.ETH_STATUS_CREATED);
   });
 
   it('should get the confirmed task', async () => {
@@ -71,8 +71,8 @@ describe('Enigma tests', () => {
       await sleep(1000);
       task1 = await enigma.getTaskRecordStatus(task1);
       process.stdout.write('Waiting. Current Task Status is '+task1.ethStatus+'\r');
-    } while (task1.ethStatus != 2);
-    expect(task1.ethStatus).toEqual(2);
+    } while (task1.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
+    expect(task1.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
   }, 10000);
 
@@ -112,7 +112,7 @@ describe('Enigma tests', () => {
 
   it('should get the pending task', async () => {
     task2 = await enigma.getTaskRecordStatus(task2);
-    expect(task2.ethStatus).toEqual(1);
+    expect(task2.ethStatus).toEqual(eeConstants.ETH_STATUS_CREATED);
   });
 
   it('should get the confirmed task', async () => {
@@ -120,15 +120,15 @@ describe('Enigma tests', () => {
       await sleep(1000);
       task2 = await enigma.getTaskRecordStatus(task2);
       process.stdout.write('Waiting. Current Task Status is '+task2.ethStatus+'\r');
-    } while (task2.ethStatus != 2);
-    expect(task2.ethStatus).toEqual(2);
+    } while (task2.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
+    expect(task2.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
   }, 10000);
 
   let task3;
   it('should execute compute task', async () => {
     let taskFn = 'compute_richest()';
-    let taskArgs = []
+    let taskArgs = [];
     let taskGasLimit = 1000000;
     let taskGasPx = utils.toGrains(1);
     task3 = await new Promise((resolve, reject) => {
@@ -140,7 +140,7 @@ describe('Enigma tests', () => {
 
   it('should get the pending task', async () => {
     task3 = await enigma.getTaskRecordStatus(task3);
-    expect(task3.ethStatus).toEqual(1);
+    expect(task3.ethStatus).toEqual(eeConstants.ETH_STATUS_CREATED);
   });
 
   it('should get the confirmed task', async () => {
@@ -148,8 +148,8 @@ describe('Enigma tests', () => {
       await sleep(1000);
       task3 = await enigma.getTaskRecordStatus(task3);
       process.stdout.write('Waiting. Current Task Status is '+task3.ethStatus+'\r');
-    } while (task3.ethStatus != 2);
-    expect(task3.ethStatus).toEqual(2);
+    } while (task3.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
+    expect(task3.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
   }, 10000);
 

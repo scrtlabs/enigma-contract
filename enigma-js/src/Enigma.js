@@ -410,10 +410,10 @@ export default class Enigma {
   sendTaskInput(task) {
     let emitter = new EventEmitter();
     (async () => {
-      let rpcEndpointName = 'sendTaskInput';
+      let rpcEndpointName = eeConstants.RPC_SEND_TASK_INPUT;
       let emitName = eeConstants.SEND_TASK_INPUT_RESULT;
       if (task.isContractDeploymentTask) {
-        rpcEndpointName = 'deploySecretContract';
+        rpcEndpointName = eeConstants.RPC_DEPLOY_SECRET_CONTRACT;
         emitName = eeConstants.DEPLOY_SECRET_CONTRACT_RESULT;
       }
       try {
@@ -446,7 +446,8 @@ export default class Enigma {
     (async () => {
       try {
         const getTaskResultResult = await new Promise((resolve, reject) => {
-          this.client.request('getTaskResult', {taskId: utils.remove0x(task.taskId)}, (err, response) => {
+          this.client.request(eeConstants.RPC_GET_TASK_RESULT,
+            {taskId: utils.remove0x(task.taskId)}, (err, response) => {
             if (err) {
               reject(err);
               return;
@@ -456,17 +457,17 @@ export default class Enigma {
         });
         if (getTaskResultResult.result) {
           switch (getTaskResultResult.result.status) {
-            case 'SUCCESS':
+            case eeConstants.GET_TASK_RESULT_SUCCESS:
               task.delta = getTaskResultResult.result.delta;
               task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
               task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
               task.preCodeHash = getTaskResultResult.result.preCodeHash;
-            case 'FAILED':
+            case eeConstants.GET_TASK_RESULT_FAILED:
               task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
               task.usedGas = getTaskResultResult.result.usedGas;
               task.workerTaskSig = getTaskResultResult.result.signature;
-            case 'UNVERIFIED':
-            case 'INPROGRESS':
+            case eeConstants.GET_TASK_RESULT_UNVERIFIED:
+            case eeConstants.GET_TASK_RESULT_INPROGRESS:
               task.engStatus = getTaskResultResult.result.status;
               break;
             default:
@@ -519,18 +520,18 @@ export default class Enigma {
   async verifyTaskStatus(task) {
     const ethStatus = (await this.getTaskRecordStatus(task)).ethStatus;
     switch (task.engStatus) {
-      case 'SUCCESS':
-        return ethStatus === 2;
+      case eeConstants.GET_TASK_RESULT_SUCCESS:
+        return ethStatus === eeConstants.ETH_STATUS_VERIFIED;
         break;
-      case 'FAILED':
-        return ethStatus === 3;
+      case eeConstants.GET_TASK_RESULT_FAILED:
+        return ethStatus === eeConstants.ETH_STATUS_FAILED;
         break;
-      case 'UNVERIFIED':
-      case 'INPROGRESS':
-        return ethStatus === 1;
+      case eeConstants.GET_TASK_RESULT_UNVERIFIED:
+      case eeConstants.GET_TASK_RESULT_INPROGRESS:
+        return ethStatus === eeConstants.ETH_STATUS_CREATED;
         break;
       default:
-        return ethStatus === 0;
+        return ethStatus === eeConstants.ETH_STATUS_UNDEFINED;
     }
   }
 
@@ -543,7 +544,7 @@ export default class Enigma {
   * pollTaskStatusGen(task, withResult) {
     while (true) {
       yield new Promise((resolve, reject) => {
-        this.client.request('getTaskStatus', {
+        this.client.request(eeConstants.RPC_GET_TASK_STATUS, {
           taskId: utils.remove0x(task.taskId), workerAddress: task.workerAddress,
           withResult: withResult,
         }, (err, response) => {
@@ -603,7 +604,7 @@ export default class Enigma {
    * @return {Task} Task wrapper with updated ETH status.
    */
   async pollTaskETH(task, interval=1000) {
-    while (task.ethStatus === 1) {
+    while (task.ethStatus === eeConstants.ETH_STATUS_CREATED) {
       task = await this.getTaskRecordStatus(task);
       await utils.sleep(interval);
     }
