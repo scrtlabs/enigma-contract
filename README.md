@@ -2,8 +2,8 @@
 
 | Branch | Build | Code Coverage | 
 |--------|-------|---------------|
-| Master | [![Build Status](https://travis-ci.com/enigmampc/enigma-contract-internal.svg?token=cNBBjbVVEGszuAJUokFT&branch=master)](https://travis-ci.com/enigmampc/enigma-contract-internal) | [![codecov](https://codecov.io/gh/enigmampc/enigma-contract-internal/branch/master/graph/badge.svg?token=mhsubU24ud)](https://codecov.io/gh/enigmampc/enigma-contract-internal) |
-| Develop | [![Build Status](https://travis-ci.com/enigmampc/enigma-contract-internal.svg?token=cNBBjbVVEGszuAJUokFT&branch=develop)](https://travis-ci.com/enigmampc/enigma-contract-internal) | [![codecov](https://codecov.io/gh/enigmampc/enigma-contract-internal/branch/develop/graph/badge.svg?token=mhsubU24ud)](https://codecov.io/gh/enigmampc/enigma-contract-internal) |
+| Master | [![Build Status](https://travis-ci.org/enigmampc/enigma-contract.svg?branch=master)](https://travis-ci.org/enigmampc/enigma-contract) | [![codecov](https://codecov.io/gh/enigmampc/enigma-contract/branch/master/graph/badge.svg?token=mhsubU24ud)](https://codecov.io/gh/enigmampc/enigma-contract) |
+| Develop | [![Build Status](https://travis-ci.org/enigmampc/enigma-contract.svg?branch=develop)](https://travis-ci.org/enigmampc/enigma-contract) | [![codecov](https://codecov.io/gh/enigmampc/enigma-contract/branch/develop/graph/badge.svg?token=mhsubU24ud)](https://codecov.io/gh/enigmampc/enigma-contract) |
 
 The Solidity contracts and the [Javascript client library](enigma-js/) of the Enigma Network with a Truffle test bed. 
 
