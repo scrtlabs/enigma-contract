@@ -29,7 +29,11 @@ ES6 source files
 
 ## Getting started
 
-1. Install the package dependencies
+1. Install the following packages globally:
+    ```
+    yarn global add ganache-cli truffle
+    ```
+2. Install the package dependencies
 
     * On the parent folder, run `yarn install` to install the project dependencies.
 
@@ -45,13 +49,16 @@ ES6 source files
 
     * Open one terminal at the root of the parent folder `enigma-contract` run the following:
     ```
-    $ truffle develop
+    $ ganache-cli -p 9545 -i 4447 &
     ```
-    * And once Truffle loads, run (in the truffle console):
+    * And once Ganache-cli has started, run:
     ```
-    truffle(develop)> migrate --reset
+    $ truffle migrate --reset
     ```
-    * On a separate terminal run: `yarn test`
+    * On a separate terminal run: 
+    ```
+    yarn test
+    ```
     
 5. Build the library
 
