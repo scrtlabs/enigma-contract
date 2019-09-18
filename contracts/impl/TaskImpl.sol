@@ -99,6 +99,7 @@ library TaskImpl {
         // Verify the worker's signature
         bytes memory message;
         message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, hex"00");
         bytes32 msgHash = keccak256(message);
@@ -117,9 +118,11 @@ library TaskImpl {
 
         // Verify the worker's signature
         bytes memory message;
-        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
+        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _codeHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _initStateDeltaHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
@@ -252,6 +255,7 @@ library TaskImpl {
         bytes memory message;
         message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, hex"00");
         bytes32 msgHash = keccak256(message);
@@ -290,11 +294,13 @@ library TaskImpl {
 
         // Verify the worker's signature
         bytes memory message;
+        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
         message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
-        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, lastStateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _stateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _outputHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
