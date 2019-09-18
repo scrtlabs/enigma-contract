@@ -1,6 +1,5 @@
 /* eslint-disable prefer-spread,prefer-rest-params,valid-jsdoc */
 import EnigmaContract from '../../build/contracts/Enigma';
-import ProxyContract from '../../build/contracts/Proxy';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import Admin from './Admin';
 import Task from './models/Task';
@@ -74,7 +73,6 @@ export default class Enigma {
   createContracts(enigmaContractAddr, tokenContractAddr) {
     this.enigmaContract = new this.web3.eth.Contract(EnigmaContract['abi'],
       enigmaContractAddr, this.txDefaults);
-    console.log('addresssss', enigmaContractAddr);
     this.tokenContract = new this.web3.eth.Contract(EnigmaTokenContract['abi'],
       tokenContractAddr, this.txDefaults);
   }

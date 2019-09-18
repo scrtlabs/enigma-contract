@@ -1,4 +1,5 @@
 import { EnigmaStorage } from "./impl/EnigmaStorage.sol";
+import { ERC20 } from "./interfaces/ERC20.sol";
 
 contract Proxy is EnigmaStorage {
 
@@ -10,8 +11,14 @@ contract Proxy is EnigmaStorage {
     /**
      * @dev constructor that sets the owner address
      */
-    constructor() public {
+    constructor(address _tokenAddress, address _principal, uint _epochSize) public {
         state.owner = msg.sender;
+        state.engToken = ERC20(_tokenAddress);
+        state.epochSize = _epochSize;
+        state.taskTimeoutSize = 200;
+        state.principal = _principal;
+        state.stakingThreshold = 1;
+        state.workerGroupSize = 1;
     }
 
     function getAddress() public view returns (address){

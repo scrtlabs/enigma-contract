@@ -27,13 +27,14 @@ const TaskImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX
   artifacts.require('./impl/TaskImpl.sol');
 
 async function deployProtocol(deployer) {
-  await deployer.deploy(Proxy);
   await Promise.all([
     deployer.deploy(EnigmaToken),
     deployer.deploy(SolRsaVerify),
     deployer.deploy(WorkersImpl),
     deployer.deploy(SecretContractImpl),
   ]);
+  let principal = PRINCIPAL_SIGNING_ADDRESS;
+  await deployer.deploy(Proxy, EnigmaToken.address, principal, EPOCH_SIZE);
 
   if (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') {
     await Promise.all([
@@ -61,15 +62,14 @@ async function deployProtocol(deployer) {
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
 
-  let principal = PRINCIPAL_SIGNING_ADDRESS;
   const homedir = require('os').homedir();
   const principalSignAddrFile = path.join(homedir, '.enigma', 'principal-sign-addr.txt');
   if (fs.existsSync(principalSignAddrFile)) {
     principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
   }
   console.log('using account', principal, 'as principal signer');
-  await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
   const ProxyContract = await Proxy.deployed();
+  await deployer.deploy(Enigma);
   await ProxyContract.upgradeTo(Enigma.address);
   await deployer.deploy(Sample);
   await deployer.deploy(VotingETH);
