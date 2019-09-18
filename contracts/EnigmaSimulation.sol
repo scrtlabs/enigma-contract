@@ -22,10 +22,10 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
 
     // ========================================== Constructor ==========================================
 
-    constructor(address _tokenAddress, address _principal, uint _epochSize) public {
+    constructor(address _tokenAddress, address _principal, uint _epochSize, uint _timeoutThreshold) public {
         state.engToken = ERC20(_tokenAddress);
         state.epochSize = _epochSize;
-        state.taskTimeoutSize = 200;
+        state.taskTimeoutSize = _timeoutThreshold * state.epochSize;
         state.principal = _principal;
         state.stakingThreshold = 1;
         state.workerGroupSize = 1;
