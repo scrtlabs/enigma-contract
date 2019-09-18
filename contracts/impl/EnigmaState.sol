@@ -11,6 +11,10 @@ import { ERC20 } from "../interfaces/ERC20.sol";
  */
 library EnigmaState {
     struct State {
+        address owner;
+
+        address implementation;
+
         // The interface of the deployed ENG ERC20 token contract
         ERC20 engToken;
 

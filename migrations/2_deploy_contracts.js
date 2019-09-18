@@ -3,6 +3,7 @@ const EnigmaToken = artifacts.require('EnigmaToken.sol');
 const SolRsaVerify = artifacts.require('./utils/SolRsaVerify.sol');
 const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
 const Sample = artifacts.require('Sample.sol');
+const Proxy = artifacts.require('Proxy.sol');
 const fs = require('fs');
 const path = require('path');
 const VotingETH = artifacts.require('VotingETH.sol');
@@ -26,6 +27,7 @@ const TaskImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX
   artifacts.require('./impl/TaskImpl.sol');
 
 async function deployProtocol(deployer) {
+  await deployer.deploy(Proxy);
   await Promise.all([
     deployer.deploy(EnigmaToken),
     deployer.deploy(SolRsaVerify),
@@ -67,6 +69,8 @@ async function deployProtocol(deployer) {
   }
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
+  const ProxyContract = await Proxy.deployed();
+  await ProxyContract.upgradeTo(Enigma.address);
   await deployer.deploy(Sample);
   await deployer.deploy(VotingETH);
 
