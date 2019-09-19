@@ -24,10 +24,6 @@ export const CREATE_TASK_RECORD_TRANSACTION_HASH = 'createTaskRecordTransactionH
 export const CREATE_TASK_RECORD_CONFIRMATION = 'createTaskRecordConfirmation';
 export const CREATE_TASK_RECORD_RECEIPT = 'createTaskRecordReceipt';
 export const CREATE_TASK_RECORD = 'createTaskRecord';
-export const CREATE_TASK_RECORDS_TRANSACTION_HASH = 'createTaskRecordsTransactionHash';
-export const CREATE_TASK_RECORDS_CONFIRMATION = 'createTaskRecordsConfirmation';
-export const CREATE_TASK_RECORDS_RECEIPT = 'createTaskRecordsReceipt';
-export const CREATE_TASK_RECORDS = 'createTaskRecords';
 
 export const SEND_TASK_INPUT_RESULT = 'sendTaskInputResult';
 export const POLL_TASK_STATUS_RESULT = 'pollTaskStatusResult';

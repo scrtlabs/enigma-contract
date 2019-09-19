@@ -348,43 +348,6 @@ library TaskImpl {
         }
     }
 
-    function createTaskRecordsImpl(
-        EnigmaState.State storage state,
-        bytes32[] memory _inputsHashes,
-        uint[] memory _gasLimits,
-        uint[] memory _gasPxs,
-        uint _firstBlockNumber
-    )
-    public
-    {
-        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImpl.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
-
-        bytes32[] memory taskIds = new bytes32[](_inputsHashes.length);
-        for (uint i = 0; i < _inputsHashes.length; i++) {
-            // Transfer fee from sender to contract
-            uint fee = _gasLimits[i].mul(_gasPxs[i]);
-            require(state.engToken.allowance(msg.sender, address(this)) >= fee, "Allowance not enough");
-            require(state.engToken.transferFrom(msg.sender, address(this), fee), "Transfer not valid");
-
-            // Create taskId and TaskRecord
-            bytes32 taskId = keccak256(abi.encodePacked(msg.sender, state.userTaskDeployments[msg.sender]));
-            EnigmaCommon.TaskRecord storage task = state.tasks[taskId];
-            require(task.sender == address(0), "Task already exists");
-            taskIds[i] = taskId;
-            task.inputsHash = _inputsHashes[i];
-            task.gasLimit = _gasLimits[i];
-            task.gasPx = _gasPxs[i];
-            task.sender = msg.sender;
-            task.blockNumber = block.number;
-            task.status = EnigmaCommon.TaskStatus.RecordCreated;
-
-            // Increment user task deployment nonce
-            state.userTaskDeployments[msg.sender]++;
-        }
-        emit TaskRecordsCreated(taskIds, _inputsHashes, _gasLimits, _gasPxs, msg.sender, block.number);
-    }
-
     function verifyReceipts(EnigmaState.State storage state, bytes32 _scAddr, bytes32[] memory _taskIds,
         bytes32[] memory _stateDeltaHashes, bytes32[] memory _outputHashes, bytes memory _optionalEthereumData,
         address _optionalEthereumContractAddress, uint64[] memory _gasesUsed, address _sender, bytes memory _sig)
