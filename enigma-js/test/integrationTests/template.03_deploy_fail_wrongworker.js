@@ -10,6 +10,7 @@ import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoa
 import EthCrypto from 'eth-crypto';
 import Task from "../../src/models/Task";
 import EventEmitter from "eventemitter3";
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -181,7 +182,7 @@ describe('Enigma tests', () => {
     } while (scTask2.ethStatus === 1 && i < 6);
     expect(scTask2.ethStatus).toEqual(1);
     process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
-  }, 8000);
+  }, constants.TIMEOUT_FAILDEPLOY);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask2.scAddr);

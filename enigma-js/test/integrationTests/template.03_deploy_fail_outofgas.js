@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -17,7 +18,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
@@ -68,7 +68,7 @@ describe('Enigma tests', () => {
     } while (scTask3.ethStatus != 3);
     expect(scTask3.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+scTask3.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_FAILDEPLOY);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask3.scAddr);

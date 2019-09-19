@@ -10,6 +10,7 @@ import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoa
 import EthCrypto from 'eth-crypto';
 import BN from 'bn.js';
 import elliptic from 'elliptic';
+import * as constants from './testConstants';
 
 
 let ec = new elliptic.ec('secp256k1');
@@ -95,7 +96,7 @@ describe('Enigma tests', () => {
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
-  }, 30000);
+  }, constants.TIMEOUT_COMPUTE_LONG);
 
   it('should get the result', async () => {
     task = await new Promise((resolve, reject) => {
