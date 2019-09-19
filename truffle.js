@@ -8,7 +8,7 @@ require ("regenerator-runtime/runtime");
 // to customize your Truffle configuration!
 module.exports = {
     networks: {
-        development: {
+        develop: {
             host: 'localhost',
             port: 9545,
             network_id: '4447' // Match ganache network id
