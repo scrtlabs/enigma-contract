@@ -18,7 +18,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
@@ -76,24 +75,6 @@ describe('Enigma tests', () => {
     expect(task1.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
   }, constants.TIMEOUT_COMPUTE);
-
-  it('initializes Sample contract', async () => {
-    sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
-      SampleContract.networks['4447'].address);
-    expect(sampleContract.options.address).toBeTruthy;
-  });
-
-  it('should move forward epochSize blocks by calling dummy contract', async () => {
-    const currentBlock = await enigma.web3.eth.getBlockNumber();
-    const firstBlock = parseInt(await enigma.enigmaContract.methods.getFirstBlockNumber(currentBlock).call());
-    const epochSize = parseInt(await enigma.enigmaContract.methods.getEpochSize().call());
-    const epochRemains = (firstBlock + epochSize) - currentBlock;
-    for (let i = 0; i < epochRemains; i++) {
-      await sampleContract.methods.incrementCounter().send({from: accounts[8]});
-    }
-    // Wait for 2s for the Ppal node to pick up the new epoch
-    await sleep(10000);
-  }, 12000);
 
   let task2;
   it('should execute compute task', async () => {
