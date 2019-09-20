@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -70,7 +71,7 @@ describe('Enigma tests', () => {
     } while (task1.ethStatus != 2);
     expect(task1.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the result and verify the computation is correct', async () => {
     task1 = await new Promise((resolve, reject) => {
@@ -115,7 +116,7 @@ describe('Enigma tests', () => {
     } while (task2.ethStatus != 2);
     expect(task2.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get and validate the result', async () => {
     task2 = await new Promise((resolve, reject) => {

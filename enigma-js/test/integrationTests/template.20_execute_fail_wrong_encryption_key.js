@@ -6,9 +6,10 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
 import EventEmitter from "eventemitter3";
 import Task from "../../src/models/Task";
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -145,7 +146,7 @@ describe('Enigma tests', () => {
     } while (task.ethStatus !== 3);
     expect(task.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the failed result', async () => {
     task = await new Promise((resolve, reject) => {

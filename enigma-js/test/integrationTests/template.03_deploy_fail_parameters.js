@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -56,7 +57,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  }, 30000);
+  }, constants.TIMEOUT_DEPLOY);
 
   it('should get the failed receipt', async () => {
     do {
@@ -66,7 +67,7 @@ describe('Enigma tests', () => {
     } while (scTask2.ethStatus != 3);
     expect(scTask2.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
-  }, 30000);
+  }, constants.TIMEOUT_DEPLOY);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask2.scAddr);
