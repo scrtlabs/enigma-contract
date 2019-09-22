@@ -18,8 +18,8 @@ library EnigmaCommon {
         address sender; // Sender of TaskRecord
         bytes32 inputsHash; // Inputs hash of encryptedFn, encryptedArgs, and contract address/preCodeHash
         bytes32 outputHash; // Output hash of task computation
-        uint gasLimit; // ENG gas limit units
-        uint gasPx; // ENG gas px in grains (10 ** 8) amount
+        uint64 gasLimit; // ENG gas limit units
+        uint64 gasPx; // ENG gas px in grains (10 ** 8) amount
         uint blockNumber; // Block number TaskRecord was mined
         TaskStatus status; // RecordUndefined: 0; RecordCreated: 1; ReceiptVerified: 2; ReceiptFailed: 3
         bytes proof; // Signature of (taskId, inStateDeltaHash, outStateDeltaHash, ethCall)
