@@ -39,8 +39,8 @@ library TaskImpl {
     function createDeploymentTaskRecordImpl(
         EnigmaState.State storage state,
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber,
         uint _nonce
     )
@@ -191,8 +191,8 @@ library TaskImpl {
     function createTaskRecordImpl(
         EnigmaState.State storage state,
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber
     )
     public
@@ -359,8 +359,8 @@ library TaskImpl {
     function createTaskRecordsImpl(
         EnigmaState.State storage state,
         bytes32[] memory _inputsHashes,
-        uint[] memory _gasLimits,
-        uint[] memory _gasPxs,
+        uint64[] memory _gasLimits,
+        uint64[] memory _gasPxs,
         uint _firstBlockNumber
     )
     public
