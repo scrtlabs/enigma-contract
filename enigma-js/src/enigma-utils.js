@@ -186,13 +186,15 @@ function generateScAddr(sender, nonce) {
  *
  * @param {string} hexStr - Buffer being appended to
  * @param {Array} inputsArray - Array of inputs
+ * @param {boolean} principal - Principal hashing
  * @return {string} - Final appended hex string
  */
-function appendMessages(hexStr, inputsArray) {
+function appendMessages(hexStr, inputsArray, principal=false) {
+  const principalPrefix = principal ? '00' : '';
   for (let input of inputsArray) {
     input = remove0x(input);
     // since the inputs are in hex string, they are twice as long as their bytes
-    hexStr += JSBI.BigInt(input.length/2).toString(16).padStart(16, '0') + input;
+    hexStr += principalPrefix + JSBI.BigInt(input.length/2).toString(16).padStart(16, '0') + input;
   }
   return hexStr;
 }
@@ -202,12 +204,14 @@ function appendMessages(hexStr, inputsArray) {
  *
  * @param {string} hexStr - Buffer being appended to
  * @param {Array} inputsArray - Array of array of inputs
+ * @param {boolean} principal - Principal hashing
  * @return {string} - Final appended hex string
  */
-function appendArrayMessages(hexStr, inputsArray) {
+function appendArrayMessages(hexStr, inputsArray, principal=false) {
+  const principalPrefix = principal ? '01' : '';
   for (let array of inputsArray) {
-    hexStr += JSBI.BigInt(array.length).toString(16).padStart(16, '0');
-    hexStr = appendMessages(hexStr, array);
+    hexStr += principalPrefix + JSBI.BigInt(array[0].length * array[1]).toString(16).padStart(16, '0');
+    hexStr = appendMessages(hexStr, array[0], principal);
   }
   return hexStr;
 }
@@ -234,8 +238,8 @@ function hash(inputsArray) {
  */
 function principalHash(seed, nonce, workerAddresses, workerStakes) {
   let hexStr = '';
-  hexStr = appendMessages(hexStr, [seed, nonce]);
-  hexStr = appendArrayMessages(hexStr, [workerAddresses, workerStakes]);
+  hexStr = appendMessages(hexStr, [seed, nonce], true);
+  hexStr = appendArrayMessages(hexStr, [[workerAddresses, 20], [workerStakes, 32]], true);
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
 
