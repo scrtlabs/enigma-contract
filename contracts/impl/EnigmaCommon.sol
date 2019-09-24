@@ -21,7 +21,7 @@ library EnigmaCommon {
         uint gasLimit; // ENG gas limit units
         uint gasPx; // ENG gas px in grains (10 ** 8) amount
         uint blockNumber; // Block number TaskRecord was mined
-        TaskStatus status; // RecordUndefined: 0; RecordCreated: 1; ReceiptVerified: 2; ReceiptFailed: 3
+        TaskStatus status; // RecordUndefined: 0; RecordCreated: 1; ReceiptVerified: 2; ReceiptFailed: 3; ReceiptFailedETH: 4; ReceiptFailedReturn: 5
         bytes proof; // Signature of (taskId, inStateDeltaHash, outStateDeltaHash, ethCall)
     }
 
@@ -61,7 +61,7 @@ library EnigmaCommon {
 
     // ========================================== Enums ==========================================
 
-    enum TaskStatus {RecordUndefined, RecordCreated, ReceiptVerified, ReceiptFailedENG, ReceiptFailedETH,
+    enum TaskStatus {RecordUndefined, RecordCreated, ReceiptVerified, ReceiptFailed, ReceiptFailedETH,
         ReceiptFailedReturn}
 
     enum WorkerStatus {Unregistered, LoggedIn, LoggedOut}
