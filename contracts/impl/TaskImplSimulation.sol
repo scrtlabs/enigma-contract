@@ -17,15 +17,16 @@ import "../utils/SolRsaVerify.sol";
  */
 library TaskImplSimulation {
     using SafeMath for uint256;
+    using SafeMath for uint64;
     using ECDSA for bytes32;
     using Bytes for bytes;
     using Bytes for bytes32;
     using Bytes for uint64;
     using Bytes for address;
 
-    event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint gasLimit, uint gasPx, address sender,
+    event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
-    event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint[] gasLimits, uint[] gasPxs, address sender,
+    event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint64[] gasLimits, uint64[] gasPxs, address sender,
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
