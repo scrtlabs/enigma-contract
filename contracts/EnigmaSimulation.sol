@@ -287,8 +287,8 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createDeploymentTaskRecord(
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber,
         uint _nonce
     )
@@ -309,8 +309,8 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createTaskRecord(
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber
     )
     public
@@ -330,8 +330,8 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createTaskRecords(
         bytes32[] memory _inputsHashes,
-        uint[] memory _gasLimits,
-        uint[] memory _gasPxs,
+        uint64[] memory _gasLimits,
+        uint64[] memory _gasPxs,
         uint _firstBlockNumber
     )
     public
@@ -368,37 +368,6 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     {
         TaskImpl.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
             _optionalEthereumContractAddress, _gasUsed, _sig);
-    }
-
-    /**
-   * Commit the computation task results on chain by first verifying the receipts and then the worker's signature.
-   * The task records are finalized and the worker is credited with the tasks' fees.
-   *
-   * @param _scAddr Secret contract address
-   * @param _taskIds Unique taskId
-   * @param _stateDeltaHashes Input state delta hashes
-   * @param _outputHashes Output state hashes
-   * @param _optionalEthereumData Output state hashes
-   * @param _optionalEthereumContractAddress Output state hashes
-   * @param _gasesUsed Output state hashes
-   * @param _sig Worker's signature
-   */
-    function commitReceipts(
-        bytes32 _scAddr,
-        bytes32[] memory _taskIds,
-        bytes32[] memory _stateDeltaHashes,
-        bytes32[] memory _outputHashes,
-        bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress,
-        uint64[] memory _gasesUsed,
-        bytes memory _sig
-    )
-    public
-    workerLoggedIn(msg.sender)
-    contractDeployed(_scAddr)
-    {
-        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
-            _optionalEthereumContractAddress, _gasesUsed, _sig);
     }
 
     /**

@@ -96,4 +96,13 @@ contract Getters is EnigmaStorage {
     function getWorkersParams() public view returns (EnigmaCommon.WorkersParams[5] memory) {
         return state.workersParams;
     }
+
+    /**
+    * Get all secret contract addresses
+    *
+    * @return Array of secret contract addresses
+    */
+    function getAllSecretContractAddresses() public view returns (bytes32[] memory) {
+        return state.scAddresses;
+    }
 }

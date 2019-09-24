@@ -5,7 +5,8 @@ import path from 'path';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -52,6 +53,6 @@ describe('Init tests', () => {
     }
     // Wait for 2s for the Ppal node to pick up the new epoch
     await sleep(3000);
-  }, 8000);
+  }, constants.TIMEOUT_ADVANCE);
 
 });

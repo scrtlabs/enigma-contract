@@ -1,6 +1,6 @@
 {
   "name": "enigma-js",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "The Javascript client for the Enigma Network",
   "main": "lib/enigma-js.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git@github.com:enigmampc/enigma-contract.git"
   },
   "keywords": [
     "webpack",
