@@ -5,3 +5,4 @@ export const TIMEOUT_COMPUTE_LONG=40000;
 export const TIMEOUT_FAILDEPLOY=10000;
 export const TIMEOUT_ADVANCE=8000;
 export const TIMEOUT_CLEANUP=20000;
+export const TIMEOUT_INIT=10000;
