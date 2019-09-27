@@ -73,7 +73,7 @@ describe('Init tests', () => {
     }
     const results = await Promise.all(promises);
     expect(results.length).toEqual(accounts.length - 2);
-  });
+  }, constants.TIMEOUT_INIT);
 
   let workerAddress=[];
   it('should check that '+nodes+' worker(s) and the principal node, and only them, are registered', async () => {
@@ -87,7 +87,7 @@ describe('Init tests', () => {
       workerAddress[i] = await enigma.admin.getWorkerSignerAddr(accounts[i]);
     }
     expect(workerStatuses).toEqual(arrayResults);
-  });
+  }, constants.TIMEOUT_INIT);
 
   it('should check worker\'s stake balance is empty', async () => {
     let balance = await enigma.admin.getBalance(accounts[0]);
