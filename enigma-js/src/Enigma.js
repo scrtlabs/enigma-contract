@@ -10,6 +10,7 @@ import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
 import JSBI from 'jsbi';
+import retry from 'retry';
 import * as abi from 'ethereumjs-abi';
 import EthCrypto from 'eth-crypto';
 import * as eeConstants from './emitterConstants';
@@ -28,9 +29,23 @@ export default class Enigma {
    * @param {string} rpcAddr - Enigma p2p network address for RPC calls
    * @param {Object} txDefaults
    */
-  constructor(web3, enigmaContractAddr, tokenContractAddr, rpcAddr, txDefaults = {}) {
+  constructor(web3, enigmaContractAddr, tokenContractAddr, rpcAddr, txDefaults = {}, config = {}) {
     this.web3 = web3;
     this.txDefaults = txDefaults;
+
+    this.config = {};
+    this.config.retry = {};
+    this.config.retry.retries = config.retry ?
+      (config.retry.retries != null ? config.retry.retries : 5) : 5;
+    this.config.retry.factor = config.retry ?
+      (config.retry.factor != null ? config.retry.factor : 2) : 2;
+    this.config.retry.minTimeout = config.retry ?
+      (config.retry.minTimeout != null ? config.retry.minTimeout : 2000) : 2000;
+    this.config.retry.maxTimeout = config.retry ?
+      (config.retry.maxTimeout != null ? config.retry.maxTimeout : 'Infinity') : 'Infinity';
+    this.config.retry.randomize = config.retry ?
+      (config.retry.randomize != null ? config.retry.randomize : false) : false;
+
     // axios callback for jayson rpc client to interface with ENG network
     let callServer = function(request, callback) {
       let config = {
@@ -443,7 +458,9 @@ export default class Enigma {
    */
   getTaskResult(task) {
     let emitter = new EventEmitter();
-    (async () => {
+
+    let operation = retry.operation(this.config.retry);
+    operation.attempt(async (currentAttempt)=>{
       try {
         const getTaskResultResult = await new Promise((resolve, reject) => {
           this.client.request('getTaskResult', {taskId: utils.remove0x(task.taskId)}, (err, response) => {
@@ -473,13 +490,20 @@ export default class Enigma {
               throw (new Error('Invalid task result status')).message;
           }
         } else {
-          task.engStatus = null;
+          if (operation.retry(true)) {
+            console.log('Warning: Got an empty TaskResult on attempt '+
+              currentAttempt+' of '+(this.config.retry.retries + 1)+'. Retrying...');
+            return;
+          } else {
+            task.engStatus = null;
+          }
         }
         emitter.emit(eeConstants.GET_TASK_RESULT_RESULT, task);
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
       }
-    })();
+    });
+
     return emitter;
   }
 
@@ -490,9 +514,15 @@ export default class Enigma {
    * @return {Task} Task result wrapper with an updated decrypted output attribute
    */
   async decryptTaskResult(task) {
-    const {privateKey} = this.obtainTaskKeyPair();
-    const derivedKey = utils.getDerivedKey(task.workerEncryptionKey, privateKey);
-    task.decryptedOutput = utils.decryptMessage(derivedKey, task.encryptedAbiEncodedOutputs);
+    console.log('task.encryptedAbiEncodedOutputs is '+task.encryptedAbiEncodedOutputs);
+    if (task.encryptedAbiEncodedOutputs) {
+      const {privateKey} = this.obtainTaskKeyPair();
+      const derivedKey = utils.getDerivedKey(task.workerEncryptionKey, privateKey);
+      task.decryptedOutput = utils.decryptMessage(derivedKey, task.encryptedAbiEncodedOutputs);
+    } else {
+      console.log('Warning: task.encryptedAbiEncodedOutputs is empty, there is nothing to decrypt.');
+      task.decryptedOutput = null;
+    }
     return task;
   }
 
