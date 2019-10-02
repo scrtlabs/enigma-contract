@@ -30,9 +30,9 @@ before_script:
 script:
   - rm -rf build
   - truffle compile
-  - truffle migrate --reset --network development
+  - truffle migrate --reset --network develop
   - pushd enigma-js && yarn build && popd
-  - SGX_MODE=SW truffle migrate --reset --network development
+  - SGX_MODE=SW truffle migrate --reset --network develop
   - pushd enigma-js && SGX_MODE=SW yarn test && popd
   - git clone https://github.com/enigmampc/discovery-docker-network.git
   - if [[ $TRAVIS_BRANCH == "master" ]]; then export TAG=latest; else export TAG=develop; fi
@@ -44,7 +44,7 @@ script:
     sed -i "s/-vv/-v/" enigma-core/start_core.bash &&
     popd
   - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=$TRAVIS_BRANCH -t enigmampc/enigma_contract:$TAG --no-cache . && popd
-  - pushd discovery-docker-network && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --exit-code-from client && popd
+  - pushd discovery-docker-network && export NODES=3 && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client && popd
 
 after_success:
   - pushd enigma-js && yarn report-coverage && popd
