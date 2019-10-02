@@ -55,6 +55,10 @@ describe('Enigma tests', () => {
             gasPrice: 100000000000,
             from: accounts[0],
           },
+          { retry: {
+              retries: 0
+            }
+          }
         );
         enigma.admin();
         expect(Enigma.version()).toEqual('0.0.1');

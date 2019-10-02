@@ -51,6 +51,7 @@
     "node-forge": "^0.7.6",
     "openzeppelin-solidity": "2.1",
     "regenerator-runtime": "^0.13.3",
+    "retry": "^0.12.0",
     "rlp": "2.1.0",
     "source-map-support": "^0.5.9",
     "tls": "0.0.1",
