@@ -6,10 +6,11 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
 import EthCrypto from 'eth-crypto';
 import BN from 'bn.js';
 import elliptic from 'elliptic';
+import * as constants from './testConstants';
 
 
 let ec = new elliptic.ec('secp256k1');
@@ -22,7 +23,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
@@ -95,7 +95,7 @@ describe('Enigma tests', () => {
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
-  }, 30000);
+  }, constants.TIMEOUT_COMPUTE_LONG);
 
   it('should get the result', async () => {
     task = await new Promise((resolve, reject) => {
