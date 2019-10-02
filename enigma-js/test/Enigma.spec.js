@@ -56,6 +56,10 @@ describe('Enigma tests', () => {
             gasPrice: 100000000000,
             from: accounts[0],
           },
+          { retry: {
+              retries: 0
+            }
+          }
         );
         enigma.admin();
         expect(Enigma.version()).toEqual('0.0.1');
@@ -418,6 +422,34 @@ describe('Enigma tests', () => {
         rejects.
         toEqual('Returned error: VM Exception while processing transaction: revert Cannot withdraw in same ' +
           'epoch as log out event');
+    });
+
+    it('should compute the number of blocks a worker has been logged in', async () => {
+      // get the worker struct that contains the workerLogs
+      let worker = await enigma.enigmaContract.methods.getWorker(accounts[0]).call();
+
+      let loggedIn = 0;
+      let active = 0;
+
+      // iterate through all the items stored in the workerLogs
+      worker.workerLogs.forEach(function(e){
+        if(parseInt(e['workerEventType'])==1){
+          // if there is a log in event, temporarily store the blockNumber when that happened
+          loggedIn=parseInt(e['blockNumber']);
+        } else if (parseInt(e['workerEventType'])==2) {
+          // if there is a log out event, substract its blockNumber from that of the log in event
+          active += parseInt(e['blockNumber'])-loggedIn;
+          loggedIn=0
+        }
+      });
+      // after iterating all items, if worker is still logged in, substract it from the current block
+      if(loggedIn) {
+        const blockNumberNow = await web3.eth.getBlockNumber();
+        active += blockNumberNow - loggedIn
+      }
+      // the variable `active` contains the total number of blocks a worker has been active (logged in)
+      expect(active).toEqual(11);
+      expect(loggedIn).toBeTruthy();
     });
 
     it('should set the worker parameters (principal only) again for a new epoch', async () => {

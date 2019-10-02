@@ -7,6 +7,7 @@ import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
 import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -17,7 +18,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
@@ -74,25 +74,7 @@ describe('Enigma tests', () => {
     } while (task1.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
     expect(task1.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
-  }, 10000);
-
-  it('initializes Sample contract', async () => {
-    sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
-      SampleContract.networks['4447'].address);
-    expect(sampleContract.options.address).toBeTruthy;
-  });
-
-  it('should move forward epochSize blocks by calling dummy contract', async () => {
-    const currentBlock = await enigma.web3.eth.getBlockNumber();
-    const firstBlock = parseInt(await enigma.enigmaContract.methods.getFirstBlockNumber(currentBlock).call());
-    const epochSize = parseInt(await enigma.enigmaContract.methods.getEpochSize().call());
-    const epochRemains = (firstBlock + epochSize) - currentBlock;
-    for (let i = 0; i < epochRemains; i++) {
-      await sampleContract.methods.incrementCounter().send({from: accounts[8]});
-    }
-    // Wait for 2s for the Ppal node to pick up the new epoch
-    await sleep(10000);
-  }, 12000);
+  }, constants.TIMEOUT_COMPUTE);
 
   let task2;
   it('should execute compute task', async () => {
@@ -123,7 +105,7 @@ describe('Enigma tests', () => {
     } while (task2.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
     expect(task2.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   let task3;
   it('should execute compute task', async () => {
@@ -151,7 +133,7 @@ describe('Enigma tests', () => {
     } while (task3.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
     expect(task3.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get and validate the result', async () => {
     task3 = await new Promise((resolve, reject) => {
