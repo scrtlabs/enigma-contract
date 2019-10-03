@@ -29,6 +29,8 @@ library EnigmaState {
         */
         address principal;
 
+        address updatedEnigmaContractAddress;
+
         /**
         * The last 5 worker parameters
         * We keep a collection of worker parameters to account for latency issues.
@@ -51,6 +53,9 @@ library EnigmaState {
 
         // A registry of all tasks with their attributes
         mapping(bytes32 => EnigmaCommon.TaskRecord) tasks;
+
+        // An array of all task IDs
+        bytes32[] taskIds;
 
         // A registry of all deployed secret contracts with their attributes
         mapping(bytes32 => EnigmaCommon.SecretContract) contracts;

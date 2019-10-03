@@ -24,6 +24,7 @@ const PrincipalImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.en
 const TaskImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
   artifacts.require('./impl/TaskImplSimulation.sol') :
   artifacts.require('./impl/TaskImpl.sol');
+const UpgradeImpl = artifacts.require('./impl/UpgradeImpl.sol');
 
 async function deployProtocol(deployer) {
   await Promise.all([
@@ -48,6 +49,7 @@ async function deployProtocol(deployer) {
   await Promise.all([
     deployer.deploy(TaskImpl),
     deployer.deploy(PrincipalImpl),
+    deployer.deploy(UpgradeImpl),
   ]);
 
   await Promise.all([
@@ -56,6 +58,7 @@ async function deployProtocol(deployer) {
       Enigma.link('WorkersImpl', WorkersImpl.address),
     Enigma.link('PrincipalImpl', PrincipalImpl.address),
     Enigma.link('TaskImpl', TaskImpl.address),
+    Enigma.link('UpgradeImpl', UpgradeImpl.address),
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
 

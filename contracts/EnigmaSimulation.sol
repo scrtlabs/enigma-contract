@@ -3,11 +3,13 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./utils/SolRsaVerify.sol";
 
 import { WorkersImplSimulation } from "./impl/WorkersImplSimulation.sol";
 import { PrincipalImpl } from "./impl/PrincipalImpl.sol";
 import { TaskImpl } from "./impl/TaskImpl.sol";
+import { UpgradeImpl } from "./impl/UpgradeImpl.sol";
 import { SecretContractImpl } from "./impl/SecretContractImpl.sol";
 import { EnigmaCommon } from "./impl/EnigmaCommon.sol";
 import { EnigmaState } from "./impl/EnigmaState.sol";
@@ -16,17 +18,19 @@ import { EnigmaStorage } from "./impl/EnigmaStorage.sol";
 import { Getters } from "./impl/Getters.sol";
 import { ERC20 } from "./interfaces/ERC20.sol";
 
-contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
+contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     using SafeMath for uint256;
     using ECDSA for bytes32;
 
     // ========================================== Constructor ==========================================
 
-    constructor(address _tokenAddress, address _principal, uint _epochSize) public {
+    constructor(address _tokenAddress, address _principal, uint _epochSize)
+    public {
         state.engToken = ERC20(_tokenAddress);
         state.epochSize = _epochSize;
         state.taskTimeoutSize = 200;
         state.principal = _principal;
+        state.updatedEnigmaContractAddress = address(this);
         state.stakingThreshold = 1;
         state.workerGroupSize = 1;
     }
@@ -502,5 +506,16 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     returns (uint)
     {
         return WorkersImplSimulation.verifyReportImpl(_data, _signature);
+    }
+
+    /**
+    * Upgrade Enigma Contract
+    * @param _updatedEnigmaContractAddress Updated newly-deployed Enigma contract address
+    */
+    function upgradeEnigmaContract(address _updatedEnigmaContractAddress)
+    public
+    onlyOwner
+    {
+        return UpgradeImpl.upgradeEnigmaContractImpl(state, _updatedEnigmaContractAddress);
     }
 }
