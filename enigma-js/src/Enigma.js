@@ -329,6 +329,26 @@ export default class Enigma {
   }
 
   /**
+   * Get the Task's task record status from Ethereum
+   *
+   * @param {string} taskId - Task ID
+   * @return {Promise} Resolves to TaskRecord struct
+   */
+  async getTaskRecordFromTaskId(taskId) {
+    const taskRecord = await this.enigmaContract.methods.getTaskRecord(taskId).call();
+    return {
+      sender: taskRecord.sender,
+      inputsHash: taskRecord.inputsHash,
+      outputHash: taskRecord.outputHash,
+      gasLimit: parseInt(taskRecord.gasLimit),
+      gasPx: parseInt(taskRecord.gasPx),
+      blockNumber: parseInt(taskRecord.blockNumber),
+      status: parseInt(taskRecord.status),
+      proof: taskRecord.proof,
+    };
+  }
+
+  /**
    * Fetch output hash for a given task
    *
    * @param {Task} task - Task wrapper

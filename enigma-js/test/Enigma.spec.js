@@ -1511,6 +1511,7 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsed) * task.gasPx);
       expect(result.events.ReceiptVerified).toBeTruthy();
+      expect(result.events.ReceiptVerified.returnValues.workerAddress).toEqual(worker.account);
     });
 
     it('should count state deltas', async () => {
@@ -1527,6 +1528,11 @@ describe('Enigma tests', () => {
       const verifyTaskStatus = await enigma.verifyTaskStatus(task);
       expect(verifyTaskOutput).toEqual(true);
       expect(verifyTaskStatus).toEqual(true);
+      const taskRecord = await enigma.getTaskRecordFromTaskId(task.taskId);
+      expect(taskRecord.sender).toEqual(accounts[0]);
+      expect(taskRecord.gasLimit).toEqual(100);
+      expect(taskRecord.gasPx).toEqual(100000000);
+      expect(taskRecord.status).toEqual(2);
     });
 
     it('should simulate successful task receipt with state delta', async () => {
