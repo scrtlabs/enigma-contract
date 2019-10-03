@@ -44,7 +44,7 @@ export default class Enigma {
     this.config.retry.maxTimeout = config.retry ?
       (config.retry.maxTimeout != null ? config.retry.maxTimeout : 'Infinity') : 'Infinity';
     this.config.retry.randomize = config.retry ?
-      (config.retry.randomize != null ? config.retry.randomize : false) : false;
+      (config.retry.randomize != null ? config.retry.randomize : true) : true;
 
     // axios callback for jayson rpc client to interface with ENG network
     let callServer = function(request, callback) {
