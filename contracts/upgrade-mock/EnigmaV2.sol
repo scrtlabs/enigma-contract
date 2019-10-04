@@ -4,33 +4,34 @@ pragma experimental ABIEncoderV2;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "./utils/SolRsaVerify.sol";
+import "../utils/SolRsaVerify.sol";
 
-import { WorkersImplSimulation } from "./impl/WorkersImplSimulation.sol";
-import { PrincipalImpl } from "./impl/PrincipalImpl.sol";
-import { TaskImpl } from "./impl/TaskImpl.sol";
-import { UpgradeImpl } from "./impl/UpgradeImpl.sol";
-import { SecretContractImpl } from "./impl/SecretContractImpl.sol";
-import { EnigmaCommon } from "./impl/EnigmaCommon.sol";
-import { EnigmaState } from "./impl/EnigmaState.sol";
-import { EnigmaEvents } from "./impl/EnigmaEvents.sol";
-import { EnigmaStorage } from "./impl/EnigmaStorage.sol";
-import { Getters } from "./impl/Getters.sol";
-import { ERC20 } from "./interfaces/ERC20.sol";
+import { WorkersImplV2 } from "./impl/WorkersImplV2.sol";
+import { PrincipalImplV2 } from "./impl/PrincipalImplV2.sol";
+import { TaskImplV2 } from "./impl/TaskImplV2.sol";
+import { UpgradeImpl } from "../impl/UpgradeImpl.sol";
+import { SecretContractImpl } from "../impl/SecretContractImpl.sol";
+import { EnigmaCommon } from "../impl/EnigmaCommon.sol";
+import { EnigmaState } from "../impl/EnigmaState.sol";
+import { EnigmaEvents } from "../impl/EnigmaEvents.sol";
+import { EnigmaStorage } from "../impl/EnigmaStorage.sol";
+import { Getters } from "../impl/Getters.sol";
+import { ERC20 } from "../interfaces/ERC20.sol";
 
-contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
+contract EnigmaV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     using SafeMath for uint256;
     using ECDSA for bytes32;
 
     // ========================================== Constructor ==========================================
 
-    constructor(address _tokenAddress, address _principal, uint _epochSize)
+    constructor(address _tokenAddress, address _principal, address _oldEnigmaContractAddress, uint _epochSize)
     public {
         state.engToken = ERC20(_tokenAddress);
         state.epochSize = _epochSize;
         state.taskTimeoutSize = 200;
         state.principal = _principal;
         state.updatedEnigmaContractAddress = address(this);
+        state.oldEnigmaContractAddress = _oldEnigmaContractAddress;
         state.stakingThreshold = 1;
         state.workerGroupSize = 1;
     }
@@ -91,7 +92,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     modifier canWithdraw(address _user) {
         EnigmaCommon.Worker memory worker = state.workers[_user];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
-        EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulation.getLatestWorkerLogImpl(worker, block.number);
+        EnigmaCommon.WorkerLog memory workerLog = WorkersImplV2.getLatestWorkerLogImpl(worker, block.number);
         require(workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogOut,
             "Worker's last log is not of LogOut type");
         require(getFirstBlockNumber(block.number) > workerLog.blockNumber,
@@ -169,13 +170,14 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * @param _signer The signer address, derived from the enclave public key
     * @param _report The RLP encoded report returned by the IAS
     * @param _signature Signature
+    * @param _upgradeTransferSig Signature
     */
-    function register(address _signer, bytes memory _report, bytes memory _signature)
+    function register(address _signer, bytes memory _report, bytes memory _signature, bytes memory _upgradeTransferSig)
     public
     isUpdatedEnigmaContract
     isUniqueSigningKey(_signer)
     {
-        WorkersImplSimulation.registerImpl(state, _signer, _report, _signature);
+        WorkersImplV2.registerImpl(state, _signer, _report, _signature, _upgradeTransferSig);
     }
 
     /**
@@ -189,7 +191,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     isUpdatedEnigmaContract
     workerRegistered(_custodian)
     {
-        WorkersImplSimulation.depositImpl(state, _custodian, _amount);
+        WorkersImplV2.depositImpl(state, _custodian, _amount);
     }
 
     /**
@@ -201,7 +203,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     public
     canWithdraw(msg.sender)
     {
-        WorkersImplSimulation.withdrawImpl(state, _amount);
+        WorkersImplV2.withdrawImpl(state, _amount);
     }
 
     /**
@@ -209,14 +211,14 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * selection process.
     */
     function login() public canLogIn(msg.sender) {
-        WorkersImplSimulation.loginImpl(state);
+        WorkersImplV2.loginImpl(state);
     }
 
     /**
     * Logout worker. Worker must be logged in to do so.
     */
     function logout() public workerLoggedIn(msg.sender) {
-        WorkersImplSimulation.logoutImpl(state);
+        WorkersImplV2.logoutImpl(state);
     }
 
     /**
@@ -236,7 +238,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerLoggedIn(msg.sender)
     contractUndefined(_taskId)
     {
-        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _gasUsed, _sig);
+        TaskImplV2.deploySecretContractFailureImpl(state, _taskId, _gasUsed, _sig);
     }
 
     /**
@@ -266,7 +268,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerLoggedIn(msg.sender)
     contractUndefined(_taskId)
     {
-        TaskImpl.deploySecretContractImpl(state, _taskId, _preCodeHash, _codeHash, _initStateDeltaHash,
+        TaskImplV2.deploySecretContractImpl(state, _taskId, _preCodeHash, _codeHash, _initStateDeltaHash,
             _optionalEthereumData, _optionalEthereumContractAddress, _gasUsed, _sig);
     }
 
@@ -321,7 +323,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     public
     isUpdatedEnigmaContract
     {
-        TaskImpl.createDeploymentTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber, _nonce);
+        TaskImplV2.createDeploymentTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber, _nonce);
     }
 
     /**
@@ -343,7 +345,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     public
     isUpdatedEnigmaContract
     {
-        TaskImpl.createTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber);
+        TaskImplV2.createTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber);
     }
 
     /**
@@ -365,7 +367,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     public
     isUpdatedEnigmaContract
     {
-        TaskImpl.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber);
+        TaskImplV2.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber);
     }
 
     /**
@@ -396,7 +398,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+        TaskImplV2.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
             _optionalEthereumContractAddress, _gasUsed, _sig);
     }
 
@@ -420,7 +422,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
+        TaskImplV2.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
     }
 
     /**
@@ -432,7 +434,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     public
     taskWaiting(_taskId)
     {
-        TaskImpl.returnFeesForTaskImpl(state, _taskId);
+        TaskImplV2.returnFeesForTaskImpl(state, _taskId);
     }
 
     /**
@@ -448,7 +450,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     isUpdatedEnigmaContract
     workerRegistered(msg.sender)
     {
-        PrincipalImpl.setWorkersParamsImpl(state, _blockNumber, _seed, _sig);
+        PrincipalImplV2.setWorkersParamsImpl(state, _blockNumber, _seed, _sig);
     }
 
     /**
@@ -461,7 +463,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     view
     returns (address[] memory, uint[] memory)
     {
-        return PrincipalImpl.getActiveWorkersImpl(state, _blockNumber);
+        return PrincipalImplV2.getActiveWorkersImpl(state, _blockNumber);
     }
 
     /**
@@ -474,7 +476,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     public
     view
     returns (uint) {
-        return WorkersImplSimulation.getFirstBlockNumberImpl(state, _blockNumber);
+        return WorkersImplV2.getFirstBlockNumberImpl(state, _blockNumber);
     }
 
     /**
@@ -490,7 +492,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     public
     view
     returns (uint, uint, address[] memory, uint[] memory) {
-        return WorkersImplSimulation.getWorkerParamsImpl(state, _blockNumber);
+        return WorkersImplV2.getWorkerParamsImpl(state, _blockNumber);
     }
 
     /**
@@ -506,7 +508,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     view
     returns (address[] memory)
     {
-        return WorkersImplSimulation.getWorkerGroupImpl(state, _blockNumber, _scAddr);
+        return WorkersImplV2.getWorkerGroupImpl(state, _blockNumber, _scAddr);
     }
 
     /**
@@ -520,7 +522,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerRegistered(_custodian)
     returns (address, bytes memory)
     {
-        return WorkersImplSimulation.getReportImpl(state, _custodian);
+        return WorkersImplV2.getReportImpl(state, _custodian);
     }
 
     /**
@@ -533,7 +535,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     view
     returns (uint)
     {
-        return WorkersImplSimulation.verifyReportImpl(_data, _signature);
+        return WorkersImplV2.verifyReportImpl(_data, _signature);
     }
 
     /**

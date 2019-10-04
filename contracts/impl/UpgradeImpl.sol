@@ -43,15 +43,22 @@ library UpgradeImpl {
     function transferWorkerStakePostUpgradeImpl(
         EnigmaState.State storage state,
         address _workerAddress,
+        address _signer,
         bytes memory _sig
     )
     public
+    returns (uint256)
     {
-        bytes32 msgHash = keccak256(state.updatedEnigmaContractAddress.toBytes());
-        require(msgHash.recover(_sig) == _workerAddress, "Invalid signature");
+        // Verify the worker's signature
+        bytes memory message;
+        message = EnigmaCommon.appendMessage(message, state.updatedEnigmaContractAddress.toBytes());
+        bytes32 msgHash = keccak256(message);
+        require(msgHash.recover(_sig) == _signer, "Invalid signature");
         EnigmaCommon.Worker storage worker = state.workers[_workerAddress];
         require(state.engToken.transfer(state.updatedEnigmaContractAddress, worker.balance),
             "Token transfer failed");
+        uint256 oldWorkerBalance = worker.balance;
         worker.balance = 0;
+        return oldWorkerBalance;
     }
 }

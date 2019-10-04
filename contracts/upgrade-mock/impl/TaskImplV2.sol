@@ -4,18 +4,18 @@ pragma experimental ABIEncoderV2;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 
-import { EnigmaCommon } from "./EnigmaCommon.sol";
-import { EnigmaState } from "./EnigmaState.sol";
-import { WorkersImplSimulation } from "./WorkersImplSimulation.sol";
-import { Bytes } from "../utils/Bytes.sol";
-import "../utils/SolRsaVerify.sol";
+import { EnigmaCommon } from "../../impl/EnigmaCommon.sol";
+import { EnigmaState } from "../../impl/EnigmaState.sol";
+import { WorkersImplV2 } from "./WorkersImplV2.sol";
+import { Bytes } from "../../utils/Bytes.sol";
+import "../../utils/SolRsaVerify.sol";
 
 /**
  * @author Enigma
  *
  * Library that maintains functionality associated with tasks
  */
-library TaskImplSimulation {
+library TaskImplV2 {
     using SafeMath for uint256;
     using ECDSA for bytes32;
     using Bytes for bytes;
@@ -50,7 +50,7 @@ library TaskImplSimulation {
         require(state.userTaskDeployments[msg.sender] == _nonce, "Incorrect nonce yielding bad secret contract address");
 
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImplSimulation.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
+        require(_firstBlockNumber == WorkersImplV2.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
 
         // Transfer fee from sender to contract
         uint fee = _gasLimit.mul(_gasPx);
@@ -84,7 +84,7 @@ library TaskImplSimulation {
 
         EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
+        require(worker.signer == WorkersImplV2.getWorkerGroupImpl(state, task.blockNumber, _taskId)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -196,7 +196,7 @@ library TaskImplSimulation {
     public
     {
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImplSimulation.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
+        require(_firstBlockNumber == WorkersImplV2.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
 
         // Transfer fee from sender to contract
         uint fee = _gasLimit.mul(_gasPx);
@@ -237,7 +237,7 @@ library TaskImplSimulation {
 
         EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
+        require(worker.signer == WorkersImplV2.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -271,7 +271,7 @@ library TaskImplSimulation {
         require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
 
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(worker.signer == WorkersImplSimulation.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
+        require(worker.signer == WorkersImplV2.getWorkerGroupImpl(state, task.blockNumber, _scAddr)[0],
             "Not the selected worker for this task");
 
         // Check that worker isn't charging the user too high of a fee
@@ -362,7 +362,7 @@ library TaskImplSimulation {
     public
     {
         // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImplSimulation.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
+        require(_firstBlockNumber == WorkersImplV2.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
 
         bytes32[] memory taskIds = new bytes32[](_inputsHashes.length);
         for (uint i = 0; i < _inputsHashes.length; i++) {

@@ -10,6 +10,7 @@ import Web3 from 'web3';
 import JSBI from 'jsbi';
 import EthCrypto from 'eth-crypto';
 import EnigmaContract from '../../build/contracts/Enigma';
+import EnigmaContractV2 from '../../build/contracts/EnigmaV2';
 import EnigmaContractSimulation from '../../build/contracts/EnigmaSimulation';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import WorkersImplContract from '../../build/contracts/WorkersImpl';
@@ -1770,6 +1771,7 @@ describe('Enigma tests', () => {
     });
 
     let gasUsedEthCall;
+    let latestTask;
     it('should simulate task receipt with eth call', async () => {
       let taskFn = 'medianWealth(int32,int32)';
       let taskArgs = [
@@ -1834,6 +1836,7 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(task.gasLimit * task.gasPx);
       expect(endingSenderBalance).toEqual(startingSenderBalance);
       expect(result.events.ReceiptVerified).toBeTruthy();
+      latestTask = task;
     });
 
     it('should get the confirmed task', async () => {
@@ -2238,20 +2241,13 @@ describe('Enigma tests', () => {
 
     let enigmaUpgradedContract;
     it('should instantiate enigma upgraded contract address', async () => {
-      const enigmaUpgradedContractWrapper = new web3.eth.Contract(EnigmaContract['abi']);
-      let enigmaContractByteCode = EnigmaContract['bytecode']
-        .replace(/_+WorkersImpl_+/g, utils.remove0x(WorkersImplContract.networks['4447'].address))
-        .replace(/_+PrincipalImpl_+/g, utils.remove0x(PrincipalImplContract.networks['4447'].address))
-        .replace(/_+TaskImpl_+/g, utils.remove0x(TaskImplContract.networks['4447'].address))
-        .replace(/_+UpgradeImpl_+/g, utils.remove0x(UpgradeImplContract.networks['4447'].address))
-        .replace(/_+SecretContractImpl_+/g, utils.remove0x(SecretContractImplContract.networks['4447'].address));
-      enigmaUpgradedContract = await enigmaUpgradedContractWrapper.deploy({
-        data: enigmaContractByteCode,
-        arguments: [EnigmaTokenContract.networks['4447'].address, '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225', 20]
-      }).send({
-        gas: '6000000',
-        from: accounts[0]
-      });
+      enigmaUpgradedContract = new web3.eth.Contract(EnigmaContractV2['abi'],
+        EnigmaContractV2.networks['4447'].address, {
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: accounts[0],
+        }
+      );
     });
 
     it('should fail to upgrade Enigma contract from invalid address', async () => {
@@ -2345,61 +2341,42 @@ describe('Enigma tests', () => {
         ' contract');
     });
 
-    // it('should fail to upgrade Enigma contract from an invalid address', async () => {
-    //   await expect(new Promise((resolve, reject) => {
-    //     enigma.enigmaContract.methods.upgradeEnigmaContract(scAddr, task.taskId, stateDeltaHash, outputHash,
-    //       optionalEthereumData,
-    //       optionalEthereumContractAddress, gasUsed, sig).send({
-    //       from: worker.account,
-    //       gasLimit: 300000,
-    //     }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
-    //   })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not enough gas from ' +
-    //     'worker for minimum eth callback');
-    // });
-
-    // it('should fail to deploy contract task using wrapper function', async () => {
-    //   preCode = Buffer.from('9d075aef', 'hex');
-    //   let scTaskFn = 'deployContract(string,uint)';
-    //   let scTaskArgs = [
-    //     ['first_sc', 'string'],
-    //     [1, 'uint'],
-    //   ];
-    //   let scTaskGasLimit = 100;
-    //   let scTaskGasPx = utils.toGrains(1);
-    //   const startingContractBalance = parseInt(
-    //     await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
-    //   );
-    //   scTask = await new Promise((resolve, reject) => {
-    //     enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode).
-    //     on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
-    //     on(eeConstants.ERROR, (error) => reject(error));
-    //   });
-    //   const endingContractBalance = parseInt(
-    //     await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
-    //   );
-    //   expect(scTask).toBeTruthy();
-    //   expect(scTask.scAddr).toBeTruthy();
-    //   expect(scTask.preCode).not.toEqual('');
-    //   expect(scTask.preCodeHash).not.toEqual('');
-    //   expect(scTask.encryptedFn).toBeTruthy();
-    //   expect(scTask.encryptedAbiEncodedArgs).toBeTruthy();
-    //   expect(scTask.gasLimit).toEqual(scTaskGasLimit);
-    //   expect(scTask.gasPx).toEqual(scTaskGasPx);
-    //   expect(scTask.msgId).toBeTruthy();
-    //   expect(scTask.sender).toEqual(accounts[0]);
-    //   const msg = web3.utils.soliditySha3(
-    //     {t: 'bytes', v: scTask.encryptedFn},
-    //     {t: 'bytes', v: scTask.encryptedAbiEncodedArgs},
-    //   );
-    //   expect(enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig)).toEqual(accounts[0]);
-    //   expect(scTask.nonce).toEqual(2);
-    //   expect(scTask.receipt).toBeTruthy();
-    //   expect(scTask.transactionHash).toBeTruthy();
-    //   expect(scTask.taskId).toBeTruthy();
-    //   expect(scTask.ethStatus).toEqual(1);
-    //   expect(scTask.proof).toBeFalsy();
-    //   expect(endingContractBalance - startingContractBalance).toEqual(scTask.gasLimit * scTask.gasPx);
-    //   expect(scTask).toBeTruthy();
-    // });
+    it('should re-register workers and confirm worker balance has been transferred', async () => {
+      const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const index = accounts.indexOf(worker.account);
+      const workerData = data.workers[index];
+      const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + workerData[3];
+      const proof = utils.hash([enigmaUpgradedContract.options.address]);
+      const priv = workerData[4];
+      const sig = EthCrypto.sign(priv, proof);
+      const startingOldContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      const startingNewContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigmaUpgradedContract.options.address).call(),
+      );
+      await new Promise((resolve, reject) => {
+        enigmaUpgradedContract.methods.register(workerData[0], report, signature, sig).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: worker.account,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
+      });
+      const endingOldContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      const endingNewContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigmaUpgradedContract.options.address).call(),
+      );
+      expect(endingOldContractBalance - startingOldContractBalance).toEqual(-worker.balance);
+      expect(endingNewContractBalance - startingNewContractBalance).toEqual(worker.balance);
+      const oldWorker = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const newWorker = await enigmaUpgradedContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      expect(parseInt(oldWorker[1][3])).toEqual(0);
+      expect(parseInt(newWorker[1][3])).toEqual(worker.balance);
+    });
   },
 );

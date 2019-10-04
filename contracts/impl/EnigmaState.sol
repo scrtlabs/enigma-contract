@@ -31,6 +31,8 @@ library EnigmaState {
 
         address updatedEnigmaContractAddress;
 
+        address oldEnigmaContractAddress;
+
         /**
         * The last 5 worker parameters
         * We keep a collection of worker parameters to account for latency issues.
