@@ -72,7 +72,24 @@ describe('Enigma tests', () => {
       expect(sampleContract.options.address).toBeTruthy();
     });
 
+    it('should fail to obtain key/pair without being set first', () => {
+      try {
+        const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
+      } catch (err) {
+        expect(err.message).toEqual('Need to set task key pair first');
+      }
+    });
+
     it('should generate and save key/pair', () => {
+      const seed = enigma.setTaskKeyPair();
+      const keyPair = enigma.obtainTaskKeyPair();
+      expect(keyPair.privateKey).toBeTruthy();
+      expect(keyPair.publicKey).toBeTruthy();
+      enigma.setTaskKeyPair(seed);
+      const keyPair2 = enigma.obtainTaskKeyPair();
+      expect(keyPair2.privateKey).toEqual(keyPair.privateKey);
+      expect(keyPair2.publicKey).toEqual(keyPair.publicKey);
+      enigma.setTaskKeyPair('cupcake');
       const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
       expect(privateKey).toEqual('1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f');
       expect(publicKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273' +

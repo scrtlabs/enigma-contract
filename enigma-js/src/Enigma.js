@@ -681,8 +681,7 @@ export default class Enigma {
   }
 
   /**
-   * Deterministically generate a key-secret pair necessary for deriving a shared encryption key with the selected
-   * worker. This pair will be stored in local storage for quick retrieval.
+   * Obtain task key pair that has been set
    *
    * @return {Object} Public key-private key pair
    */
@@ -693,19 +692,38 @@ export default class Enigma {
     let encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
       this.taskKeyLocalStorage['encodedPrivateKey'];
     if (encodedPrivateKey == null) {
-      let random = forge.random.createInstance();
-      // TODO: Query user for passphrase
-      random.seedFileSync = function(needed) {
-        return forge.util.fillString('cupcake', needed);
-      };
-      privateKey = forge.util.bytesToHex(random.getBytes(32));
-      isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
-        this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+      throw Error('Need to set task key pair first');
     } else {
       privateKey = isBrowser ? atob(encodedPrivateKey) : Buffer.from(encodedPrivateKey, 'base64').toString('binary');
     }
     let publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
     return {publicKey, privateKey};
+  }
+
+  /**
+   * Deterministically generate a key-secret pair necessary for deriving a shared encryption key with the selected
+   * worker. This pair will be stored in local storage for quick retrieval.
+   *
+   * @param {string} seed - Optional seed
+   * @return {string} Seed
+   */
+  setTaskKeyPair(seed='') {
+    const isBrowser = typeof window !== 'undefined';
+    if (seed === '') {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      for (let i = 0; i < 9; i++) {
+        seed += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+    }
+    let random = forge.random.createInstance();
+    // TODO: Query user for passphrase
+    random.seedFileSync = function(needed) {
+      return forge.util.fillString(seed, needed);
+    };
+    const privateKey = forge.util.bytesToHex(random.getBytes(32));
+    isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
+      this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+    return seed;
   }
 
   /**
