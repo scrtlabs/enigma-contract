@@ -17,15 +17,16 @@ import "../utils/SolRsaVerify.sol";
  */
 library TaskImpl {
     using SafeMath for uint256;
+    using SafeMath for uint64;
     using ECDSA for bytes32;
     using Bytes for bytes;
     using Bytes for bytes32;
     using Bytes for uint64;
     using Bytes for address;
 
-    event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint gasLimit, uint gasPx, address sender,
+    event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
-    event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint[] gasLimits, uint[] gasPxs, address sender,
+    event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint64[] gasLimits, uint64[] gasPxs, address sender,
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
@@ -39,8 +40,8 @@ library TaskImpl {
     function createDeploymentTaskRecordImpl(
         EnigmaState.State storage state,
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber,
         uint _nonce
     )
@@ -98,6 +99,7 @@ library TaskImpl {
         // Verify the worker's signature
         bytes memory message;
         message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, hex"00");
         bytes32 msgHash = keccak256(message);
@@ -116,9 +118,11 @@ library TaskImpl {
 
         // Verify the worker's signature
         bytes memory message;
-        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
+        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _codeHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _initStateDeltaHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
@@ -188,8 +192,8 @@ library TaskImpl {
     function createTaskRecordImpl(
         EnigmaState.State storage state,
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber
     )
     public
@@ -251,6 +255,7 @@ library TaskImpl {
         bytes memory message;
         message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, hex"00");
         bytes32 msgHash = keccak256(message);
@@ -289,11 +294,13 @@ library TaskImpl {
 
         // Verify the worker's signature
         bytes memory message;
+        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
         message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
-        message = EnigmaCommon.appendMessage(message, state.tasks[_taskId].inputsHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.inputsHash.toBytes());
         message = EnigmaCommon.appendMessage(message, lastStateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _stateDeltaHash.toBytes());
         message = EnigmaCommon.appendMessage(message, _outputHash.toBytes());
+        message = EnigmaCommon.appendMessage(message, task.gasLimit.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, _optionalEthereumData);
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
@@ -353,8 +360,8 @@ library TaskImpl {
     function createTaskRecordsImpl(
         EnigmaState.State storage state,
         bytes32[] memory _inputsHashes,
-        uint[] memory _gasLimits,
-        uint[] memory _gasPxs,
+        uint64[] memory _gasLimits,
+        uint64[] memory _gasPxs,
         uint _firstBlockNumber
     )
     public

@@ -287,8 +287,8 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createDeploymentTaskRecord(
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber,
         uint _nonce
     )
@@ -309,8 +309,8 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createTaskRecord(
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber
     )
     public
@@ -330,8 +330,8 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createTaskRecords(
         bytes32[] memory _inputsHashes,
-        uint[] memory _gasLimits,
-        uint[] memory _gasPxs,
+        uint64[] memory _gasLimits,
+        uint64[] memory _gasPxs,
         uint _firstBlockNumber
     )
     public
