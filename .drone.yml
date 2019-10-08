@@ -105,5 +105,5 @@ steps:
       - cd discovery-docker-network/enigma-contract
       - echo $PASSWORD | docker login -u $USERNAME --password-stdin
       - if [[ ${DRONE_BRANCH} == "master" ]]; then export TAG=latest; else export TAG=develop; fi
-      - docker build --build-arg GIT_BRANCH_CONTRACT=${DRONE_BRANCH} -t enigmampc/enigma_contract:${TAG} --no-cache .
-      - docker push enigmampc/enigma_contract:${TAG}
+      - docker build --build-arg GIT_BRANCH_CONTRACT=${DRONE_BRANCH} -t enigmampc/enigma_contract:$TAG --no-cache .
+      - docker push enigmampc/enigma_contract:$TAG
