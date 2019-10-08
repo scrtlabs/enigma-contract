@@ -16,6 +16,7 @@ import { Bytes } from "../utils/Bytes.sol";
  */
 library UpgradeImpl {
     using SafeMath for uint256;
+    using SafeMath for uint64;
     using ECDSA for bytes32;
     using Bytes for address;
 
