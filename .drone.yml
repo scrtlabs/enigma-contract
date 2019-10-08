@@ -49,7 +49,7 @@ steps:
             sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=develop/" .env;
             docker-compose pull
           else
-            export TAG=$DRONE_BRANCH;
+            export TAG=${DRONE_BRANCH};
             sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=${TAG}/" .env;
             if [ $MATCHING_BRANCH_P2P -eq 1 ] && [ $MATCHING_BRANCH_CORE -eq 0 ]; then
               cd enigma-p2p && docker build --build-arg GIT_BRANCH_P2P=${DRONE_BRANCH} -t enigmampc/enigma_p2p:$TAG --no-cache . && cd ..
@@ -74,7 +74,7 @@ steps:
           fi
         fi
       - cd ..
-      - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=$DRONE_BRANCH -t enigmampc/enigma_contract:$TAG --no-cache . && popd
+      - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=${DRONE_BRANCH} -t enigmampc/enigma_contract:$TAG --no-cache . && popd
       - pushd discovery-docker-network && export NODES=3 && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client && popd
 
   - name: coverage
@@ -92,6 +92,10 @@ steps:
       branch:
         - develop
         - master
+    privileged: true
+    volumes:
+      - name: sock
+        path: /var/run/docker.sock
     environment:
       USERNAME:
         from_secret: username
@@ -101,6 +105,5 @@ steps:
       - cd discovery-docker-network/enigma-contract
       - echo $PASSWORD | docker login -u $USERNAME --password-stdin
       - if [[ ${DRONE_BRANCH} == "master" ]]; then export TAG=latest; else export TAG=develop; fi
-      - docker build --build-arg GIT_BRANCH_CONTRACT=$DRONE_BRANCH -t enigmampc/enigma_contract:${TAG} --no-cache .
-      - docker push enigmampc/enigma_contract:$TAG
-
+      - docker build --build-arg GIT_BRANCH_CONTRACT=${DRONE_BRANCH} -t enigmampc/enigma_contract:${TAG} --no-cache .
+      - docker push enigmampc/enigma_contract:${TAG}
