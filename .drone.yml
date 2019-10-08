@@ -2,28 +2,22 @@ kind: pipeline
 type: docker
 name: default
 steps:
-  - name: ganache
-    image: trufflesuite/ganache-cli:v6.4.3
-    detach: true
-    commands:
-      - node /app/ganache-core.docker.cli.js -p 9545 -i 4447
 
   - name: contract
     image: node:10
-    depends_on: 
-      - ganache
     privileged: true
     commands:
       - ./scripts/checkSimulationContracts.bash
       - apt-get update && apt-get install build-essential
       - yarn install
-      - yarn global add truffle
+      - yarn global add truffle ganache-cli
+      - ganache-cli -p 9545 -i 4447 &
       - cd enigma-js && yarn install && cd ..
       - rm -rf build
       - truffle compile
-      - truffle migrate --reset --network drone
+      - truffle migrate --reset --network develop
       - cd enigma-js && yarn build && cd ..
-      - SGX_MODE=SW truffle migrate --reset --network drone
+      - SGX_MODE=SW truffle migrate --reset --network develop
       - cd enigma-js && SGX_MODE=SW yarn test && cd ..
 
   - name: integration
