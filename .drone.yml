@@ -17,13 +17,13 @@ steps:
       - ./scripts/checkSimulationContracts.bash
       - yarn install
       - yarn global add truffle
-      - pushd enigma-js && yarn install && popd
+      - cd enigma-js && yarn install && cd ..
       - rm -rf build
       - truffle compile
       - truffle migrate --reset --network drone
-      - pushd enigma-js && yarn build && popd
+      - cd enigma-js && yarn build && cd ..
       - SGX_MODE=SW truffle migrate --reset --network drone
-      - pushd enigma-js && SGX_MODE=SW yarn test && popd
+      - cd enigma-js && SGX_MODE=SW yarn test && cd ..
 
   - name: integration
     image: enigmampc/docker-client
