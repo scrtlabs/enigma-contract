@@ -10,7 +10,8 @@ steps:
 
   - name: contract
     image: node:10
-    depends_on: ganache
+    depends_on: 
+      - ganache
     privileged: true
     commands:
       - ./scripts/checkSimulationContracts.bash
@@ -26,7 +27,8 @@ steps:
 
   - name: integration
     image: enigmampc/docker-client
-    depends_on: contract
+    depends_on: 
+      - contract
     privileged: true
     volumes:
       - name: sock
@@ -77,7 +79,8 @@ steps:
 
   - name: coverage
     image: node:10
-    depends_on: integration
+    depends_on: 
+      - integration
     commands:
       - pushd enigma-js && yarn report-coverage && popd
 
