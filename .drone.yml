@@ -47,8 +47,10 @@ steps:
             sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=${TAG}/" .env;
             if [ $MATCHING_BRANCH_P2P -eq 1 ] && [ $MATCHING_BRANCH_CORE -eq 0 ]; then
               cd enigma-p2p && docker build --build-arg GIT_BRANCH_P2P=${DRONE_BRANCH} -t enigmampc/enigma_p2p:$TAG --no-cache . && cd ..
-              docker pull enigmampc/enigma_contract:develop
-              docker tag enigmampc/enigma_contract:develop enigmampc/enigma_contract:$TAG
+              docker pull enigmampc/enigma_core_hw:develop
+              docker tag enigmampc/enigma_core_hw:develop enigmampc/enigma_core_hw:$TAG
+              docker pull enigmampc/enigma_km_hw:develop
+              docker tag enigmampc/enigma_km_hw:develop enigmampc/enigma_km_hw:$TAG
             else
               if [ $MATCHING_BRANCH_P2P -eq 0 ] && [ $MATCHING_BRANCH_CORE -eq 1 ]; then
                 cd enigma-core
@@ -71,7 +73,7 @@ steps:
       - export NODES=3
       - docker-compose -f docker-compose.yml -f docker-compose.hw.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client && export RESULT=$? || export RESULT=$?
       - if [[ "${DRONE_BRANCH}" == "$TAG" ]]; then docker-compose down -v --rmi all; else docker-compose down -v; fi
-      - if [ $RESULT -ne 0 ]; exit 1; fi
+      - if [ $RESULT -ne 0 ]; then exit 1; fi
 
   - name: coverage
     image: node:10
