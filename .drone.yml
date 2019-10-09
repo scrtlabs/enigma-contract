@@ -21,9 +21,9 @@ steps:
 
   - name: integration
     image: enigmampc/docker-client
+    privileged: true
     depends_on: 
       - contract
-    privileged: true
     volumes:
       - name: sock
         path: /var/run/docker.sock
@@ -34,11 +34,11 @@ steps:
       - export MATCHING_BRANCH_P2P="$(git ls-remote --heads https://github.com/enigmampc/enigma-p2p.git ${DRONE_BRANCH} | wc -l)"
       - export MATCHING_BRANCH_CORE="$(git ls-remote --heads https://github.com/enigmampc/enigma-core.git ${DRONE_BRANCH} | wc -l)"
       - |
-        if [[ ${DRONE_BRANCH} == "master" ]]; then
+        if [[ "${DRONE_BRANCH}" == "master" ]]; then
           export TAG=latest;
           docker-compose pull
         else
-          if ! (( $MATCHING_BRANCH_P2P + $MATCHING_BRANCH_CORE )); then
+          if [ $MATCHING_BRANCH_P2P -eq 0 ] &&  [ $MATCHING_BRANCH_CORE -eq 0 ]; then
             export TAG=develop;
             sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=develop/" .env;
             docker-compose pull
@@ -68,7 +68,10 @@ steps:
           fi
         fi
       - cd enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=${DRONE_BRANCH} -t enigmampc/enigma_contract:$TAG --no-cache . && cd ..
-      - export NODES=3 && docker-compose -f docker-compose.yml -f docker-compose.hw.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client
+      - export NODES=3
+      - docker-compose -f docker-compose.yml -f docker-compose.hw.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client && export RESULT=$? || export RESULT=$?
+      - if [[ "${DRONE_BRANCH}" == "$TAG" ]]; then docker-compose down -v --rmi all; else docker-compose down -v; fi
+      - if [ $RESULT -ne 0 ]; exit 1; fi
 
   - name: coverage
     image: node:10
