@@ -67,16 +67,15 @@ steps:
             fi
           fi
         fi
-      - cd ..
-      - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=${DRONE_BRANCH} -t enigmampc/enigma_contract:$TAG --no-cache . && popd
-      - pushd discovery-docker-network && export NODES=3 && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client && popd
+      - cd enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=${DRONE_BRANCH} -t enigmampc/enigma_contract:$TAG --no-cache . && cd ..
+      - export NODES=3 && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client
 
   - name: coverage
     image: node:10
     depends_on: 
       - integration
     commands:
-      - pushd enigma-js && yarn report-coverage && popd
+      - cd enigma-js && yarn report-coverage
 
   - name: deploy
     image: enigmampc/docker-client
