@@ -3,19 +3,7 @@ language: node_js
 sudo: true
 
 node_js:
-  - "10.14"
-
-services:
-  - docker
-
-env:
-  - DOCKER_COMPOSE_VERSION=1.23.2
-
-before_install:
-  - sudo rm /usr/local/bin/docker-compose
-  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-  - chmod +x docker-compose
-  - sudo mv docker-compose /usr/local/bin
+  - "10.16"
 
 install:
   - ./scripts/checkSimulationContracts.bash
@@ -35,55 +23,6 @@ script:
   - pushd enigma-js && yarn build && popd
   - SGX_MODE=SW truffle migrate --reset --network develop
   - pushd enigma-js && SGX_MODE=SW yarn test && popd
-  - git clone https://github.com/enigmampc/discovery-docker-network.git
-  - cd discovery-docker-network
-  - cp .env-template .env && sed -i "s/SGX_MODE=HW/SGX_MODE=SW/" .env
-  - export MATCHING_BRANCH_P2P="$(git ls-remote --heads https://github.com/enigmampc/enigma-p2p.git ${TRAVIS_BRANCH} | wc -l)"
-  - export MATCHING_BRANCH_CORE="$(git ls-remote --heads https://github.com/enigmampc/enigma-core.git ${TRAVIS_BRANCH} | wc -l)"
-  - |
-    if [[ ${TRAVIS_BRANCH} == "master" ]]; then
-      export TAG=latest;
-      docker-compose pull
-    else
-      if ! (( $MATCHING_BRANCH_P2P + $MATCHING_BRANCH_CORE )); then
-        export TAG=develop;
-        sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=develop/" .env;
-        docker-compose pull
-      else
-        export TAG=$TRAVIS_BRANCH;
-        sed -i "s/DOCKER_TAG=latest/DOCKER_TAG=${TAG}/" .env;
-        if [ $MATCHING_BRANCH_P2P -eq 1 ] && [ $MATCHING_BRANCH_CORE -eq 0 ]; then
-          cd enigma-p2p && docker build --build-arg GIT_BRANCH_P2P=${TRAVIS_BRANCH} -t enigmampc/enigma_p2p:$TAG --no-cache . && cd ..
-          docker pull enigmampc/enigma_contract:develop
-          docker tag enigmampc/enigma_contract:develop enigmampc/enigma_contract:$TAG
-        else
-          if [ $MATCHING_BRANCH_P2P -eq 0 ] && [ $MATCHING_BRANCH_CORE -eq 1 ]; then
-            cd enigma-core
-            docker build --build-arg GIT_BRANCH_CORE=${TRAVIS_BRANCH} --build-arg SGX_MODE=SW -t enigmampc/enigma_core_sw:$TAG --no-cache .
-            docker build -f Dockerfile.km --build-arg GIT_BRANCH_CORE=${TRAVIS_BRANCH} --build-arg SGX_MODE=SW -t enigmampc/enigma_km_sw:$TAG --no-cache .
-            cd ..
-            docker pull enigmampc/enigma_p2p:develop
-            docker tag enigmampc/enigma_p2p:develop enigmampc/enigma_p2p:$TAG
-          else
-            cd enigma-p2p && docker build --build-arg GIT_BRANCH_P2P=${TRAVIS_BRANCH} -t enigmampc/enigma_p2p:$TAG --no-cache . && cd ..
-            cd enigma-core
-            docker build --build-arg GIT_BRANCH_CORE=${TRAVIS_BRANCH} --build-arg SGX_MODE=SW -t enigmampc/enigma_core_sw:$TAG --no-cache .
-            docker build -f Dockerfile.km --build-arg GIT_BRANCH_CORE=${TRAVIS_BRANCH} --build-arg SGX_MODE=SW -t enigmampc/enigma_km_sw:$TAG --no-cache .
-            cd ..
-          fi
-        fi
-      fi
-    fi
-  - cd ..
-  - pushd discovery-docker-network/enigma-contract && docker build --build-arg GIT_BRANCH_CONTRACT=$TRAVIS_BRANCH -t enigmampc/enigma_contract:$TAG --no-cache . && popd
-  - pushd discovery-docker-network && export NODES=3 && docker-compose -f docker-compose.yml -f docker-compose.test.yml up --scale core=$NODES --scale p2p=$NODES --exit-code-from client && popd
 
 after_success:
   - pushd enigma-js && yarn report-coverage && popd
-
-deploy:
-  provider: script
-  script: bash scripts/deploy.sh
-  on:
-    all_branches: true
-    condition: $TRAVIS_BRANCH =~ ^master|develop$
