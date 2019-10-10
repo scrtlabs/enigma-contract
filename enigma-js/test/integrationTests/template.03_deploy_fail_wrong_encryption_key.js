@@ -43,6 +43,10 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   function createWrongEncryptionKeyTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {

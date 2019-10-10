@@ -41,6 +41,11 @@ describe('Enigma tests', () => {
   });
 
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   const flipcoinAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-flipcoin.txt'), 'utf-8');
   let task;
   it('should execute compute task', async () => {

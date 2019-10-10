@@ -40,6 +40,10 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   let scTask2;
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
