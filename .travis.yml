@@ -28,6 +28,7 @@ before_script:
   - sleep 5
 
 script:
+  - set -e
   - rm -rf build
   - truffle compile
   - truffle migrate --reset --network develop
