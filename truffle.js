@@ -24,12 +24,6 @@ module.exports = {
             host: "localhost",
             port: 30000,
             network_id: "3"
-        },
-        // This network section is needed for drone.io, do not remove
-        drone: {
-            host: 'ganache',
-            port: 9545,
-            network_id: '4447'
         }
     },
     solc: {
