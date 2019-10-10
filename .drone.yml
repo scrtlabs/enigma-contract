@@ -86,6 +86,9 @@ steps:
     image: node:10
     depends_on: 
       - integration
+    environment:
+      CODECOV_TOKEN:
+        from_secret: CODECOV_TOKEN
     commands:
       - cd enigma-js && yarn report-coverage
 
