@@ -47,6 +47,11 @@ describe('Init tests', () => {
   });
 
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   it('initializes Sample contract', async () => {
     sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
       SampleContract.networks['4447'].address);
@@ -180,7 +185,7 @@ describe('Init tests', () => {
     '912be61358d5e90bff56a53a0ed42abfe27e3';
   it('should create getTaskEncryptionKey from core (with call to P2P)', async () => {
     const encryptionKeyResult = await new Promise((resolve, reject) => {
-        enigma.client.request('getWorkerEncryptionKey', 
+        enigma.client.request('getWorkerEncryptionKey',
           {workerAddress: workerAddress[0].toLowerCase().slice(-40), userPubKey: userPubKey}, (err, response) => {
             if (err) {
               reject(err);

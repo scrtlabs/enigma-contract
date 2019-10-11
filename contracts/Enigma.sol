@@ -223,11 +223,13 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * Deploy secret contract from user, called by the worker.
     *
     * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
+    * @param _codeHash Deployed bytecode hash
     * @param _gasUsed Gas used for task
     * @param _sig Worker's signature for deployment
     */
     function deploySecretContractFailure(
         bytes32 _taskId,
+        bytes32 _codeHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -236,7 +238,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerLoggedIn(msg.sender)
     contractUndefined(_taskId)
     {
-        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _gasUsed, _sig);
+        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _codeHash, _gasUsed, _sig);
     }
 
     /**
@@ -406,12 +408,14 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     *
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
+    * @param _outputHash Output state hash
     * @param _gasUsed Gas used for task computation
     * @param _sig Worker's signature
     */
     function commitTaskFailure(
         bytes32 _scAddr,
         bytes32 _taskId,
+        bytes32 _outputHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -420,7 +424,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
+        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _outputHash, _gasUsed, _sig);
     }
 
     /**

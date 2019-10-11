@@ -27,6 +27,7 @@ dotenv.config();
 
 // Launch local mock JSON RPC Server
 import RPCServer from '../src/Server';
+import {Buffer} from "buffer";
 
 forge.options.usePureJavaScript = true;
 
@@ -80,7 +81,24 @@ describe('Enigma tests', () => {
       expect(sampleContract.options.address).toBeTruthy();
     });
 
+    it('should fail to obtain key/pair without being set first', () => {
+      try {
+        const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
+      } catch (err) {
+        expect(err.message).toEqual('Need to set task key pair first');
+      }
+    });
+
     it('should generate and save key/pair', () => {
+      const seed = enigma.setTaskKeyPair();
+      const keyPair = enigma.obtainTaskKeyPair();
+      expect(keyPair.privateKey).toBeTruthy();
+      expect(keyPair.publicKey).toBeTruthy();
+      enigma.setTaskKeyPair(seed);
+      const keyPair2 = enigma.obtainTaskKeyPair();
+      expect(keyPair2.privateKey).toEqual(keyPair.privateKey);
+      expect(keyPair2.publicKey).toEqual(keyPair.publicKey);
+      enigma.setTaskKeyPair('cupcake');
       const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
       expect(privateKey).toEqual('1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f');
       expect(publicKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273' +
@@ -734,7 +752,7 @@ describe('Enigma tests', () => {
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, gasUsed, sig).send({
+        enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, '0x00', gasUsed, sig).send({
           from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
@@ -1367,13 +1385,17 @@ describe('Enigma tests', () => {
       expect(task.workerTaskSig).toBeTruthy();
     });
 
+    let encryptedAbiEncodedOutputs;
+    let engStatus;
     it('should get task result of successful computation', async () => {
       task = await new Promise((resolve, reject) => {
         enigma.getTaskResult(task).
         on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
         on(eeConstants.ERROR, (error) => reject(error));
       });
+      engStatus = task.engStatus;
       expect(task.engStatus).toEqual('SUCCESS');
+      encryptedAbiEncodedOutputs = task.encryptedAbiEncodedOutputs;
       expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
       expect(task.delta).toBeTruthy();
       expect(task.usedGas).toBeTruthy();
@@ -1410,7 +1432,8 @@ describe('Enigma tests', () => {
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, gasUsed, sig).send({
+        enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, web3.utils.soliditySha3('failure'),
+          gasUsed, sig).send({
           from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
@@ -1524,6 +1547,7 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsed) * task.gasPx);
       expect(result.events.ReceiptVerified).toBeTruthy();
+      expect(result.events.ReceiptVerified.returnValues.workerAddress).toEqual(worker.account);
     });
 
     it('should count state deltas', async () => {
@@ -1533,7 +1557,18 @@ describe('Enigma tests', () => {
 
     it('should get output hash', async () => {
       const output = await enigma.getTaskOutputHash(task);
+      task.encryptedAbiEncodedOutputs = enigma.web3.utils.toHex('outputHash1');
+      task.engStatus = 'SUCCESS';
       expect(outputHash).toEqual(output);
+      const verifyTaskOutput = await enigma.verifyTaskOutput(task);
+      const verifyTaskStatus = await enigma.verifyTaskStatus(task);
+      expect(verifyTaskOutput).toEqual(true);
+      expect(verifyTaskStatus).toEqual(true);
+      const taskRecord = await enigma.getTaskRecordFromTaskId(task.taskId);
+      expect(taskRecord.sender).toEqual(accounts[0]);
+      expect(taskRecord.gasLimit).toEqual(100);
+      expect(taskRecord.gasPx).toEqual(100000000);
+      expect(taskRecord.status).toEqual(2);
     });
 
     it('should simulate successful task receipt with state delta', async () => {
