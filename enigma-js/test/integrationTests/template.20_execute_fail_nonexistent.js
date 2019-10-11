@@ -40,6 +40,10 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   let task;
   it('should execute compute task', async () => {
     let nonExistentAddr = '0x1234567890123456789012345678901234567890123456789012345678901234'

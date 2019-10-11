@@ -30,7 +30,8 @@ library TaskImpl {
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
-        uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
+        uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress,
+        bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes sig);
@@ -75,8 +76,8 @@ library TaskImpl {
         emit TaskRecordCreated(taskId, _inputsHash, _gasLimit, _gasPx, msg.sender, block.number);
     }
 
-    function deploySecretContractFailureImpl(EnigmaState.State storage state, bytes32 _taskId, uint64 _gasUsed,
-        bytes memory _sig)
+    function deploySecretContractFailureImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _codeHash,
+        uint64 _gasUsed, bytes memory _sig)
     public
     {
         EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
@@ -93,6 +94,7 @@ library TaskImpl {
         // Update proof and status attributes of TaskRecord
         task.proof = _sig;
         task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
+        task.outputHash = _codeHash;
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
@@ -227,6 +229,7 @@ library TaskImpl {
         EnigmaState.State storage state,
         bytes32 _scAddr,
         bytes32 _taskId,
+        bytes32 _outputHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -248,6 +251,7 @@ library TaskImpl {
         // Update proof and status attributes of TaskRecord
         task.proof = _sig;
         task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
+        task.outputHash = _outputHash;
 
         transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
 
@@ -341,7 +345,7 @@ library TaskImpl {
                     secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
                 state.tasks[_taskId].outputHash = _outputHash;
                 emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _scAddr, _gasUsed, deltaHashIndex,
-                    _optionalEthereumData, _optionalEthereumContractAddress, _sig);
+                    _optionalEthereumData, _optionalEthereumContractAddress, msg.sender, _sig);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
                 emit ReceiptFailedETH(_taskId, _sig);
@@ -353,7 +357,7 @@ library TaskImpl {
                 secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
             state.tasks[_taskId].outputHash = _outputHash;
             emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _scAddr, _gasUsed, deltaHashIndex,
-                _optionalEthereumData, _optionalEthereumContractAddress, _sig);
+                _optionalEthereumData, _optionalEthereumContractAddress, msg.sender, _sig);
         }
     }
 
