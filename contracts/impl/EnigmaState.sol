@@ -68,5 +68,8 @@ library EnigmaState {
         // TODO: do we keep tasks forever? if not, when do we delete them?
         uint stakingThreshold;
         uint workerGroupSize;
+
+        bytes mrSigner;
+        bytes isvSvn;
     }
 }

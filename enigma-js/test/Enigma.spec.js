@@ -105,6 +105,37 @@ describe('Enigma tests', () => {
         'e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
     });
 
+    it('should check mrSigner and isvSvn', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setMrSigner('0xab').send({
+          from: accounts[1],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setIsvSvn('0xbc').send({
+          from: accounts[1],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setMrSigner('0xab').send({
+          from: accounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setIsvSvn('0xbc').send({
+          from: accounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      const mrSigner = await enigma.enigmaContract.methods.getMrSigner().call();
+      const isvSvn = await enigma.enigmaContract.methods.getIsvSvn().call();
+      expect(mrSigner).toEqual('0xab');
+      expect(isvSvn).toEqual('0xbc');
+    });
+
     it('should distribute ENG tokens', async () => {
       const tokenContract = enigma.tokenContract;
       let promises = [];
@@ -692,6 +723,22 @@ describe('Enigma tests', () => {
           on(eeConstants.ERROR, (error) => reject(error));
         })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
       });
+
+    it('should fail to deploy secret contract from invalid address', async () => {
+      preCode = Buffer.from('9d075aef', 'hex');
+      let scTaskFn = 'deployContract(string,uint)';
+      let scTaskArgs = [
+        ['first_sc', 'string'],
+        [1, 'uint'],
+      ];
+      let scTaskGasLimit = 100;
+      let scTaskGasPx = utils.toGrains(1);
+      await expect(new Promise((resolve, reject) => {
+        enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[1], preCode)
+          .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+    });
 
     it('should create/send deploy contract task using wrapper function', async () => {
       preCode = Buffer.from('9d075aef', 'hex');
