@@ -47,6 +47,11 @@ describe('Init tests', () => {
   });
 
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   it('initializes Sample contract', async () => {
     sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
       SampleContract.networks['4447'].address);
@@ -73,7 +78,7 @@ describe('Init tests', () => {
     }
     const results = await Promise.all(promises);
     expect(results.length).toEqual(accounts.length - 2);
-  });
+  }, constants.TIMEOUT_INIT);
 
   let workerAddress=[];
   it('should check that '+nodes+' worker(s) and the principal node, and only them, are registered', async () => {
@@ -87,7 +92,7 @@ describe('Init tests', () => {
       workerAddress[i] = await enigma.admin.getWorkerSignerAddr(accounts[i]);
     }
     expect(workerStatuses).toEqual(arrayResults);
-  });
+  }, constants.TIMEOUT_INIT);
 
   it('should check worker\'s stake balance is empty', async () => {
     let balance = await enigma.admin.getBalance(accounts[0]);
@@ -180,7 +185,7 @@ describe('Init tests', () => {
     '912be61358d5e90bff56a53a0ed42abfe27e3';
   it('should create getTaskEncryptionKey from core (with call to P2P)', async () => {
     const encryptionKeyResult = await new Promise((resolve, reject) => {
-        enigma.client.request('getWorkerEncryptionKey', 
+        enigma.client.request('getWorkerEncryptionKey',
           {workerAddress: workerAddress[0].toLowerCase().slice(-40), userPubKey: userPubKey}, (err, response) => {
             if (err) {
               reject(err);

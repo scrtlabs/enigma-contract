@@ -10,6 +10,7 @@ import axios from 'axios';
 import utils from './enigma-utils';
 import forge from 'node-forge';
 import JSBI from 'jsbi';
+import retry from 'retry';
 import * as abi from 'ethereumjs-abi';
 import EthCrypto from 'eth-crypto';
 import * as eeConstants from './emitterConstants';
@@ -28,9 +29,23 @@ export default class Enigma {
    * @param {string} rpcAddr - Enigma p2p network address for RPC calls
    * @param {Object} txDefaults
    */
-  constructor(web3, enigmaContractAddr, tokenContractAddr, rpcAddr, txDefaults = {}) {
+  constructor(web3, enigmaContractAddr, tokenContractAddr, rpcAddr, txDefaults = {}, config = {}) {
     this.web3 = web3;
     this.txDefaults = txDefaults;
+
+    this.config = {};
+    this.config.retry = {};
+    this.config.retry.retries = config.retry ?
+      (config.retry.retries != null ? config.retry.retries : 5) : 5;
+    this.config.retry.factor = config.retry ?
+      (config.retry.factor != null ? config.retry.factor : 2) : 2;
+    this.config.retry.minTimeout = config.retry ?
+      (config.retry.minTimeout != null ? config.retry.minTimeout : 2000) : 2000;
+    this.config.retry.maxTimeout = config.retry ?
+      (config.retry.maxTimeout != null ? config.retry.maxTimeout : 'Infinity') : 'Infinity';
+    this.config.retry.randomize = config.retry ?
+      (config.retry.randomize != null ? config.retry.randomize : true) : true;
+
     // axios callback for jayson rpc client to interface with ENG network
     let callServer = function(request, callback) {
       let config = {
@@ -314,6 +329,26 @@ export default class Enigma {
   }
 
   /**
+   * Get the Task's task record status from Ethereum
+   *
+   * @param {string} taskId - Task ID
+   * @return {Promise} Resolves to TaskRecord struct
+   */
+  async getTaskRecordFromTaskId(taskId) {
+    const taskRecord = await this.enigmaContract.methods.getTaskRecord(taskId).call();
+    return {
+      sender: taskRecord.sender,
+      inputsHash: taskRecord.inputsHash,
+      outputHash: taskRecord.outputHash,
+      gasLimit: parseInt(taskRecord.gasLimit),
+      gasPx: parseInt(taskRecord.gasPx),
+      blockNumber: parseInt(taskRecord.blockNumber),
+      status: parseInt(taskRecord.status),
+      proof: taskRecord.proof,
+    };
+  }
+
+  /**
    * Fetch output hash for a given task
    *
    * @param {Task} task - Task wrapper
@@ -410,10 +445,10 @@ export default class Enigma {
   sendTaskInput(task) {
     let emitter = new EventEmitter();
     (async () => {
-      let rpcEndpointName = 'sendTaskInput';
+      let rpcEndpointName = eeConstants.RPC_SEND_TASK_INPUT;
       let emitName = eeConstants.SEND_TASK_INPUT_RESULT;
       if (task.isContractDeploymentTask) {
-        rpcEndpointName = 'deploySecretContract';
+        rpcEndpointName = eeConstants.RPC_DEPLOY_SECRET_CONTRACT;
         emitName = eeConstants.DEPLOY_SECRET_CONTRACT_RESULT;
       }
       try {
@@ -443,10 +478,13 @@ export default class Enigma {
    */
   getTaskResult(task) {
     let emitter = new EventEmitter();
-    (async () => {
+
+    let operation = retry.operation(this.config.retry);
+    operation.attempt(async (currentAttempt)=>{
       try {
         const getTaskResultResult = await new Promise((resolve, reject) => {
-          this.client.request('getTaskResult', {taskId: utils.remove0x(task.taskId)}, (err, response) => {
+          this.client.request(eeConstants.RPC_GET_TASK_RESULT,
+            {taskId: utils.remove0x(task.taskId)}, (err, response) => {
             if (err) {
               reject(err);
               return;
@@ -456,30 +494,37 @@ export default class Enigma {
         });
         if (getTaskResultResult.result) {
           switch (getTaskResultResult.result.status) {
-            case 'SUCCESS':
+            case eeConstants.GET_TASK_RESULT_SUCCESS:
               task.delta = getTaskResultResult.result.delta;
               task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
               task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
               task.preCodeHash = getTaskResultResult.result.preCodeHash;
-            case 'FAILED':
+            case eeConstants.GET_TASK_RESULT_FAILED:
               task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
               task.usedGas = getTaskResultResult.result.usedGas;
               task.workerTaskSig = getTaskResultResult.result.signature;
-            case 'UNVERIFIED':
-            case 'INPROGRESS':
+            case eeConstants.GET_TASK_RESULT_UNVERIFIED:
+            case eeConstants.GET_TASK_RESULT_INPROGRESS:
               task.engStatus = getTaskResultResult.result.status;
               break;
             default:
               throw (new Error('Invalid task result status')).message;
           }
         } else {
-          task.engStatus = null;
+          if (operation.retry(true)) {
+            console.log('Warning: Got an empty TaskResult on attempt '+
+              currentAttempt+' of '+(this.config.retry.retries + 1)+'. Retrying...');
+            return;
+          } else {
+            task.engStatus = null;
+          }
         }
         emitter.emit(eeConstants.GET_TASK_RESULT_RESULT, task);
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
       }
-    })();
+    });
+
     return emitter;
   }
 
@@ -490,10 +535,54 @@ export default class Enigma {
    * @return {Task} Task result wrapper with an updated decrypted output attribute
    */
   async decryptTaskResult(task) {
-    const {privateKey} = this.obtainTaskKeyPair();
-    const derivedKey = utils.getDerivedKey(task.workerEncryptionKey, privateKey);
-    task.decryptedOutput = utils.decryptMessage(derivedKey, task.encryptedAbiEncodedOutputs);
+    console.log('task.encryptedAbiEncodedOutputs is '+task.encryptedAbiEncodedOutputs);
+    if (task.encryptedAbiEncodedOutputs) {
+      const {privateKey} = this.obtainTaskKeyPair();
+      const derivedKey = utils.getDerivedKey(task.workerEncryptionKey, privateKey);
+      task.decryptedOutput = utils.decryptMessage(derivedKey, task.encryptedAbiEncodedOutputs);
+    } else {
+      console.log('Warning: task.encryptedAbiEncodedOutputs is empty, there is nothing to decrypt.');
+      task.decryptedOutput = null;
+    }
     return task;
+  }
+
+  /**
+   * Verify ENG network output matches output registered on ETH
+   *
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @return {boolean} True/false on whether outputs match
+   */
+  async verifyTaskOutput(task) {
+    const ethOutputHash = await this.getTaskOutputHash(task);
+    const engOutputHash = this.web3.utils.soliditySha3(
+      {t: 'bytes', value: task.encryptedAbiEncodedOutputs.toString('hex')}
+    );
+    return ethOutputHash === engOutputHash;
+  }
+
+  /**
+   * Verify ENG network status matches status registered on ETH
+   *
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @return {boolean} True/false on whether statuses match
+   */
+  async verifyTaskStatus(task) {
+    const ethStatus = (await this.getTaskRecordStatus(task)).ethStatus;
+    switch (task.engStatus) {
+      case eeConstants.GET_TASK_RESULT_SUCCESS:
+        return ethStatus === eeConstants.ETH_STATUS_VERIFIED;
+        break;
+      case eeConstants.GET_TASK_RESULT_FAILED:
+        return ethStatus === eeConstants.ETH_STATUS_FAILED;
+        break;
+      case eeConstants.GET_TASK_RESULT_UNVERIFIED:
+      case eeConstants.GET_TASK_RESULT_INPROGRESS:
+        return ethStatus === eeConstants.ETH_STATUS_CREATED;
+        break;
+      default:
+        return ethStatus === eeConstants.ETH_STATUS_UNDEFINED;
+    }
   }
 
   /**
@@ -505,7 +594,7 @@ export default class Enigma {
   * pollTaskStatusGen(task, withResult) {
     while (true) {
       yield new Promise((resolve, reject) => {
-        this.client.request('getTaskStatus', {
+        this.client.request(eeConstants.RPC_GET_TASK_STATUS, {
           taskId: utils.remove0x(task.taskId), workerAddress: task.workerAddress,
           withResult: withResult,
         }, (err, response) => {
@@ -565,7 +654,7 @@ export default class Enigma {
    * @return {Task} Task wrapper with updated ETH status.
    */
   async pollTaskETH(task, interval=1000) {
-    while (task.ethStatus === 1) {
+    while (task.ethStatus === eeConstants.ETH_STATUS_CREATED) {
       task = await this.getTaskRecordStatus(task);
       await utils.sleep(interval);
     }
@@ -592,8 +681,7 @@ export default class Enigma {
   }
 
   /**
-   * Deterministically generate a key-secret pair necessary for deriving a shared encryption key with the selected
-   * worker. This pair will be stored in local storage for quick retrieval.
+   * Obtain task key pair that has been set
    *
    * @return {Object} Public key-private key pair
    */
@@ -604,19 +692,38 @@ export default class Enigma {
     let encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
       this.taskKeyLocalStorage['encodedPrivateKey'];
     if (encodedPrivateKey == null) {
-      let random = forge.random.createInstance();
-      // TODO: Query user for passphrase
-      random.seedFileSync = function(needed) {
-        return forge.util.fillString('cupcake', needed);
-      };
-      privateKey = forge.util.bytesToHex(random.getBytes(32));
-      isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
-        this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+      throw Error('Need to set task key pair first');
     } else {
       privateKey = isBrowser ? atob(encodedPrivateKey) : Buffer.from(encodedPrivateKey, 'base64').toString('binary');
     }
     let publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
     return {publicKey, privateKey};
+  }
+
+  /**
+   * Deterministically generate a key-secret pair necessary for deriving a shared encryption key with the selected
+   * worker. This pair will be stored in local storage for quick retrieval.
+   *
+   * @param {string} seed - Optional seed
+   * @return {string} Seed
+   */
+  setTaskKeyPair(seed='') {
+    const isBrowser = typeof window !== 'undefined';
+    if (seed === '') {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      for (let i = 0; i < 9; i++) {
+        seed += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+    }
+    let random = forge.random.createInstance();
+    // TODO: Query user for passphrase
+    random.seedFileSync = function(needed) {
+      return forge.util.fillString(seed, needed);
+    };
+    const privateKey = forge.util.bytesToHex(random.getBytes(32));
+    isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
+      this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+    return seed;
   }
 
   /**

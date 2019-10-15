@@ -44,6 +44,10 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   function createWrongWorkerTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
     let emitter = new EventEmitter();
     (async () => {
@@ -70,7 +74,7 @@ describe('Enigma tests', () => {
       const firstBlockNumber = workerParams.firstBlockNumber;
       workerAddress = await enigma.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
 
-      let wrongWorkerAddress = workerParams.workers.filter(function(value, index, arr) { 
+      let wrongWorkerAddress = workerParams.workers.filter(function(value, index, arr) {
         return value != workerAddress;})[0];
 
       wrongWorkerAddress = wrongWorkerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
