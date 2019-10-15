@@ -133,6 +133,6 @@ library EnigmaCommon {
     pure
     returns (bytes memory)
     {
-        return (_message.concat(hex"01")).concat(uint64(_arraylength.mul(_typeLength)).toBytesFromUint64());
+        return (_message.concat(hex"01")).concat(uint64(_arraylength.mul(_typeLength.add(9))).toBytesFromUint64());
     }
 }
