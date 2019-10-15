@@ -18,6 +18,7 @@ dotenv.config();
 
 // Launch local mock JSON RPC Server
 import RPCServer from '../src/Server';
+import {Buffer} from "buffer";
 
 forge.options.usePureJavaScript = true;
 
@@ -71,7 +72,24 @@ describe('Enigma tests', () => {
       expect(sampleContract.options.address).toBeTruthy();
     });
 
+    it('should fail to obtain key/pair without being set first', () => {
+      try {
+        const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
+      } catch (err) {
+        expect(err.message).toEqual('Need to set task key pair first');
+      }
+    });
+
     it('should generate and save key/pair', () => {
+      const seed = enigma.setTaskKeyPair();
+      const keyPair = enigma.obtainTaskKeyPair();
+      expect(keyPair.privateKey).toBeTruthy();
+      expect(keyPair.publicKey).toBeTruthy();
+      enigma.setTaskKeyPair(seed);
+      const keyPair2 = enigma.obtainTaskKeyPair();
+      expect(keyPair2.privateKey).toEqual(keyPair.privateKey);
+      expect(keyPair2.publicKey).toEqual(keyPair.publicKey);
+      enigma.setTaskKeyPair('cupcake');
       const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
       expect(privateKey).toEqual('1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f');
       expect(publicKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273' +
@@ -725,7 +743,7 @@ describe('Enigma tests', () => {
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, gasUsed, sig).send({
+        enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, '0x00', gasUsed, sig).send({
           from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
@@ -1358,13 +1376,17 @@ describe('Enigma tests', () => {
       expect(task.workerTaskSig).toBeTruthy();
     });
 
+    let encryptedAbiEncodedOutputs;
+    let engStatus;
     it('should get task result of successful computation', async () => {
       task = await new Promise((resolve, reject) => {
         enigma.getTaskResult(task).
         on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
         on(eeConstants.ERROR, (error) => reject(error));
       });
+      engStatus = task.engStatus;
       expect(task.engStatus).toEqual('SUCCESS');
+      encryptedAbiEncodedOutputs = task.encryptedAbiEncodedOutputs;
       expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
       expect(task.delta).toBeTruthy();
       expect(task.usedGas).toBeTruthy();
@@ -1401,7 +1423,8 @@ describe('Enigma tests', () => {
       const startingWorkerBalance = worker.balance;
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       const result = await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, gasUsed, sig).send({
+        enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, web3.utils.soliditySha3('failure'),
+          gasUsed, sig).send({
           from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
@@ -1515,6 +1538,7 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsed * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsed) * task.gasPx);
       expect(result.events.ReceiptVerified).toBeTruthy();
+      expect(result.events.ReceiptVerified.returnValues.workerAddress).toEqual(worker.account);
     });
 
     it('should count state deltas', async () => {
@@ -1524,7 +1548,18 @@ describe('Enigma tests', () => {
 
     it('should get output hash', async () => {
       const output = await enigma.getTaskOutputHash(task);
+      task.encryptedAbiEncodedOutputs = enigma.web3.utils.toHex('outputHash1');
+      task.engStatus = 'SUCCESS';
       expect(outputHash).toEqual(output);
+      const verifyTaskOutput = await enigma.verifyTaskOutput(task);
+      const verifyTaskStatus = await enigma.verifyTaskStatus(task);
+      expect(verifyTaskOutput).toEqual(true);
+      expect(verifyTaskStatus).toEqual(true);
+      const taskRecord = await enigma.getTaskRecordFromTaskId(task.taskId);
+      expect(taskRecord.sender).toEqual(accounts[0]);
+      expect(taskRecord.gasLimit).toEqual(100);
+      expect(taskRecord.gasPx).toEqual(100000000);
+      expect(taskRecord.status).toEqual(2);
     });
 
     it('should simulate successful task receipt with state delta', async () => {
@@ -1993,86 +2028,54 @@ describe('Enigma tests', () => {
       expect(count).toEqual(3);
     });
 
-    it('should fail to create task records due to insufficient funds', async () => {
+    it('should return fees for task after timeout', async () => {
       let taskFn = 'medianWealth(int32,int32)';
-      let taskGasLimit = 500;
-      let taskGasPx = utils.toGrains(1);
-      let taskArgsA = [
+      let taskArgs = [
         [200000, 'int32'],
         [300000, 'int32'],
       ];
-      let taskArgsB = [
-        [1000000, 'int32'],
-        [2000000, 'int32'],
-      ];
-      let taskA = await new Promise((resolve, reject) => {
-        enigma.createTask(taskFn, taskArgsA, taskGasLimit, taskGasPx, accounts[1], scAddr, false).
-        on(eeConstants.CREATE_TASK, (result) => resolve(result)).
-        on(eeConstants.ERROR, (error) => reject(error));
-      });
-      let taskB = await new Promise((resolve, reject) => {
-        enigma.createTask(taskFn, taskArgsB, taskGasLimit, taskGasPx, accounts[1], scAddr, false).
-        on(eeConstants.CREATE_TASK, (result) => resolve(result)).
-        on(eeConstants.ERROR, (error) => reject(error));
-      });
-      await expect(new Promise((resolve, reject) => {
-        enigma.createTaskRecords([taskA, taskB]).
-        on(eeConstants.CREATE_TASK_RECORDS, (result) => resolve(result)).
-        on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
-    });
-
-    let tasks;
-    it('should create multiple task records', async () => {
-      let taskFn = 'medianWealth(int32,int32)';
       let taskGasLimit = 100;
       let taskGasPx = utils.toGrains(1);
-      let taskArgsA = [
-        [200000, 'int32'],
-        [300000, 'int32'],
-      ];
-      let taskArgsB = [
-        [1000000, 'int32'],
-        [2000000, 'int32'],
-      ];
-      let taskA = await new Promise((resolve, reject) => {
-        enigma.createTask(taskFn, taskArgsA, taskGasLimit, taskGasPx, accounts[0], scAddr, false).
-        on(eeConstants.CREATE_TASK, (result) => resolve(result)).
-        on(eeConstants.ERROR, (error) => reject(error));
-      });
-      let taskB = await new Promise((resolve, reject) => {
-        enigma.createTask(taskFn, taskArgsB, taskGasLimit, taskGasPx, accounts[0], scAddr, false).
-        on(eeConstants.CREATE_TASK, (result) => resolve(result)).
-        on(eeConstants.ERROR, (error) => reject(error));
-      });
-      tasks = [taskA, taskB];
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       const startingContractBalance = parseInt(
         await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
       );
-      tasks = await new Promise((resolve, reject) => {
-        enigma.createTaskRecords(tasks).
-        on(eeConstants.CREATE_TASK_RECORDS, (result) => resolve(result)).
+      task = await new Promise((resolve, reject) => {
+        enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr).
+        on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
         on(eeConstants.ERROR, (error) => reject(error));
       });
+      await expect(new Promise((resolve, reject) => {
+        enigma.returnFeesForTask(task)
+          .on(eeConstants.RETURN_FEES_FOR_TASK, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual({message: 'Not enough time has elapsed to return task funds', name: 'InvalidTaskReturn'});
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
       const endingContractBalance = parseInt(
         await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
       );
-      for (let i = 0; i < tasks.length; i++) {
-        expect(tasks[i].receipt).toBeTruthy();
-        expect(tasks[i].transactionHash).toBeTruthy();
-        expect(tasks[i].taskId).toBeTruthy();
-        expect(tasks[i].ethStatus).toEqual(1);
-        expect(tasks[i].proof).toBeFalsy();
-      }
-      expect(endingContractBalance - startingContractBalance).toEqual((tasks[0].gasLimit * tasks[0].gasPx) +
-        (tasks[1].gasLimit * tasks[1].gasPx));
-    });
+      expect(endingSenderBalance - startingSenderBalance).toEqual(-task.gasLimit * task.gasPx);
+      expect(endingContractBalance - startingContractBalance).toEqual(task.gasLimit * task.gasPx);
 
-    it('should get the pending tasks', async () => {
-      for (let i = 0; i < tasks.length; i++) {
-        tasks[i] = await enigma.getTaskRecordStatus(tasks[i]);
-        expect(tasks[i].ethStatus).toEqual(1);
+      const elapsedBlocks = (await enigma.web3.eth.getBlockNumber()) - task.creationBlockNumber;
+      const taskTimeoutSize = await enigma.enigmaContract.methods.getTaskTimeoutSize().call();
+      for (let i = 0; i < taskTimeoutSize - elapsedBlocks + 1; i++) {
+        await sampleContract.methods.incrementCounter().send({from: accounts[8]});
       }
+      task = await new Promise((resolve, reject) => {
+        enigma.returnFeesForTask(task)
+          .on(eeConstants.RETURN_FEES_FOR_TASK, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.ethStatus).toEqual(5);
+      const finalSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
+      const finalContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      expect(finalSenderBalance - startingSenderBalance).toEqual(0);
+      expect(finalContractBalance - startingContractBalance).toEqual(0);
+      task = await enigma.getTaskRecordStatus(task);
+      expect(task.ethStatus).toEqual(5);
     });
 
     it('should verify the report', async () => {

@@ -259,63 +259,6 @@ export default class Enigma {
   }
 
   /**
-   * Create and store task records on chain (ETH). Task records are necessary for collecting the ENG computation fee
-   * and computing the immutable taskId (a unique value for each task computed from hash(user's ETH address, user's
-   * nonce value monotonically increasing for every task deployment). Thus, task records have important implications for
-   * task ordering, fee payments, and verification.
-   *
-   * @param {Array} tasks - Task wrappers for contract deployment and compute tasks
-   * @returns {EventEmitter} EventEmitter to be listened to track creation of task records. Emits Tasks with task
-   * record creation attributes to be used for remainder of task lifecycle
-   */
-  createTaskRecords(tasks) {
-    let emitter = new EventEmitter();
-    (async () => {
-      const inputsHashes = tasks.map((task) => task.inputsHash);
-      const gasLimits = tasks.map((task) => task.gasLimit);
-      const gasPxs = tasks.map((task) => task.gasPx);
-      const fees = tasks.map((task) => task.gasLimit * task.gasPx);
-      const balance = await this.tokenContract.methods.balanceOf(tasks[0].sender).call();
-      const totalFees = fees.reduce((a, b) => a + b, 0);
-      if (balance < totalFees) {
-        emitter.emit(eeConstants.ERROR, {
-          name: 'NotEnoughTokens',
-          message: 'Not enough tokens to pay the fee',
-        });
-        return;
-      }
-      await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send({
-        from: tasks[0].sender,
-      });
-      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].firstBlockNumber).
-        send({
-          from: tasks[0].sender,
-        }).
-        on('transactionHash', (hash) => {
-          for (let i = 0; i < tasks.length; i++) {
-            tasks[i].transactionHash = hash;
-          }
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS_TRANSACTION_HASH, hash);
-        }).
-        on('confirmation', (confirmationNumber, receipt) => {
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS_CONFIRMATION, confirmationNumber, receipt);
-        }).
-        then((receipt) => {
-          const taskIds = receipt.events.TaskRecordsCreated.returnValues.taskIds;
-          for (let i = 0; i < tasks.length; i++) {
-            tasks[i].taskId = taskIds[i];
-            tasks[i].receipt = receipt;
-            tasks[i].ethStatus = 1;
-            tasks[i].creationBlockNumber = receipt.blockNumber;
-          }
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS_RECEIPT, receipt);
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS, tasks);
-        });
-    })();
-    return emitter;
-  }
-
-  /**
    * Get the Task's task record status from Ethereum
    *
    * @param {Task} task - Task wrapper for contract deployment and compute tasks
@@ -326,6 +269,26 @@ export default class Enigma {
     task.ethStatus = parseInt(result.status);
     task.proof = result.proof;
     return task;
+  }
+
+  /**
+   * Get the Task's task record status from Ethereum
+   *
+   * @param {string} taskId - Task ID
+   * @return {Promise} Resolves to TaskRecord struct
+   */
+  async getTaskRecordFromTaskId(taskId) {
+    const taskRecord = await this.enigmaContract.methods.getTaskRecord(taskId).call();
+    return {
+      sender: taskRecord.sender,
+      inputsHash: taskRecord.inputsHash,
+      outputHash: taskRecord.outputHash,
+      gasLimit: parseInt(taskRecord.gasLimit),
+      gasPx: parseInt(taskRecord.gasPx),
+      blockNumber: parseInt(taskRecord.blockNumber),
+      status: parseInt(taskRecord.status),
+      proof: taskRecord.proof,
+    };
   }
 
   /**
@@ -425,10 +388,10 @@ export default class Enigma {
   sendTaskInput(task) {
     let emitter = new EventEmitter();
     (async () => {
-      let rpcEndpointName = 'sendTaskInput';
+      let rpcEndpointName = eeConstants.RPC_SEND_TASK_INPUT;
       let emitName = eeConstants.SEND_TASK_INPUT_RESULT;
       if (task.isContractDeploymentTask) {
-        rpcEndpointName = 'deploySecretContract';
+        rpcEndpointName = eeConstants.RPC_DEPLOY_SECRET_CONTRACT;
         emitName = eeConstants.DEPLOY_SECRET_CONTRACT_RESULT;
       }
       try {
@@ -463,7 +426,8 @@ export default class Enigma {
     operation.attempt(async (currentAttempt)=>{
       try {
         const getTaskResultResult = await new Promise((resolve, reject) => {
-          this.client.request('getTaskResult', {taskId: utils.remove0x(task.taskId)}, (err, response) => {
+          this.client.request(eeConstants.RPC_GET_TASK_RESULT,
+            {taskId: utils.remove0x(task.taskId)}, (err, response) => {
             if (err) {
               reject(err);
               return;
@@ -473,17 +437,17 @@ export default class Enigma {
         });
         if (getTaskResultResult.result) {
           switch (getTaskResultResult.result.status) {
-            case 'SUCCESS':
+            case eeConstants.GET_TASK_RESULT_SUCCESS:
               task.delta = getTaskResultResult.result.delta;
               task.ethereumPayload = getTaskResultResult.result.ethereumPayload;
               task.ethereumAddress = getTaskResultResult.result.ethereumAddress;
               task.preCodeHash = getTaskResultResult.result.preCodeHash;
-            case 'FAILED':
+            case eeConstants.GET_TASK_RESULT_FAILED:
               task.encryptedAbiEncodedOutputs = getTaskResultResult.result.output;
               task.usedGas = getTaskResultResult.result.usedGas;
               task.workerTaskSig = getTaskResultResult.result.signature;
-            case 'UNVERIFIED':
-            case 'INPROGRESS':
+            case eeConstants.GET_TASK_RESULT_UNVERIFIED:
+            case eeConstants.GET_TASK_RESULT_INPROGRESS:
               task.engStatus = getTaskResultResult.result.status;
               break;
             default:
@@ -508,6 +472,38 @@ export default class Enigma {
   }
 
   /**
+   * Return fees for task
+   *
+   * @param {Task} task - Task wrapper
+   * @returns {EventEmitter} EventEmitter to be listened to track return of fees
+   */
+  returnFeesForTask(task) {
+    let emitter = new EventEmitter();
+    (async () => {
+      const taskTimeoutSize = await this.enigmaContract.methods.getTaskTimeoutSize().call();
+      const blockNumber = await this.web3.eth.getBlockNumber();
+      if (blockNumber - task.creationBlockNumber <= taskTimeoutSize) {
+        emitter.emit(eeConstants.ERROR, {
+          name: 'InvalidTaskReturn',
+          message: 'Not enough time has elapsed to return task funds',
+        });
+        return;
+      }
+      try {
+        const receipt = await this.enigmaContract.methods.returnFeesForTask(task.taskId).send({
+          from: task.sender,
+        });
+        task.ethStatus = 5;
+        emitter.emit(eeConstants.RETURN_FEES_FOR_TASK_RECEIPT, receipt);
+        emitter.emit(eeConstants.RETURN_FEES_FOR_TASK, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
    * Decrypt task result
    *
    * @param {Task} task - Task wrapper for contract deployment and compute tasks
@@ -527,6 +523,44 @@ export default class Enigma {
   }
 
   /**
+   * Verify ENG network output matches output registered on ETH
+   *
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @return {boolean} True/false on whether outputs match
+   */
+  async verifyTaskOutput(task) {
+    const ethOutputHash = await this.getTaskOutputHash(task);
+    const engOutputHash = this.web3.utils.soliditySha3(
+      {t: 'bytes', value: task.encryptedAbiEncodedOutputs.toString('hex')}
+    );
+    return ethOutputHash === engOutputHash;
+  }
+
+  /**
+   * Verify ENG network status matches status registered on ETH
+   *
+   * @param {Task} task - Task wrapper for contract deployment and compute tasks
+   * @return {boolean} True/false on whether statuses match
+   */
+  async verifyTaskStatus(task) {
+    const ethStatus = (await this.getTaskRecordStatus(task)).ethStatus;
+    switch (task.engStatus) {
+      case eeConstants.GET_TASK_RESULT_SUCCESS:
+        return ethStatus === eeConstants.ETH_STATUS_VERIFIED;
+        break;
+      case eeConstants.GET_TASK_RESULT_FAILED:
+        return ethStatus === eeConstants.ETH_STATUS_FAILED;
+        break;
+      case eeConstants.GET_TASK_RESULT_UNVERIFIED:
+      case eeConstants.GET_TASK_RESULT_INPROGRESS:
+        return ethStatus === eeConstants.ETH_STATUS_CREATED;
+        break;
+      default:
+        return ethStatus === eeConstants.ETH_STATUS_UNDEFINED;
+    }
+  }
+
+  /**
    * Generator function for polling the Enigma p2p network for task status
    *
    * @param {Task} task - Task wrapper for contract deployment and compute tasks
@@ -535,7 +569,7 @@ export default class Enigma {
   * pollTaskStatusGen(task, withResult) {
     while (true) {
       yield new Promise((resolve, reject) => {
-        this.client.request('getTaskStatus', {
+        this.client.request(eeConstants.RPC_GET_TASK_STATUS, {
           taskId: utils.remove0x(task.taskId), workerAddress: task.workerAddress,
           withResult: withResult,
         }, (err, response) => {
@@ -595,7 +629,7 @@ export default class Enigma {
    * @return {Task} Task wrapper with updated ETH status.
    */
   async pollTaskETH(task, interval=1000) {
-    while (task.ethStatus === 1) {
+    while (task.ethStatus === eeConstants.ETH_STATUS_CREATED) {
       task = await this.getTaskRecordStatus(task);
       await utils.sleep(interval);
     }
@@ -622,8 +656,7 @@ export default class Enigma {
   }
 
   /**
-   * Deterministically generate a key-secret pair necessary for deriving a shared encryption key with the selected
-   * worker. This pair will be stored in local storage for quick retrieval.
+   * Obtain task key pair that has been set
    *
    * @return {Object} Public key-private key pair
    */
@@ -634,19 +667,38 @@ export default class Enigma {
     let encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
       this.taskKeyLocalStorage['encodedPrivateKey'];
     if (encodedPrivateKey == null) {
-      let random = forge.random.createInstance();
-      // TODO: Query user for passphrase
-      random.seedFileSync = function(needed) {
-        return forge.util.fillString('cupcake', needed);
-      };
-      privateKey = forge.util.bytesToHex(random.getBytes(32));
-      isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
-        this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+      throw Error('Need to set task key pair first');
     } else {
       privateKey = isBrowser ? atob(encodedPrivateKey) : Buffer.from(encodedPrivateKey, 'base64').toString('binary');
     }
     let publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
     return {publicKey, privateKey};
+  }
+
+  /**
+   * Deterministically generate a key-secret pair necessary for deriving a shared encryption key with the selected
+   * worker. This pair will be stored in local storage for quick retrieval.
+   *
+   * @param {string} seed - Optional seed
+   * @return {string} Seed
+   */
+  setTaskKeyPair(seed='') {
+    const isBrowser = typeof window !== 'undefined';
+    if (seed === '') {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      for (let i = 0; i < 9; i++) {
+        seed += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+    }
+    let random = forge.random.createInstance();
+    // TODO: Query user for passphrase
+    random.seedFileSync = function(needed) {
+      return forge.util.fillString(seed, needed);
+    };
+    const privateKey = forge.util.bytesToHex(random.getBytes(32));
+    isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
+      this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+    return seed;
   }
 
   /**

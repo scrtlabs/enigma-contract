@@ -40,6 +40,10 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   // The following tests below currently don't fail.
   // This issue is tracked here: https://github.com/enigmampc/enigma-core/issues/111
 
