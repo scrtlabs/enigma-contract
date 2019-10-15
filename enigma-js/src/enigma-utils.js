@@ -210,7 +210,7 @@ function appendMessages(hexStr, inputsArray, principal=false) {
 function appendArrayMessages(hexStr, inputsArray, principal=false) {
   const principalPrefix = principal ? '01' : '';
   for (let array of inputsArray) {
-    hexStr += principalPrefix + JSBI.BigInt(array[0].length * array[1]).toString(16).padStart(16, '0');
+    hexStr += principalPrefix + JSBI.BigInt(array[0].length * (array[1]+9)).toString(16).padStart(16, '0');
     hexStr = appendMessages(hexStr, array[0], principal);
   }
   return hexStr;
