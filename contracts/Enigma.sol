@@ -321,27 +321,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-    * Create task records for tasks (either contract deployment or regular tasks). This is necessary for
-    * transferring task fee from sender to contract, generating the unique taskId, saving the block number
-    * when the record was mined, and incrementing the user's task deployment counter nonce.
-    *
-    * @param _inputsHashes Hashes of encrypted fn sig, encrypted ABI-encoded args, and contract address
-    * @param _gasLimits ENG gas limit
-    * @param _gasPxs ENG gas price in grains format (10 ** 8)
-    * @param _firstBlockNumber Locally-computed first block number of epoch
-    */
-    function createTaskRecords(
-        bytes32[] memory _inputsHashes,
-        uint64[] memory _gasLimits,
-        uint64[] memory _gasPxs,
-        uint _firstBlockNumber
-    )
-    public
-    {
-        TaskImpl.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber);
-    }
-
-    /**
     * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
     * The task record is finalized and the worker is credited with the task fee.
     *
