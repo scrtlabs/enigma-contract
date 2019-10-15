@@ -31,3 +31,19 @@ export const GET_TASK_RESULT_RESULT = 'getTaskResultResult';
 export const DEPLOY_SECRET_CONTRACT_RESULT = 'deploySecretContractResult';
 
 export const POLL_TASK_ETH_RESULT = 'pollTaskETHResult';
+
+export const RPC_SEND_TASK_INPUT = 'sendTaskInput';
+export const RPC_DEPLOY_SECRET_CONTRACT = 'deploySecretContract';
+export const RPC_GET_TASK_RESULT = 'getTaskResult';
+export const RPC_GET_TASK_STATUS = 'getTaskStatus';
+export const GET_TASK_RESULT_SUCCESS = 'SUCCESS';
+export const GET_TASK_RESULT_FAILED = 'FAILED';
+export const GET_TASK_RESULT_UNVERIFIED = 'UNVERIFIED';
+export const GET_TASK_RESULT_INPROGRESS = 'INPROGRESS';
+
+export const ETH_STATUS_UNDEFINED = 0;
+export const ETH_STATUS_CREATED = 1;
+export const ETH_STATUS_VERIFIED = 2;
+export const ETH_STATUS_FAILED = 3;
+export const ETH_STATUS_FAILED_ETH = 4;
+export const ETH_STATUS_FAILED_RETURN = 5;

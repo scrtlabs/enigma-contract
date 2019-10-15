@@ -42,6 +42,11 @@ describe('Enigma tests', () => {
   let scTask;
   let task;
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   it('should deploy secret contract', async () => {
     let scTaskFn = `construct(address)`;
     let scTaskArgs = [

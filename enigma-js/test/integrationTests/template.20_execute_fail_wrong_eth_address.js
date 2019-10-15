@@ -45,6 +45,10 @@ describe('Enigma tests', () => {
     });
   });
 
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   it('initializes VotingETH contract', async () => {
     votingETHContract = new enigma.web3.eth.Contract(VotingETHContract['abi'],
       VotingETHContract.networks['4447'].address);
