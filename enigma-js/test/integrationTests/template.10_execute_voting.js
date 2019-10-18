@@ -6,8 +6,9 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
 import VotingETHContract from '../../../build/contracts/VotingETH';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -39,6 +40,10 @@ describe('Enigma tests', () => {
       enigma.admin();
       expect(Enigma.version()).toEqual('0.0.1');
     });
+  });
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
   });
 
   it('initializes VotingETH contract', async () => {
@@ -93,7 +98,7 @@ describe('Enigma tests', () => {
     } while (task1.ethStatus !== 2);
     expect(task1.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   let task2;
   const addr2 = '0x0000000000000000000000000000000000000000000000000000000000000002';
@@ -127,21 +132,9 @@ describe('Enigma tests', () => {
     } while (task2.ethStatus !== 3);
     expect(task2.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should execute compute task: voter 2 casting vote', async () => {
-    let sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
-      SampleContract.networks['4447'].address);
-    const currentBlock = await enigma.web3.eth.getBlockNumber();
-    const firstBlock = parseInt(await enigma.enigmaContract.methods.getFirstBlockNumber(currentBlock).call());
-    const epochSize = parseInt(await enigma.enigmaContract.methods.getEpochSize().call());
-    const epochRemains = (firstBlock + epochSize) - currentBlock;
-    for (let i = 0; i < epochRemains; i++) {
-      await sampleContract.methods.incrementCounter().send({from: accounts[8]});
-    }
-    // Wait for 2s for the Ppal node to pick up the new epoch
-    await sleep(3000);
-
     const pollId = (await votingETHContract.methods.getPolls().call()).length - 1;
     let taskFn = 'cast_vote(uint256,bytes32,uint256)';
     let taskArgs = [
@@ -156,7 +149,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the pending task', async () => {
     task2 = await enigma.getTaskRecordStatus(task2);
@@ -171,7 +164,7 @@ describe('Enigma tests', () => {
     } while (task2.ethStatus !== 2);
     expect(task2.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   let task3;
   it('should fail to execute compute task to tally poll when poll has not expired', async () => {
@@ -202,7 +195,7 @@ describe('Enigma tests', () => {
     } while (task3.ethStatus !== 4);
     expect(task3.ethStatus).toEqual(4);
     process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('checks poll is still pending on ETH', async () => {
     const polls = await votingETHContract.methods.getPolls().call();
@@ -227,7 +220,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  }, 40000);
+  }, constants.TIMEOUT_COMPUTE_LONG);
 
   it('should get the pending task', async () => {
     task4 = await enigma.getTaskRecordStatus(task4);
@@ -242,7 +235,7 @@ describe('Enigma tests', () => {
     } while (task4.ethStatus !== 2);
     expect(task4.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task4.ethStatus+'\n');
-  }, 15000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('checks poll has registered as passed on ETH', async () => {
     const polls = await votingETHContract.methods.getPolls().call();

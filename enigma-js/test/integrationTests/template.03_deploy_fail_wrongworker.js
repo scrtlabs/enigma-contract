@@ -6,10 +6,11 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
 import EthCrypto from 'eth-crypto';
 import Task from "../../src/models/Task";
 import EventEmitter from "eventemitter3";
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -20,7 +21,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   let workerAddress;
   it('initializes', () => {
@@ -42,6 +42,10 @@ describe('Enigma tests', () => {
       enigma.admin();
       expect(Enigma.version()).toEqual('0.0.1');
     });
+  });
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
   });
 
   function createWrongWorkerTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
@@ -79,7 +83,7 @@ describe('Enigma tests', () => {
       const firstBlockNumber = workerParams.firstBlockNumber;
       workerAddress = await enigma.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
 
-      let wrongWorkerAddress = workerParams.workers.filter(function(value, index, arr) { 
+      let wrongWorkerAddress = workerParams.workers.filter(function(value, index, arr) {
         return value != workerAddress;})[0];
 
       wrongWorkerAddress = wrongWorkerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
@@ -181,7 +185,7 @@ describe('Enigma tests', () => {
     } while (scTask2.ethStatus === 1 && i < 6);
     expect(scTask2.ethStatus).toEqual(1);
     process.stdout.write('Completed. Final Task Status is '+scTask2.ethStatus+'\n');
-  }, 8000);
+  }, constants.TIMEOUT_FAILDEPLOY);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask2.scAddr);

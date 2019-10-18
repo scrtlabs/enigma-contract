@@ -7,6 +7,7 @@ import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
 import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -17,7 +18,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
@@ -41,6 +41,11 @@ describe('Enigma tests', () => {
   });
 
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   const millionaireAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-millionaire.txt'), 'utf-8');
 
   let task1;
@@ -63,7 +68,7 @@ describe('Enigma tests', () => {
 
   it('should get the pending task', async () => {
     task1 = await enigma.getTaskRecordStatus(task1);
-    expect(task1.ethStatus).toEqual(1);
+    expect(task1.ethStatus).toEqual(eeConstants.ETH_STATUS_CREATED);
   });
 
   it('should get the confirmed task', async () => {
@@ -71,28 +76,10 @@ describe('Enigma tests', () => {
       await sleep(1000);
       task1 = await enigma.getTaskRecordStatus(task1);
       process.stdout.write('Waiting. Current Task Status is '+task1.ethStatus+'\r');
-    } while (task1.ethStatus != 2);
-    expect(task1.ethStatus).toEqual(2);
+    } while (task1.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
+    expect(task1.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
-  }, 10000);
-
-  it('initializes Sample contract', async () => {
-    sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
-      SampleContract.networks['4447'].address);
-    expect(sampleContract.options.address).toBeTruthy;
-  });
-
-  it('should move forward epochSize blocks by calling dummy contract', async () => {
-    const currentBlock = await enigma.web3.eth.getBlockNumber();
-    const firstBlock = parseInt(await enigma.enigmaContract.methods.getFirstBlockNumber(currentBlock).call());
-    const epochSize = parseInt(await enigma.enigmaContract.methods.getEpochSize().call());
-    const epochRemains = (firstBlock + epochSize) - currentBlock;
-    for (let i = 0; i < epochRemains; i++) {
-      await sampleContract.methods.incrementCounter().send({from: accounts[8]});
-    }
-    // Wait for 2s for the Ppal node to pick up the new epoch
-    await sleep(10000);
-  }, 12000);
+  }, constants.TIMEOUT_COMPUTE);
 
   let task2;
   it('should execute compute task', async () => {
@@ -112,7 +99,7 @@ describe('Enigma tests', () => {
 
   it('should get the pending task', async () => {
     task2 = await enigma.getTaskRecordStatus(task2);
-    expect(task2.ethStatus).toEqual(1);
+    expect(task2.ethStatus).toEqual(eeConstants.ETH_STATUS_CREATED);
   });
 
   it('should get the confirmed task', async () => {
@@ -120,15 +107,15 @@ describe('Enigma tests', () => {
       await sleep(1000);
       task2 = await enigma.getTaskRecordStatus(task2);
       process.stdout.write('Waiting. Current Task Status is '+task2.ethStatus+'\r');
-    } while (task2.ethStatus != 2);
-    expect(task2.ethStatus).toEqual(2);
+    } while (task2.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
+    expect(task2.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   let task3;
   it('should execute compute task', async () => {
     let taskFn = 'compute_richest()';
-    let taskArgs = []
+    let taskArgs = [];
     let taskGasLimit = 1000000;
     let taskGasPx = utils.toGrains(1);
     task3 = await new Promise((resolve, reject) => {
@@ -140,7 +127,7 @@ describe('Enigma tests', () => {
 
   it('should get the pending task', async () => {
     task3 = await enigma.getTaskRecordStatus(task3);
-    expect(task3.ethStatus).toEqual(1);
+    expect(task3.ethStatus).toEqual(eeConstants.ETH_STATUS_CREATED);
   });
 
   it('should get the confirmed task', async () => {
@@ -148,10 +135,10 @@ describe('Enigma tests', () => {
       await sleep(1000);
       task3 = await enigma.getTaskRecordStatus(task3);
       process.stdout.write('Waiting. Current Task Status is '+task3.ethStatus+'\r');
-    } while (task3.ethStatus != 2);
-    expect(task3.ethStatus).toEqual(2);
+    } while (task3.ethStatus != eeConstants.ETH_STATUS_VERIFIED);
+    expect(task3.ethStatus).toEqual(eeConstants.ETH_STATUS_VERIFIED);
     process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get and validate the result', async () => {
     task3 = await new Promise((resolve, reject) => {
@@ -159,6 +146,10 @@ describe('Enigma tests', () => {
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
+    const verifyTaskOutput = await enigma.verifyTaskOutput(task3);
+    const verifyTaskStatus = await enigma.verifyTaskStatus(task3);
+    expect(verifyTaskOutput).toEqual(true);
+    expect(verifyTaskStatus).toEqual(true);
     expect(task3.engStatus).toEqual('SUCCESS');
     expect(task3.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task3.usedGas).toBeTruthy();

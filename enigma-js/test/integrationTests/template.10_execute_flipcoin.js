@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -17,7 +18,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
@@ -41,6 +41,11 @@ describe('Enigma tests', () => {
   });
 
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   const flipcoinAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-flipcoin.txt'), 'utf-8');
   let task;
   it('should execute compute task', async () => {
@@ -68,7 +73,7 @@ describe('Enigma tests', () => {
     } while (task.ethStatus != 2);
     expect(task.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get and validate the result', async () => {
     task = await new Promise((resolve, reject) => {

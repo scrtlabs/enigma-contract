@@ -7,7 +7,8 @@ import JSBI from 'jsbi';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -46,6 +47,11 @@ describe('Init tests', () => {
   });
 
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   it('initializes Sample contract', async () => {
     sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
       SampleContract.networks['4447'].address);
@@ -72,7 +78,7 @@ describe('Init tests', () => {
     }
     const results = await Promise.all(promises);
     expect(results.length).toEqual(accounts.length - 2);
-  });
+  }, constants.TIMEOUT_INIT);
 
   let workerAddress=[];
   it('should check that '+nodes+' worker(s) and the principal node, and only them, are registered', async () => {
@@ -86,7 +92,7 @@ describe('Init tests', () => {
       workerAddress[i] = await enigma.admin.getWorkerSignerAddr(accounts[i]);
     }
     expect(workerStatuses).toEqual(arrayResults);
-  });
+  }, constants.TIMEOUT_INIT);
 
   it('should check worker\'s stake balance is empty', async () => {
     let balance = await enigma.admin.getBalance(accounts[0]);
@@ -140,7 +146,7 @@ describe('Init tests', () => {
     }
     const loginReceipts = await Promise.all(promises);
     expect(loginReceipts.length).toEqual(nodes);
-  }, 20000);
+  }, constants.TIMEOUT_LOGIN);
 
   it('should check that '+nodes+' worker(s), and only them, are logged in', async () => {
     let workerStatuses = [];
@@ -161,7 +167,7 @@ describe('Init tests', () => {
     }
     // Wait for 2s for the Ppal node to pick up the new epoch
     await sleep(2000);
-  }, 8000);
+  }, constants.TIMEOUT_ADVANCE);
 
   it('should get the worker parameters for the current block', async () => {
     let blockNumber;
@@ -173,13 +179,13 @@ describe('Init tests', () => {
     } while (!workerParams)
     expect(workerParams.workers.sort()).toEqual(workerAddress.sort());  // they may come in a different order
     expect(workerParams.stakes).toEqual(new Array(nodes).fill(JSBI.BigInt(900 * 10 ** 8)));
-  }, 5000);
+  });
 
   const userPubKey = '2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273e762e49ec'+
     '912be61358d5e90bff56a53a0ed42abfe27e3';
   it('should create getTaskEncryptionKey from core (with call to P2P)', async () => {
     const encryptionKeyResult = await new Promise((resolve, reject) => {
-        enigma.client.request('getWorkerEncryptionKey', 
+        enigma.client.request('getWorkerEncryptionKey',
           {workerAddress: workerAddress[0].toLowerCase().slice(-40), userPubKey: userPubKey}, (err, response) => {
             if (err) {
               reject(err);

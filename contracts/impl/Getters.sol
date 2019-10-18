@@ -69,6 +69,15 @@ contract Getters is EnigmaStorage {
     }
 
     /**
+    * Get the task timeout size
+    *
+    * @return task timeout
+    */
+    function getTaskTimeoutSize() public view returns (uint) {
+        return state.taskTimeoutSize;
+    }
+
+    /**
     * Get a TaskRecord struct given a particular task's ID
     *
     * @param _taskId Unique identifier for a given task
@@ -95,5 +104,14 @@ contract Getters is EnigmaStorage {
     */
     function getWorkersParams() public view returns (EnigmaCommon.WorkersParams[5] memory) {
         return state.workersParams;
+    }
+
+    /**
+    * Get all secret contract addresses
+    *
+    * @return Array of secret contract addresses
+    */
+    function getAllSecretContractAddresses() public view returns (bytes32[] memory) {
+        return state.scAddresses;
     }
 }

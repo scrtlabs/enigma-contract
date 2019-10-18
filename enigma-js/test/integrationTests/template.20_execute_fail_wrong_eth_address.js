@@ -6,8 +6,9 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
 import VotingETHContract from '../../../build/contracts/VotingETH';
+import * as constants from './testConstants';
 
 
 /**
@@ -42,6 +43,10 @@ describe('Enigma tests', () => {
       enigma.admin();
       expect(Enigma.version()).toEqual('0.0.1');
     });
+  });
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
   });
 
   it('initializes VotingETH contract', async () => {
@@ -85,5 +90,5 @@ describe('Enigma tests', () => {
     } while (task1.ethStatus !== 3);
     expect(task1.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
-  }, 30000);
+  }, constants.TIMEOUT_COMPUTE_LONG);
 });

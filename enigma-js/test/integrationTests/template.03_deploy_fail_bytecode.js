@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -17,7 +18,6 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let sampleContract;
   let epochSize;
   it('initializes', () => {
     const provider = new Web3.providers.HttpProvider('http://localhost:9545');
@@ -42,13 +42,18 @@ describe('Enigma tests', () => {
 
   let scTask1;
   const homedir = os.homedir();
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   it('should deploy faulty secret contract', async () => {
     let scTaskFn = 'construct()';
     let scTaskArgs = '';
     let scTaskGasLimit = 100;
     let scTaskGasPx = utils.toGrains(1);
     let preCode = Buffer.from('5468697369736e6f746170726f706572736563726574636f6e74726163742e456e69676d6172756c65732e', 'hex');
-    
+
     scTask1 = await new Promise((resolve, reject) => {
       enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode)
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
@@ -64,7 +69,7 @@ describe('Enigma tests', () => {
     } while (scTask1.ethStatus != 3);
     expect(scTask1.ethStatus).toEqual(3);
     process.stdout.write('Completed. Final Task Status is '+scTask1.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_FAILDEPLOY);
 
   it('should fail to verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask1.scAddr);

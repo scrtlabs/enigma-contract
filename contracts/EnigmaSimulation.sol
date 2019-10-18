@@ -22,10 +22,10 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
 
     // ========================================== Constructor ==========================================
 
-    constructor(address _tokenAddress, address _principal, uint _epochSize) public {
+    constructor(address _tokenAddress, address _principal, uint _epochSize, uint _timeoutThreshold) public {
         state.engToken = ERC20(_tokenAddress);
         state.epochSize = _epochSize;
-        state.taskTimeoutSize = 200;
+        state.taskTimeoutSize = _timeoutThreshold * state.epochSize;
         state.principal = _principal;
         state.stakingThreshold = 1;
         state.workerGroupSize = 1;
@@ -154,7 +154,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     {
         WorkersImplSimulation.registerImpl(state, _signer, _report, _signature);
     }
-//
+
     /**
     * Deposits ENG stake into contract from worker. Worker must be registered to do so.
     *
@@ -199,11 +199,13 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     * Deploy secret contract from user, called by the worker.
     *
     * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
+    * @param _codeHash Deployed bytecode hash
     * @param _gasUsed Gas used for task
     * @param _sig Worker's signature for deployment
     */
     function deploySecretContractFailure(
         bytes32 _taskId,
+        bytes32 _codeHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -211,7 +213,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     workerLoggedIn(msg.sender)
     contractUndefined(_taskId)
     {
-        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _gasUsed, _sig);
+        TaskImpl.deploySecretContractFailureImpl(state, _taskId, _codeHash, _gasUsed, _sig);
     }
 
     /**
@@ -287,8 +289,8 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createDeploymentTaskRecord(
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber,
         uint _nonce
     )
@@ -309,34 +311,13 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     */
     function createTaskRecord(
         bytes32 _inputsHash,
-        uint _gasLimit,
-        uint _gasPx,
+        uint64 _gasLimit,
+        uint64 _gasPx,
         uint _firstBlockNumber
     )
     public
     {
         TaskImpl.createTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber);
-    }
-
-    /**
-    * Create task records for tasks (either contract deployment or regular tasks). This is necessary for
-    * transferring task fee from sender to contract, generating the unique taskId, saving the block number
-    * when the record was mined, and incrementing the user's task deployment counter nonce.
-    *
-    * @param _inputsHashes Hashes of encrypted fn sig, encrypted ABI-encoded args, and contract address
-    * @param _gasLimits ENG gas limit
-    * @param _gasPxs ENG gas price in grains format (10 ** 8)
-    * @param _firstBlockNumber Locally-computed first block number of epoch
-    */
-    function createTaskRecords(
-        bytes32[] memory _inputsHashes,
-        uint[] memory _gasLimits,
-        uint[] memory _gasPxs,
-        uint _firstBlockNumber
-    )
-    public
-    {
-        TaskImpl.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber);
     }
 
     /**
@@ -371,48 +352,19 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-   * Commit the computation task results on chain by first verifying the receipts and then the worker's signature.
-   * The task records are finalized and the worker is credited with the tasks' fees.
-   *
-   * @param _scAddr Secret contract address
-   * @param _taskIds Unique taskId
-   * @param _stateDeltaHashes Input state delta hashes
-   * @param _outputHashes Output state hashes
-   * @param _optionalEthereumData Output state hashes
-   * @param _optionalEthereumContractAddress Output state hashes
-   * @param _gasesUsed Output state hashes
-   * @param _sig Worker's signature
-   */
-    function commitReceipts(
-        bytes32 _scAddr,
-        bytes32[] memory _taskIds,
-        bytes32[] memory _stateDeltaHashes,
-        bytes32[] memory _outputHashes,
-        bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress,
-        uint64[] memory _gasesUsed,
-        bytes memory _sig
-    )
-    public
-    workerLoggedIn(msg.sender)
-    contractDeployed(_scAddr)
-    {
-        TaskImpl.commitReceiptsImpl(state, _scAddr, _taskIds, _stateDeltaHashes, _outputHashes, _optionalEthereumData,
-            _optionalEthereumContractAddress, _gasesUsed, _sig);
-    }
-
-    /**
     * Commit the computation task failure on chain - the task fee is transfered to the worker and the status is
     * updated to indicate task failure.
     *
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
+    * @param _outputHash Output state hash
     * @param _gasUsed Gas used for task computation
     * @param _sig Worker's signature
     */
     function commitTaskFailure(
         bytes32 _scAddr,
         bytes32 _taskId,
+        bytes32 _outputHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
@@ -420,7 +372,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     workerLoggedIn(msg.sender)
     contractDeployed(_scAddr)
     {
-        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
+        TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _outputHash, _gasUsed, _sig);
     }
 
     /**

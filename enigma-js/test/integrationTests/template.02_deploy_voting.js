@@ -7,7 +7,8 @@ import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import VotingETHContract from '../../../build/contracts/VotingETH';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import * as constants from './testConstants';
 
 
 function sleep(ms) {
@@ -39,6 +40,10 @@ describe('Enigma tests', () => {
       enigma.admin();
       expect(Enigma.version()).toEqual('0.0.1');
     });
+  });
+
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
   });
 
   it('initializes VotingETH contract', async () => {
@@ -74,7 +79,7 @@ describe('Enigma tests', () => {
         return console.log(err);
       }
     });
-  }, 30000);
+  }, constants.TIMEOUT_DEPLOY);
 
   it('should get the confirmed deploy contract task', async () => {
     do {
@@ -84,7 +89,7 @@ describe('Enigma tests', () => {
     } while (scTask.ethStatus != 2);
     expect(scTask.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+scTask.ethStatus+'\n');
-  }, 30000);
+  }, constants.TIMEOUT_DEPLOY);
 
   it('should verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask.scAddr);
