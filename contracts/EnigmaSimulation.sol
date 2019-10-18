@@ -154,7 +154,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     {
         WorkersImplSimulation.registerImpl(state, _signer, _report, _signature);
     }
-//
+
     /**
     * Deposits ENG stake into contract from worker. Worker must be registered to do so.
     *
