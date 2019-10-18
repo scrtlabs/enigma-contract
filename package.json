@@ -1,6 +1,6 @@
 {
   "name": "enigma-contract",
-  "version": "0.0.9",
+  "version": "0.3.0",
   "description": "The Solidity contracts of the Enigma Protocol with a Truffle test bed.",
   "repository": {
     "type": "git",
