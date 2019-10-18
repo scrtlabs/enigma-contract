@@ -154,7 +154,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     {
         WorkersImplSimulation.registerImpl(state, _signer, _report, _signature);
     }
-//
+
     /**
     * Deposits ENG stake into contract from worker. Worker must be registered to do so.
     *
@@ -272,6 +272,19 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     returns (bytes32[] memory)
     {
         return SecretContractImpl.getSecretContractAddressesImpl(state, _start, _stop);
+    }
+
+    /**
+    * Get all secret contracts -- just calls the function by the same name inside Getters
+    *
+    * @return All deployed contract addresses
+    */
+    function getAllSecretContractAddresses(uint _start, uint _stop)
+    public
+    view
+    returns (bytes32[] memory)
+    {
+        return Getters.getAllSecretContractAddresses();
     }
 
     /**
