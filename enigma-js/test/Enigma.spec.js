@@ -2028,6 +2028,56 @@ describe('Enigma tests', () => {
       expect(count).toEqual(3);
     });
 
+    it('should return fees for task after timeout', async () => {
+      let taskFn = 'medianWealth(int32,int32)';
+      let taskArgs = [
+        [200000, 'int32'],
+        [300000, 'int32'],
+      ];
+      let taskGasLimit = 100;
+      let taskGasPx = utils.toGrains(1);
+      const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
+      const startingContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      task = await new Promise((resolve, reject) => {
+        enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr).
+        on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
+        on(eeConstants.ERROR, (error) => reject(error));
+      });
+      await expect(new Promise((resolve, reject) => {
+        enigma.returnFeesForTask(task)
+          .on(eeConstants.RETURN_FEES_FOR_TASK, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual({message: 'Not enough time has elapsed to return task funds', name: 'InvalidTaskReturn'});
+      const endingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
+      const endingContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      expect(endingSenderBalance - startingSenderBalance).toEqual(-task.gasLimit * task.gasPx);
+      expect(endingContractBalance - startingContractBalance).toEqual(task.gasLimit * task.gasPx);
+
+      const elapsedBlocks = (await enigma.web3.eth.getBlockNumber()) - task.creationBlockNumber;
+      const taskTimeoutSize = await enigma.enigmaContract.methods.getTaskTimeoutSize().call();
+      for (let i = 0; i < taskTimeoutSize - elapsedBlocks + 1; i++) {
+        await sampleContract.methods.incrementCounter().send({from: accounts[8]});
+      }
+      task = await new Promise((resolve, reject) => {
+        enigma.returnFeesForTask(task)
+          .on(eeConstants.RETURN_FEES_FOR_TASK, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      });
+      expect(task.ethStatus).toEqual(5);
+      const finalSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(task.sender).call());
+      const finalContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      expect(finalSenderBalance - startingSenderBalance).toEqual(0);
+      expect(finalContractBalance - startingContractBalance).toEqual(0);
+      task = await enigma.getTaskRecordStatus(task);
+      expect(task.ethStatus).toEqual(5);
+    });
+
     it('should verify the report', async () => {
       let worker = data.workers[0];
 
