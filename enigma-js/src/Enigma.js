@@ -472,6 +472,38 @@ export default class Enigma {
   }
 
   /**
+   * Return fees for task
+   *
+   * @param {Task} task - Task wrapper
+   * @returns {EventEmitter} EventEmitter to be listened to track return of fees
+   */
+  returnFeesForTask(task) {
+    let emitter = new EventEmitter();
+    (async () => {
+      const taskTimeoutSize = await this.enigmaContract.methods.getTaskTimeoutSize().call();
+      const blockNumber = await this.web3.eth.getBlockNumber();
+      if (blockNumber - task.creationBlockNumber <= taskTimeoutSize) {
+        emitter.emit(eeConstants.ERROR, {
+          name: 'InvalidTaskReturn',
+          message: 'Not enough time has elapsed to return task funds',
+        });
+        return;
+      }
+      try {
+        const receipt = await this.enigmaContract.methods.returnFeesForTask(task.taskId).send({
+          from: task.sender,
+        });
+        task.ethStatus = eeConstants.ETH_STATUS_FAILED_RETURN;
+        emitter.emit(eeConstants.RETURN_FEES_FOR_TASK_RECEIPT, receipt);
+        emitter.emit(eeConstants.RETURN_FEES_FOR_TASK, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
    * Decrypt task result
    *
    * @param {Task} task - Task wrapper for contract deployment and compute tasks
