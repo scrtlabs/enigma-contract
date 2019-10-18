@@ -493,7 +493,7 @@ export default class Enigma {
         const receipt = await this.enigmaContract.methods.returnFeesForTask(task.taskId).send({
           from: task.sender,
         });
-        task.ethStatus = 5;
+        task.ethStatus = eeConstants.ETH_STATUS_FAILED_RETURN;
         emitter.emit(eeConstants.RETURN_FEES_FOR_TASK_RECEIPT, receipt);
         emitter.emit(eeConstants.RETURN_FEES_FOR_TASK, task);
       } catch (err) {
