@@ -275,19 +275,6 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters {
     }
 
     /**
-    * Get all secret contracts -- just calls the function by the same name inside Getters
-    *
-    * @return All deployed contract addresses
-    */
-    function getAllSecretContractAddresses(uint _start, uint _stop)
-    public
-    view
-    returns (bytes32[] memory)
-    {
-        return Getters.getAllSecretContractAddresses();
-    }
-
-    /**
     * Create task record for contract deployment. This is necessary for transferring task fee from sender to contract,
     * generating the unique taskId, saving the block number when the record was mined, and incrementing the user's
     * task deployment counter nonce. We revert the process if the locally-generated nonce value does not match
