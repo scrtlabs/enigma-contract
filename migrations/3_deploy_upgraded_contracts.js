@@ -10,12 +10,21 @@ const EPOCH_SIZE = 10;
 
 dotenv.config();    // Reads .env configuration file, if present
 
-const Enigma = artifacts.require('./Enigma.sol');
-const EnigmaV2 = artifacts.require('./upgrade-mock/EnigmaV2.sol');
-const WorkersImpl = artifacts.require('./impl/WorkersImpl.sol');
-const WorkersImplV2 = artifacts.require('./upgrade-mock/impl/WorkersImplV2.sol');
-const PrincipalImplV2 = artifacts.require('./upgrade-mock/impl/PrincipalImplV2.sol');
-const TaskImplV2 = artifacts.require('./upgrade-mock/impl/TaskImplV2.sol');
+const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+    artifacts.require('./EnigmaSimulation.sol') :
+    artifacts.require('./Enigma.sol');
+const EnigmaV2 = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+    artifacts.require('./upgrade-mock/EnigmaSimulationV2.sol') :
+    artifacts.require('./upgrade-mock/EnigmaV2.sol');
+const WorkersImplV2 = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+    artifacts.require('./upgrade-mock/impl/WorkersImplSimulationV2.sol') :
+    artifacts.require('./upgrade-mock/impl/WorkersImplV2.sol');
+const PrincipalImplV2 = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+    artifacts.require('./upgrade-mock/impl/PrincipalImplSimulationV2.sol') :
+    artifacts.require('./upgrade-mock/impl/PrincipalImplV2.sol');
+const TaskImplV2 = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+    artifacts.require('./upgrade-mock/impl/TaskImplSimulationV2.sol') :
+    artifacts.require('./upgrade-mock/impl/TaskImplV2.sol');
 const UpgradeImpl = artifacts.require('./impl/UpgradeImpl.sol');
 
 async function deployProtocol(deployer) {

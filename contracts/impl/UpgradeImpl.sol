@@ -6,7 +6,6 @@ import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
-import { TaskImpl } from "./TaskImpl.sol";
 import { Bytes } from "../utils/Bytes.sol";
 
 /**
