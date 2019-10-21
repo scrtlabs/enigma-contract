@@ -33,10 +33,17 @@ async function deployProtocol(deployer) {
     deployer.deploy(SecretContractImpl),
   ]);
 
-  await Promise.all([
-    TaskImplV2.link('WorkersImplV2', WorkersImplV2.address),
-    PrincipalImplV2.link('WorkersImplV2', WorkersImplV2.address),
-  ]);
+  if (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') {
+      await Promise.all([
+          TaskImplV2.link('WorkersImplSimulationV2', WorkersImplV2.address),
+          PrincipalImplV2.link('WorkersImplSimulationV2', WorkersImplV2.address),
+      ]);
+  } else {
+      await Promise.all([
+          TaskImplV2.link('WorkersImplV2', WorkersImplV2.address),
+          PrincipalImplV2.link('WorkersImplV2', WorkersImplV2.address),
+      ]);
+  }
 
   await Promise.all([
     deployer.deploy(TaskImplV2),
@@ -46,13 +53,23 @@ async function deployProtocol(deployer) {
   const enigmaAddress = (await Enigma.deployed()).address;
   const upgradeImplAddress = (await UpgradeImpl.deployed()).address;
   const secretContractImplAddress = (await SecretContractImpl.deployed()).address;
-  await Promise.all([
-    EnigmaV2.link('WorkersImplV2', WorkersImplV2.address),
-    EnigmaV2.link('PrincipalImplV2', PrincipalImplV2.address),
-    EnigmaV2.link('TaskImplV2', TaskImplV2.address),
-    EnigmaV2.link('UpgradeImpl', upgradeImplAddress),
-    EnigmaV2.link('SecretContractImpl', secretContractImplAddress),
-  ]);
+  if (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') {
+      await Promise.all([
+          EnigmaV2.link('WorkersImplSimulationV2', WorkersImplV2.address),
+          EnigmaV2.link('PrincipalImplSimulationV2', PrincipalImplV2.address),
+          EnigmaV2.link('TaskImplSimulationV2', TaskImplV2.address),
+          EnigmaV2.link('UpgradeImpl', upgradeImplAddress),
+          EnigmaV2.link('SecretContractImpl', secretContractImplAddress),
+      ]);
+  } else {
+      await Promise.all([
+          EnigmaV2.link('WorkersImplV2', WorkersImplV2.address),
+          EnigmaV2.link('PrincipalImplV2', PrincipalImplV2.address),
+          EnigmaV2.link('TaskImplV2', TaskImplV2.address),
+          EnigmaV2.link('UpgradeImpl', upgradeImplAddress),
+          EnigmaV2.link('SecretContractImpl', secretContractImplAddress),
+      ]);
+  }
 
   let principal = PRINCIPAL_SIGNING_ADDRESS;
   const homedir = require('os').homedir();
