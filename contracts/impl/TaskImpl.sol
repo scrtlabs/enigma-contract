@@ -26,14 +26,10 @@ library TaskImpl {
 
     event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
-    event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint64[] gasLimits, uint64[] gasPxs, address sender,
-        uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
         uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress,
         bytes sig);
-    event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
-        bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes sig);
     event ReceiptFailedETH(bytes32 taskId, bytes sig);
     event TaskFeeReturned(bytes32 taskId);
@@ -361,43 +357,6 @@ library TaskImpl {
             emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _scAddr, _gasUsed, deltaHashIndex,
                 _optionalEthereumData, _optionalEthereumContractAddress, msg.sender, _sig);
         }
-    }
-
-    function createTaskRecordsImpl(
-        EnigmaState.State storage state,
-        bytes32[] memory _inputsHashes,
-        uint64[] memory _gasLimits,
-        uint64[] memory _gasPxs,
-        uint _firstBlockNumber
-    )
-    public
-    {
-        // Worker deploying task must be the appropriate worker as per the worker selection algorithm
-        require(_firstBlockNumber == WorkersImpl.getFirstBlockNumberImpl(state, block.number), "Wrong epoch for this task");
-
-        bytes32[] memory taskIds = new bytes32[](_inputsHashes.length);
-        for (uint i = 0; i < _inputsHashes.length; i++) {
-            // Transfer fee from sender to contract
-            uint fee = _gasLimits[i].mul(_gasPxs[i]);
-            require(state.engToken.allowance(msg.sender, address(this)) >= fee, "Allowance not enough");
-            require(state.engToken.transferFrom(msg.sender, address(this), fee), "Transfer not valid");
-
-            // Create taskId and TaskRecord
-            bytes32 taskId = keccak256(abi.encodePacked(msg.sender, state.userTaskDeployments[msg.sender]));
-            EnigmaCommon.TaskRecord storage task = state.tasks[taskId];
-            require(task.sender == address(0), "Task already exists");
-            taskIds[i] = taskId;
-            task.inputsHash = _inputsHashes[i];
-            task.gasLimit = _gasLimits[i];
-            task.gasPx = _gasPxs[i];
-            task.sender = msg.sender;
-            task.blockNumber = block.number;
-            task.status = EnigmaCommon.TaskStatus.RecordCreated;
-
-            // Increment user task deployment nonce
-            state.userTaskDeployments[msg.sender]++;
-        }
-        emit TaskRecordsCreated(taskIds, _inputsHashes, _gasLimits, _gasPxs, msg.sender, block.number);
     }
 
     function verifyReceipts(EnigmaState.State storage state, bytes32 _scAddr, bytes32[] memory _taskIds,

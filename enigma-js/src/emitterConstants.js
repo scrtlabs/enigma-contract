@@ -24,15 +24,14 @@ export const CREATE_TASK_RECORD_TRANSACTION_HASH = 'createTaskRecordTransactionH
 export const CREATE_TASK_RECORD_CONFIRMATION = 'createTaskRecordConfirmation';
 export const CREATE_TASK_RECORD_RECEIPT = 'createTaskRecordReceipt';
 export const CREATE_TASK_RECORD = 'createTaskRecord';
-export const CREATE_TASK_RECORDS_TRANSACTION_HASH = 'createTaskRecordsTransactionHash';
-export const CREATE_TASK_RECORDS_CONFIRMATION = 'createTaskRecordsConfirmation';
-export const CREATE_TASK_RECORDS_RECEIPT = 'createTaskRecordsReceipt';
-export const CREATE_TASK_RECORDS = 'createTaskRecords';
 
 export const SEND_TASK_INPUT_RESULT = 'sendTaskInputResult';
 export const POLL_TASK_STATUS_RESULT = 'pollTaskStatusResult';
 export const GET_TASK_RESULT_RESULT = 'getTaskResultResult';
 export const DEPLOY_SECRET_CONTRACT_RESULT = 'deploySecretContractResult';
+
+export const RETURN_FEES_FOR_TASK_RECEIPT = 'returnFeesForTaskReceipt';
+export const RETURN_FEES_FOR_TASK = 'returnFeesForTask';
 
 export const POLL_TASK_ETH_RESULT = 'pollTaskETHResult';
 

@@ -9,6 +9,7 @@ const VotingETH = artifacts.require('VotingETH.sol');
 
 const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
 const EPOCH_SIZE = 10;
+const TIMEOUT_THRESHOLD = 2;
 
 dotenv.config();    // Reads .env configuration file, if present
 
@@ -69,7 +70,7 @@ async function deployProtocol(deployer) {
     principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
   }
   console.log('using account', principal, 'as principal signer');
-  await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE);
+  await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE, TIMEOUT_THRESHOLD);
   await deployer.deploy(Sample);
   await deployer.deploy(VotingETH);
 
