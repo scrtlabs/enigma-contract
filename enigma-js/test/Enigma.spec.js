@@ -12,6 +12,7 @@ import EthCrypto from 'eth-crypto';
 import EnigmaContract from '../../build/contracts/Enigma';
 import EnigmaContractV2 from '../../build/contracts/EnigmaV2';
 import EnigmaContractSimulation from '../../build/contracts/EnigmaSimulation';
+import EnigmaContractSimulationV2 from '../../build/contracts/EnigmaSimulationV2';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import WorkersImplContract from '../../build/contracts/WorkersImpl';
 import PrincipalImplContract from '../../build/contracts/PrincipalImpl';
@@ -2265,7 +2266,9 @@ describe('Enigma tests', () => {
     let enigmaUpgradedContract;
     it('should instantiate enigma upgraded contract address', async () => {
       enigmaUpgradedContract = new web3.eth.Contract(EnigmaContractV2['abi'],
-        EnigmaContractV2.networks['4447'].address, {
+        (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+          EnigmaContractSimulationV2.networks['4447'].address :
+          EnigmaContractV2.networks['4447'].address, {
           gas: 4712388,
           gasPrice: 100000000000,
           from: accounts[0],
