@@ -259,63 +259,6 @@ export default class Enigma {
   }
 
   /**
-   * Create and store task records on chain (ETH). Task records are necessary for collecting the ENG computation fee
-   * and computing the immutable taskId (a unique value for each task computed from hash(user's ETH address, user's
-   * nonce value monotonically increasing for every task deployment). Thus, task records have important implications for
-   * task ordering, fee payments, and verification.
-   *
-   * @param {Array} tasks - Task wrappers for contract deployment and compute tasks
-   * @returns {EventEmitter} EventEmitter to be listened to track creation of task records. Emits Tasks with task
-   * record creation attributes to be used for remainder of task lifecycle
-   */
-  createTaskRecords(tasks) {
-    let emitter = new EventEmitter();
-    (async () => {
-      const inputsHashes = tasks.map((task) => task.inputsHash);
-      const gasLimits = tasks.map((task) => task.gasLimit);
-      const gasPxs = tasks.map((task) => task.gasPx);
-      const fees = tasks.map((task) => task.gasLimit * task.gasPx);
-      const balance = await this.tokenContract.methods.balanceOf(tasks[0].sender).call();
-      const totalFees = fees.reduce((a, b) => a + b, 0);
-      if (balance < totalFees) {
-        emitter.emit(eeConstants.ERROR, {
-          name: 'NotEnoughTokens',
-          message: 'Not enough tokens to pay the fee',
-        });
-        return;
-      }
-      await this.tokenContract.methods.approve(this.enigmaContract.options.address, totalFees).send({
-        from: tasks[0].sender,
-      });
-      await this.enigmaContract.methods.createTaskRecords(inputsHashes, gasLimits, gasPxs, tasks[0].firstBlockNumber).
-        send({
-          from: tasks[0].sender,
-        }).
-        on('transactionHash', (hash) => {
-          for (let i = 0; i < tasks.length; i++) {
-            tasks[i].transactionHash = hash;
-          }
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS_TRANSACTION_HASH, hash);
-        }).
-        on('confirmation', (confirmationNumber, receipt) => {
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS_CONFIRMATION, confirmationNumber, receipt);
-        }).
-        then((receipt) => {
-          const taskIds = receipt.events.TaskRecordsCreated.returnValues.taskIds;
-          for (let i = 0; i < tasks.length; i++) {
-            tasks[i].taskId = taskIds[i];
-            tasks[i].receipt = receipt;
-            tasks[i].ethStatus = 1;
-            tasks[i].creationBlockNumber = receipt.blockNumber;
-          }
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS_RECEIPT, receipt);
-          emitter.emit(eeConstants.CREATE_TASK_RECORDS, tasks);
-        });
-    })();
-    return emitter;
-  }
-
-  /**
    * Get the Task's task record status from Ethereum
    *
    * @param {Task} task - Task wrapper for contract deployment and compute tasks
@@ -525,6 +468,38 @@ export default class Enigma {
       }
     });
 
+    return emitter;
+  }
+
+  /**
+   * Return fees for task
+   *
+   * @param {Task} task - Task wrapper
+   * @returns {EventEmitter} EventEmitter to be listened to track return of fees
+   */
+  returnFeesForTask(task) {
+    let emitter = new EventEmitter();
+    (async () => {
+      const taskTimeoutSize = await this.enigmaContract.methods.getTaskTimeoutSize().call();
+      const blockNumber = await this.web3.eth.getBlockNumber();
+      if (blockNumber - task.creationBlockNumber <= taskTimeoutSize) {
+        emitter.emit(eeConstants.ERROR, {
+          name: 'InvalidTaskReturn',
+          message: 'Not enough time has elapsed to return task funds',
+        });
+        return;
+      }
+      try {
+        const receipt = await this.enigmaContract.methods.returnFeesForTask(task.taskId).send({
+          from: task.sender,
+        });
+        task.ethStatus = eeConstants.ETH_STATUS_FAILED_RETURN;
+        emitter.emit(eeConstants.RETURN_FEES_FOR_TASK_RECEIPT, receipt);
+        emitter.emit(eeConstants.RETURN_FEES_FOR_TASK, task);
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
     return emitter;
   }
 
