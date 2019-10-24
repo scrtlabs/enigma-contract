@@ -42,6 +42,10 @@ describe('Enigma tests', () => {
   const homedir = os.homedir();
   const revertAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-revert.txt'), 'utf-8');
 
+  it('should generate and save key/pair', () => {
+    enigma.setTaskKeyPair('cupcake');
+  });
+
   let task1;
   it('should read the state and validate initial value', async () => {
     let taskFn = 'get_last_sum()';
