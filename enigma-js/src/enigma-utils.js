@@ -207,11 +207,11 @@ function appendMessages(hexStr, inputsArray, principal=false) {
  * @param {boolean} principal - Principal hashing
  * @return {string} - Final appended hex string
  */
-function appendArrayMessages(hexStr, inputsArray, principal=false) {
-  const principalPrefix = principal ? '01' : '';
+function appendArrayMessages(hexStr, inputsArray) {
+  const principalPrefix = '01';
   for (let array of inputsArray) {
     hexStr += principalPrefix + JSBI.BigInt(array[0].length * (array[1]+9)).toString(16).padStart(16, '0');
-    hexStr = appendMessages(hexStr, array[0], principal);
+    hexStr = appendMessages(hexStr, array[0], true);
   }
   return hexStr;
 }
@@ -239,7 +239,7 @@ function hash(inputsArray) {
 function principalHash(seed, nonce, workerAddresses, workerStakes) {
   let hexStr = '';
   hexStr = appendMessages(hexStr, [seed, nonce], true);
-  hexStr = appendArrayMessages(hexStr, [[workerAddresses, 20], [workerStakes, 32]], true);
+  hexStr = appendArrayMessages(hexStr, [[workerAddresses, 20], [workerStakes, 32]]);
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
 

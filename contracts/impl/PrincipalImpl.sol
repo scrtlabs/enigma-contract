@@ -59,11 +59,11 @@ library PrincipalImpl {
         bytes memory message;
         message = EnigmaCommon.appendMessageKM(message, _seed.toBytes());
         message = EnigmaCommon.appendMessageKM(message, state.userTaskDeployments[msg.sender].toBytes());
-        message = EnigmaCommon.appendMessageArrayLengthKM(workerParams.workers.length, 20, message);
+        message = EnigmaCommon.appendMessageArrayLength(workerParams.workers.length, 20, message);
         for (uint i = 0; i < workerParams.workers.length; i++) {
             message = EnigmaCommon.appendMessageKM(message, workerParams.workers[i].toBytes());
         }
-        message = EnigmaCommon.appendMessageArrayLengthKM(workerParams.stakes.length, 32, message);
+        message = EnigmaCommon.appendMessageArrayLength(workerParams.stakes.length, 32, message);
         for (uint j = 0; j < workerParams.stakes.length; j++) {
             message = EnigmaCommon.appendMessageKM(message, workerParams.stakes[j].toBytes());
         }

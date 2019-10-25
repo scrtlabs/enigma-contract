@@ -376,20 +376,20 @@ library TaskImplSimulation {
         // Verify the principal's signature
         bytes memory message;
         message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
-        message = EnigmaCommon.appendMessageArrayLength(inputsHashes.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(inputsHashes.length, 32, message);
         for (uint i = 0; i < inputsHashes.length; i++) {
             message = EnigmaCommon.appendMessage(message, inputsHashes[i].toBytes());
         }
         message = EnigmaCommon.appendMessage(message, lastStateDeltaHash.toBytes());
-        message = EnigmaCommon.appendMessageArrayLength(_stateDeltaHashes.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(_stateDeltaHashes.length, 32, message);
         for (uint j = 0; j < _stateDeltaHashes.length; j++) {
             message = EnigmaCommon.appendMessage(message, _stateDeltaHashes[j].toBytes());
         }
-        message = EnigmaCommon.appendMessageArrayLength(_outputHashes.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(_outputHashes.length, 32, message);
         for (uint k = 0; k < _outputHashes.length; k++) {
             message = EnigmaCommon.appendMessage(message, _outputHashes[k].toBytes());
         }
-        message = EnigmaCommon.appendMessageArrayLength(_gasesUsed.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(_gasesUsed.length, 8, message);
         for (uint m = 0; m < _gasesUsed.length; m++) {
             message = EnigmaCommon.appendMessage(message, _gasesUsed[m].toBytesFromUint64());
         }

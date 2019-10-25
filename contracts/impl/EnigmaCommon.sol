@@ -110,25 +110,10 @@ library EnigmaCommon {
     *
     * @param _message Bytes buffer being appended to
     * @param _arraylength Length of array
-    * @return New bytes buffer
-    */
-    function appendMessageArrayLength(uint256 _arraylength, bytes memory _message)
-    internal
-    pure
-    returns (bytes memory)
-    {
-        return _message.concat(uint64(_arraylength).toBytesFromUint64());
-    }
-
-    /**
-    * Append the length of an array to an existing bytes buffer
-    *
-    * @param _message Bytes buffer being appended to
-    * @param _arraylength Length of array
     * @param _typeLength Length of each item in bytes
     * @return New bytes buffer
     */
-    function appendMessageArrayLengthKM(uint256 _arraylength, uint256 _typeLength, bytes memory _message)
+    function appendMessageArrayLength(uint256 _arraylength, uint256 _typeLength, bytes memory _message)
     internal
     pure
     returns (bytes memory)
