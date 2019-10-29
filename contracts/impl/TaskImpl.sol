@@ -7,6 +7,7 @@ import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import { EnigmaCommon } from "./EnigmaCommon.sol";
 import { EnigmaState } from "./EnigmaState.sol";
 import { WorkersImpl } from "./WorkersImpl.sol";
+import { IExchangeRate } from "../interfaces/IExchangeRate.sol";
 import { Bytes } from "../utils/Bytes.sol";
 import "../utils/SolRsaVerify.sol";
 
@@ -26,13 +27,13 @@ library TaskImpl {
 
     event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
-    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash, uint gasUsed,
-        bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
-        uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress,
-        bytes sig);
+    event SecretContractDeployed(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
+        uint gasUsedTotal, bytes optionalEthereumData, address workerAddress);
+    event ReceiptVerified(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
+        uint deltaHashIndex, uint gasUsedTotal, bytes optionalEthereumData, address workerAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
-    event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
+    event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, uint gasUsedTotal, address workerAddress,
+        bytes sig);
     event TaskFeeReturned(bytes32 taskId);
 
     function createDeploymentTaskRecordImpl(
@@ -130,46 +131,59 @@ library TaskImpl {
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
     }
 
-    function deploySecretContractImpl(EnigmaState.State storage state, bytes32 _taskId, bytes32 _preCodeHash,
-        bytes32 _codeHash, bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress, uint64 _gasUsed, bytes memory _sig)
+    function deploySecretContractImpl(
+        EnigmaState.State storage state,
+        uint64 _gasUsed,
+        address _optionalEthereumContractAddress,
+        bytes32[4] memory _bytes32s,
+        bytes memory _optionalEthereumData,
+        bytes memory _sig)
     public
     {
-        EnigmaCommon.SecretContract storage secretContract = state.contracts[_taskId];
-        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
-        verifyDeployReceipt(state, _taskId, _codeHash, _initStateDeltaHash, _optionalEthereumData,
+        EnigmaCommon.SecretContract storage secretContract = state.contracts[_bytes32s[0]];
+        EnigmaCommon.TaskRecord storage task = state.tasks[_bytes32s[0]];
+        verifyDeployReceipt(state, _bytes32s[0], _bytes32s[2], _bytes32s[3], _optionalEthereumData,
             _optionalEthereumContractAddress, _gasUsed, msg.sender, _sig);
         task.proof = _sig;
+        uint256 callbackGasETH;
+        uint256 callbackGasENG;
 
         if (_optionalEthereumContractAddress != address(0)) {
-            require(gasleft() > 150000, "Not enough gas from worker for eth callback");
-            (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
-            transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
+            callbackGasETH = (task.gasLimit.sub(_gasUsed)).mul(task.gasPx); // Unused gas fee (ENG grains)
+            callbackGasETH = callbackGasETH.mul(IExchangeRate(state.exchangeRate).getExchangeRate()).mul(10**10).div(10**8); // Unused gas fee (ETH wei)
+            callbackGasETH = callbackGasETH.div(tx.gasprice); // Unused gas units (ETH)
+            uint256 gasLeftInit = gasleft();
+            (bool success,) = _optionalEthereumContractAddress.call.gas(callbackGasETH)(_optionalEthereumData);
+            callbackGasENG = gasLeftInit.sub(gasleft()); // Callback used gas units (ETH)
+            callbackGasENG = callbackGasENG.mul(tx.gasprice); // Callback used gas fee (ETH)
+            callbackGasENG = callbackGasENG.mul(10**8).div(IExchangeRate(state.exchangeRate).getExchangeRate()).div(10**10); // Callback used gas fee (ENG)
+            callbackGasENG = (callbackGasENG.div(task.gasPx)).add(_gasUsed); // Total used gas units (ENG)
+            transferFundsAfterTask(state, msg.sender, task.sender, callbackGasENG, task.gasLimit.sub(callbackGasENG), task.gasPx);
             if (success) {
                 task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
                 secretContract.owner = task.sender;
-                secretContract.preCodeHash = _preCodeHash;
-                secretContract.codeHash = _codeHash;
+                secretContract.preCodeHash = _bytes32s[1];
+                secretContract.codeHash = _bytes32s[2];
                 secretContract.status = EnigmaCommon.SecretContractStatus.Deployed;
-                secretContract.stateDeltaHashes.push(_initStateDeltaHash);
-                state.scAddresses.push(_taskId);
-                emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash, _gasUsed, _optionalEthereumData,
-                    _optionalEthereumContractAddress, msg.sender);
+                secretContract.stateDeltaHashes.push(_bytes32s[3]);
+                state.scAddresses.push(_bytes32s[0]);
+                emit SecretContractDeployed(_gasUsed, _optionalEthereumContractAddress, _bytes32s, callbackGasENG,
+                    _optionalEthereumData, msg.sender);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-                emit ReceiptFailedETH(_taskId, _taskId, _gasUsed, msg.sender, _sig);
+                emit ReceiptFailedETH(_bytes32s[0], _bytes32s[0], _gasUsed, callbackGasENG, msg.sender, _sig);
             }
         } else {
             transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
             task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
             secretContract.owner = task.sender;
-            secretContract.preCodeHash = _preCodeHash;
-            secretContract.codeHash = _codeHash;
+            secretContract.preCodeHash = _bytes32s[1];
+            secretContract.codeHash = _bytes32s[2];
             secretContract.status = EnigmaCommon.SecretContractStatus.Deployed;
-            secretContract.stateDeltaHashes.push(_initStateDeltaHash);
-            state.scAddresses.push(_taskId);
-            emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash, _gasUsed, _optionalEthereumData,
-                _optionalEthereumContractAddress, msg.sender);
+            secretContract.stateDeltaHashes.push(_bytes32s[3]);
+            state.scAddresses.push(_bytes32s[0]);
+            emit SecretContractDeployed(_gasUsed, _optionalEthereumContractAddress, _bytes32s, _gasUsed,
+                _optionalEthereumData, msg.sender);
         }
     }
 
@@ -315,48 +329,54 @@ library TaskImpl {
 
     function commitReceiptImpl(
         EnigmaState.State storage state,
-        bytes32 _scAddr,
-        bytes32 _taskId,
-        bytes32 _stateDeltaHash,
-        bytes32 _outputHash,
-        bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress,
         uint64 _gasUsed,
+        address _optionalEthereumContractAddress,
+        bytes32[4] memory _bytes32s,
+        bytes memory _optionalEthereumData,
         bytes memory _sig
     )
     public
     {
-        EnigmaCommon.SecretContract storage secretContract = state.contracts[_scAddr];
-        EnigmaCommon.TaskRecord storage task = state.tasks[_taskId];
+        EnigmaCommon.SecretContract storage secretContract = state.contracts[_bytes32s[0]];
+        EnigmaCommon.TaskRecord storage task = state.tasks[_bytes32s[1]];
 
         // Verify the receipt
-        verifyReceipt(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
+        verifyReceipt(state, _bytes32s[0], _bytes32s[1], _bytes32s[2], _bytes32s[3], _optionalEthereumData,
             _optionalEthereumContractAddress, _gasUsed, msg.sender, _sig);
 
         task.proof = _sig;
+        uint256 callbackGasETH;
+        uint256 callbackGasENG;
         if (_optionalEthereumContractAddress != address(0)) {
-            require(gasleft() > 150000, "Not enough gas from worker for minimum eth callback");
-            (bool success,) = _optionalEthereumContractAddress.call.gas(gasleft().sub(100000))(_optionalEthereumData);
-            transferFundsAfterTaskETH(state, msg.sender, task.gasLimit, task.gasPx);
+            callbackGasETH = (task.gasLimit.sub(_gasUsed)).mul(task.gasPx); // Unused gas fee (ENG grains)
+            callbackGasETH = callbackGasETH.mul(IExchangeRate(state.exchangeRate).getExchangeRate()).mul(10**10).div(10**8); // Unused gas fee (ETH wei)
+            callbackGasETH = callbackGasETH.div(tx.gasprice); // Unused gas units (ETH)
+            uint256 gasLeftInit = gasleft();
+            (bool success,) = _optionalEthereumContractAddress.call.gas(callbackGasETH)(_optionalEthereumData);
+            callbackGasENG = gasLeftInit.sub(gasleft()); // Callback used gas units (ETH)
+            callbackGasENG = callbackGasENG.mul(tx.gasprice); // Callback used gas fee (ETH)
+            callbackGasENG = callbackGasENG.mul(10**8).div(IExchangeRate(state.exchangeRate).getExchangeRate()).div(10**10); // Callback used gas fee (ENG)
+            callbackGasENG = (callbackGasENG.div(task.gasPx)).add(_gasUsed); // Total used gas units (ENG)
+            transferFundsAfterTask(state, msg.sender, task.sender, callbackGasENG, task.gasLimit.sub(callbackGasENG), task.gasPx);
             if (success) {
                 task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-                uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
-                    secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
-                state.tasks[_taskId].outputHash = _outputHash;
-                emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _scAddr, _gasUsed, deltaHashIndex,
-                    _optionalEthereumData, _optionalEthereumContractAddress, msg.sender, _sig);
+                uint deltaHashIndex = _bytes32s[2] != bytes32(0) ?
+                    secretContract.stateDeltaHashes.push(_bytes32s[2]) - 1 : 0;
+                state.tasks[_bytes32s[1]].outputHash = _bytes32s[3];
+                emit ReceiptVerified(_gasUsed, _optionalEthereumContractAddress, _bytes32s, deltaHashIndex, callbackGasENG,
+                    _optionalEthereumData, msg.sender, _sig);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-                emit ReceiptFailedETH(_taskId, _scAddr, _gasUsed, msg.sender, _sig);
+                emit ReceiptFailedETH(_bytes32s[1], _bytes32s[0], _gasUsed, callbackGasENG, msg.sender, _sig);
             }
         } else {
             transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
             task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
-            uint deltaHashIndex = _stateDeltaHash != bytes32(0) ?
-                secretContract.stateDeltaHashes.push(_stateDeltaHash) - 1 : 0;
-            state.tasks[_taskId].outputHash = _outputHash;
-            emit ReceiptVerified(_taskId, _stateDeltaHash, _outputHash, _scAddr, _gasUsed, deltaHashIndex,
-                _optionalEthereumData, _optionalEthereumContractAddress, msg.sender, _sig);
+            uint deltaHashIndex = _bytes32s[2] != bytes32(0) ?
+                secretContract.stateDeltaHashes.push(_bytes32s[2]) - 1 : 0;
+            state.tasks[_bytes32s[1]].outputHash = _bytes32s[3];
+            emit ReceiptVerified(_gasUsed, _optionalEthereumContractAddress, _bytes32s, deltaHashIndex, _gasUsed,
+                _optionalEthereumData, msg.sender, _sig);
         }
     }
 
