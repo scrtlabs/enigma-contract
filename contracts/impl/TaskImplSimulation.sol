@@ -27,8 +27,10 @@ library TaskImplSimulation {
 
     event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
+    // SecretContractDeployed => bytes32s [taskId, preCodeHash, codeHash, initStateDeltaHash]
     event SecretContractDeployed(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
         uint gasUsedTotal, bytes optionalEthereumData, address workerAddress);
+    // ReceiptVerified => bytes32s [scAddr, taskId, stateDeltaHash, outputHash]
     event ReceiptVerified(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
         uint deltaHashIndex, uint gasUsedTotal, bytes optionalEthereumData, address workerAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);

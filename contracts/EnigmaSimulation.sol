@@ -223,7 +223,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters {
     *
     * @param _gasUsed Gas used for task
     * @param _optionalEthereumContractAddress Initial state delta hash as a result of the contract's constructor
-    * @param _bytes32s (taskId, preCodeHash, codeHash, initStateDeltaHash)
+    * @param _bytes32s [taskId, preCodeHash, codeHash, initStateDeltaHash]
     * @param _optionalEthereumData Initial state delta hash as a result of the contract's constructor
     * @param _sig Worker's signature for deployment
     */
