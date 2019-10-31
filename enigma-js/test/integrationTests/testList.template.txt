@@ -4,6 +4,7 @@
 02_deploy_millionaire.spec.js
 02_deploy_voting.spec.js
 02_deploy_erc20.spec.js
+02_deploy_revert.spec.js
 03_deploy_fail_bytecode.spec.js
 03_deploy_fail_outofgas.spec.js
 03_deploy_fail_parameters.spec.js
@@ -14,6 +15,7 @@
 10_execute_millionaire.spec.js
 10_execute_voting.spec.js
 10_execute_erc20.spec.js
+10_execute_revert.spec.js
 20_execute_fail_outofgas.spec.js
 20_execute_fail_parameters.spec.js
 20_execute_fail_wrong_encryption_key.spec.js

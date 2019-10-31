@@ -16,10 +16,13 @@ contract EnigmaEvents {
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
         uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress,
         bytes sig);
-    event ReceiptFailed(bytes32 taskId, bytes sig);
-    event ReceiptFailedETH(bytes32 taskId, bytes sig);
+    event ReceiptFailed(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
+    event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
     event TaskFeeReturned(bytes32 taskId);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
-    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
+    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash, uint gasUsed,
+        bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress);
+    event LoggedIn(address workerAddress);
+    event LoggedOut(address workerAddress);
 }
