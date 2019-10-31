@@ -14,11 +14,6 @@ import EnigmaContractV2 from '../../build/contracts/EnigmaV2';
 import EnigmaContractSimulation from '../../build/contracts/EnigmaSimulation';
 import EnigmaContractSimulationV2 from '../../build/contracts/EnigmaSimulationV2';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
-import WorkersImplContract from '../../build/contracts/WorkersImpl';
-import PrincipalImplContract from '../../build/contracts/PrincipalImpl';
-import TaskImplContract from '../../build/contracts/TaskImpl';
-import UpgradeImplContract from '../../build/contracts/UpgradeImpl';
-import SecretContractImplContract from '../../build/contracts/SecretContractImpl';
 import data from './data';
 import * as eeConstants from '../src/emitterConstants';
 import SampleContract from '../../build/contracts/Sample';
@@ -2414,6 +2409,25 @@ describe('Enigma tests', () => {
         ' contract');
     });
 
+    it('should fail to re-register a worker with new contract due to an invalid signature', async () => {
+      const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const index = accounts.indexOf(worker.account);
+      const workerData = data.workers[index];
+      const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + workerData[3];
+      const proof = utils.hash(['0x00']);
+      const sig = await enigma.web3.eth.sign(proof, worker.account);
+      await expect(new Promise((resolve, reject) => {
+        enigmaUpgradedContract.methods.register(workerData[0], report, signature, sig).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: worker.account,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid signature');
+    });
+
     it('should re-register workers and confirm worker balance has been transferred', async () => {
       const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
@@ -2423,8 +2437,7 @@ describe('Enigma tests', () => {
       const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
       const signature = '0x' + workerData[3];
       const proof = utils.hash([enigmaUpgradedContract.options.address]);
-      const priv = workerData[4];
-      const sig = EthCrypto.sign(priv, proof);
+      const sig = await enigma.web3.eth.sign(proof, worker.account);
       const startingOldContractBalance = parseInt(
         await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
       );

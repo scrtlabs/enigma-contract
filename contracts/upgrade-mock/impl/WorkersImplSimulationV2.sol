@@ -112,7 +112,7 @@ library WorkersImplSimulationV2 {
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
 
         uint256 oldWorkerBalance = IEnigma(state.oldEnigmaContractAddress)
-            .transferWorkerStakePostUpgrade(msg.sender, _signer, _upgradeTransferSig);
+            .transferWorkerStakePostUpgrade(msg.sender, _upgradeTransferSig);
         worker.balance = oldWorkerBalance;
 
         emit Registered(msg.sender, _signer);

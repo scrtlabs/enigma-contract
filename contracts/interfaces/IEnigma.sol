@@ -9,5 +9,5 @@ interface IEnigma {
     function getSecretContractAddresses(uint _start, uint _stop) external view returns (bytes32[] memory);
     function getAllSecretContractAddresses() external view returns (bytes32[] memory);
     function getSigningAddress() external view returns (address);
-    function transferWorkerStakePostUpgrade(address _workerAddress, address _signer, bytes calldata _sig) external returns (uint);
+    function transferWorkerStakePostUpgrade(address _workerAddress, bytes calldata _sig) external returns (uint);
 }

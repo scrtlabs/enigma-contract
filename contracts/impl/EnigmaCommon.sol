@@ -1,6 +1,8 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
 import { Bytes } from "../utils/Bytes.sol";
 
 /**
@@ -9,6 +11,7 @@ import { Bytes } from "../utils/Bytes.sol";
  * This library contains the common structs and enums used throughout the Enigma codebase
  */
 library EnigmaCommon {
+    using SafeMath for uint256;
     using Bytes for bytes;
     using Bytes for uint64;
 
@@ -88,17 +91,33 @@ library EnigmaCommon {
     }
 
     /**
-    * Append the length of an array to an existing bytes buffer
+    * Append the length of a variable and the variable to an existing bytes buffer
     *
     * @param _message Bytes buffer being appended to
-    * @param _arraylength Length of array
+    * @param _var Bytes representation of value that needs to be concatenated to existing buffer
     * @return New bytes buffer
     */
-    function appendMessageArrayLength(uint256 _arraylength, bytes memory _message)
+    function appendMessageKM(bytes memory _message, bytes memory _var)
     internal
     pure
     returns (bytes memory)
     {
-        return _message.concat(uint64(_arraylength).toBytesFromUint64());
+        return ((_message.concat(hex"00")).concat(uint64(_var.length).toBytesFromUint64())).concat(_var);
+    }
+
+    /**
+    * Append the length of an array to an existing bytes buffer
+    *
+    * @param _message Bytes buffer being appended to
+    * @param _arraylength Length of array
+    * @param _typeLength Length of each item in bytes
+    * @return New bytes buffer
+    */
+    function appendMessageArrayLength(uint256 _arraylength, uint256 _typeLength, bytes memory _message)
+    internal
+    pure
+    returns (bytes memory)
+    {
+        return (_message.concat(hex"01")).concat(uint64(_arraylength.mul(_typeLength.add(9))).toBytesFromUint64());
     }
 }

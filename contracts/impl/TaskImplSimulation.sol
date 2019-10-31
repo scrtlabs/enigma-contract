@@ -26,12 +26,13 @@ library TaskImplSimulation {
 
     event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
-    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
+    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash, uint gasUsed,
+        bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress);
     event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
         uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress,
         bytes sig);
-    event ReceiptFailed(bytes32 taskId, bytes sig);
-    event ReceiptFailedETH(bytes32 taskId, bytes sig);
+    event ReceiptFailed(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
+    event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
     event TaskFeeReturned(bytes32 taskId);
 
     function createDeploymentTaskRecordImpl(
@@ -104,7 +105,7 @@ library TaskImplSimulation {
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptFailed(_taskId, _sig);
+        emit ReceiptFailed(_taskId, _taskId, _gasUsed, msg.sender, _sig);
     }
 
     function verifyDeployReceipt(EnigmaState.State storage state, bytes32 _taskId, bytes32 _codeHash,
@@ -153,10 +154,11 @@ library TaskImplSimulation {
                 secretContract.status = EnigmaCommon.SecretContractStatus.Deployed;
                 secretContract.stateDeltaHashes.push(_initStateDeltaHash);
                 state.scAddresses.push(_taskId);
-                emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash);
+                emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash, _gasUsed, _optionalEthereumData,
+                    _optionalEthereumContractAddress, msg.sender);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-                emit ReceiptFailedETH(_taskId, _sig);
+                emit ReceiptFailedETH(_taskId, _taskId, _gasUsed, msg.sender, _sig);
             }
         } else {
             transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
@@ -167,7 +169,8 @@ library TaskImplSimulation {
             secretContract.status = EnigmaCommon.SecretContractStatus.Deployed;
             secretContract.stateDeltaHashes.push(_initStateDeltaHash);
             state.scAddresses.push(_taskId);
-            emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash);
+            emit SecretContractDeployed(_taskId, _codeHash, _initStateDeltaHash, _gasUsed, _optionalEthereumData,
+                _optionalEthereumContractAddress, msg.sender);
         }
     }
 
@@ -263,7 +266,7 @@ library TaskImplSimulation {
         bytes32 msgHash = keccak256(message);
         require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
 
-        emit ReceiptFailed(_taskId, _sig);
+        emit ReceiptFailed(_taskId, _scAddr, _gasUsed, msg.sender, _sig);
     }
 
     function validateReceipt(EnigmaState.State storage state, uint64 _gasUsed, address _sender, bytes32 _scAddr,
@@ -346,7 +349,7 @@ library TaskImplSimulation {
                     _optionalEthereumData, _optionalEthereumContractAddress, msg.sender, _sig);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-                emit ReceiptFailedETH(_taskId, _sig);
+                emit ReceiptFailedETH(_taskId, _scAddr, _gasUsed, msg.sender, _sig);
             }
         } else {
             transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
@@ -378,20 +381,20 @@ library TaskImplSimulation {
         // Verify the principal's signature
         bytes memory message;
         message = EnigmaCommon.appendMessage(message, secretContract.codeHash.toBytes());
-        message = EnigmaCommon.appendMessageArrayLength(inputsHashes.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(inputsHashes.length, 32, message);
         for (uint i = 0; i < inputsHashes.length; i++) {
             message = EnigmaCommon.appendMessage(message, inputsHashes[i].toBytes());
         }
         message = EnigmaCommon.appendMessage(message, lastStateDeltaHash.toBytes());
-        message = EnigmaCommon.appendMessageArrayLength(_stateDeltaHashes.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(_stateDeltaHashes.length, 32, message);
         for (uint j = 0; j < _stateDeltaHashes.length; j++) {
             message = EnigmaCommon.appendMessage(message, _stateDeltaHashes[j].toBytes());
         }
-        message = EnigmaCommon.appendMessageArrayLength(_outputHashes.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(_outputHashes.length, 32, message);
         for (uint k = 0; k < _outputHashes.length; k++) {
             message = EnigmaCommon.appendMessage(message, _outputHashes[k].toBytes());
         }
-        message = EnigmaCommon.appendMessageArrayLength(_gasesUsed.length, message);
+        message = EnigmaCommon.appendMessageArrayLength(_gasesUsed.length, 8, message);
         for (uint m = 0; m < _gasesUsed.length; m++) {
             message = EnigmaCommon.appendMessage(message, _gasesUsed[m].toBytesFromUint64());
         }

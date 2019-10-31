@@ -553,14 +553,13 @@ contract EnigmaV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Upgrade Enigma Contract
     * @param _workerAddress Newly-registered worker address
-    * @param _signer Newly-registered worker address
     * @param _sig Signature
     */
-    function transferWorkerStakePostUpgrade(address _workerAddress, address _signer, bytes memory _sig)
+    function transferWorkerStakePostUpgrade(address _workerAddress, bytes memory _sig)
     public
     fromUpdatedEnigmaContract
     returns (uint256)
     {
-        return UpgradeImpl.transferWorkerStakePostUpgradeImpl(state, _workerAddress, _signer, _sig);
+        return UpgradeImpl.transferWorkerStakePostUpgradeImpl(state, _workerAddress, _sig);
     }
 }
