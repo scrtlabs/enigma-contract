@@ -320,6 +320,7 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
         uint _nonce
     )
     public
+    onlyOwner
     isUpdatedEnigmaContract
     {
         TaskImpl.createDeploymentTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber, _nonce);
@@ -540,5 +541,27 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     returns (uint256)
     {
         return UpgradeImpl.transferWorkerStakePostUpgradeImpl(state, _workerAddress, _sig);
+    }
+
+    /**
+    * Set mrSigner
+    * @param _mrSigner mrSigner
+    */
+    function setMrSigner(bytes memory _mrSigner)
+    public
+    onlyOwner
+    {
+        state.mrSigner = _mrSigner;
+    }
+
+    /**
+    * Set isvSvn
+    * @param _isvSvn mrSigner
+    */
+    function setIsvSvn(bytes memory _isvSvn)
+    public
+    onlyOwner
+    {
+        state.isvSvn = _isvSvn;
     }
 }

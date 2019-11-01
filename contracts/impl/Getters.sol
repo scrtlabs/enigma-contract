@@ -123,4 +123,22 @@ contract Getters is EnigmaStorage {
     function getUpdatedEnigmaContractAddress() public view returns (address) {
         return state.updatedEnigmaContractAddress;
     }
+
+    /**
+    * Get mrSigner
+    *
+    * @return mrSigner
+    */
+    function getMrSigner() public view returns (bytes memory) {
+        return state.mrSigner;
+    }
+
+    /**
+    * Get isvSvn
+    *
+    * @return isvSvn
+    */
+    function getIsvSvn() public view returns (bytes memory) {
+        return state.isvSvn;
+    }
 }
