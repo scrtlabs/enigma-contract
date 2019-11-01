@@ -3,24 +3,23 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { EnigmaCommon } from "./EnigmaCommon.sol";
-import { EnigmaState } from "./EnigmaState.sol";
-import "../utils/SolRsaVerify.sol";
-import "../utils/Base64.sol";
+import { EnigmaCommon } from "../../impl/EnigmaCommon.sol";
+import { EnigmaState } from "../../impl/EnigmaState.sol";
+import { IEnigma } from "../../interfaces/IEnigma.sol";
+import "../../utils/SolRsaVerify.sol";
+import "../../utils/Base64.sol";
 
 /**
  * @author Enigma
  *
  * Library that maintains functionality associated with workers
  */
-library WorkersImpl {
+library WorkersImplSimulationV2 {
     using SafeMath for uint256;
 
     event Registered(address custodian, address signer);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
-    event LoggedIn(address workerAddress);
-    event LoggedOut(address workerAddress);
 
     uint constant internal WORD_SIZE = 32;
 
@@ -67,7 +66,7 @@ library WorkersImpl {
     }
 
     function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
-        bytes memory _signature)
+        bytes memory _signature, bytes memory _upgradeTransferSig)
     public {
         // TODO: consider exit if both signer and custodian are matching
         // If the custodian is not already register, we add an index entry
@@ -75,44 +74,46 @@ library WorkersImpl {
         if (worker.signer == address(0)) {
             state.workerAddresses.push(msg.sender);
         }
-        require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
-
-        uint i = 0;
-        // find the word "Body" in the _report
-        while( i < _report.length && !(
-            _report[i] == 0x42 &&
-            _report[i+1] == 0x6f &&
-            _report[i+2] == 0x64 &&
-            _report[i+3] == 0x79
-        )) {
-            i++;
-        }
-        require( i < _report.length, "isvEnclaveQuoteBody not found in report");
-
-        // Add the length of 'Body":"'' to find where the quote starts
-        i=i+7;
-
-        // 576 bytes is the length of the quote
-        bytes memory quoteBody = extract_element(_report, i, 576);
-
-        bytes memory quoteDecoded = Base64.decode(quoteBody);
-
-        // extract the needed fields. For reference see, pages 21-23
-        // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
-        // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
-        // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
-        // bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
-        // bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
-        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
-        address signerQuote = bytesToAddress(reportData);
-
-        require(signerQuote == _signer, "Signer does not match contents of quote");
-//        require(mrSigner == state.mrSigner, "mrSigner does not match");
-//        require(isvSvn == state.isvSvn, "isvSvn does not match");
+//        require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
+//
+//        uint i = 0;
+//        // find the word "Body" in the _report
+//        while( i < _report.length && !(
+//            _report[i] == 0x42 &&
+//            _report[i+1] == 0x6f &&
+//            _report[i+2] == 0x64 &&
+//            _report[i+3] == 0x79
+//        )) {
+//            i++;
+//        }
+//        require( i < _report.length, "isvEnclaveQuoteBody not found in report");
+//
+//        // Add the length of 'Body":"'' to find where the quote starts
+//        i=i+7;
+//
+//        // 576 bytes is the length of the quote
+//        bytes memory quoteBody = extract_element(_report, i, 576);
+//
+//        bytes memory quoteDecoded = Base64.decode(quoteBody);
+//
+//        // extract the needed fields. For reference see, pages 21-23
+//        // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
+//        // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
+//        // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
+//        // bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+//        // bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
+//        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
+//        address signerQuote = bytesToAddress(reportData);
+//
+//        require(signerQuote == _signer, "Signer does not match contents of quote");
 
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
+
+        uint256 oldWorkerBalance = IEnigma(state.oldEnigmaContractAddress)
+            .transferWorkerStakePostUpgrade(msg.sender, _upgradeTransferSig);
+        worker.balance = oldWorkerBalance;
 
         emit Registered(msg.sender, _signer);
     }
@@ -151,7 +152,6 @@ library WorkersImpl {
             blockNumber: block.number,
             balance: worker.balance
         }));
-        emit LoggedIn(msg.sender);
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
@@ -162,7 +162,6 @@ library WorkersImpl {
             blockNumber: block.number,
             balance: worker.balance
         }));
-        emit LoggedOut(msg.sender);
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)

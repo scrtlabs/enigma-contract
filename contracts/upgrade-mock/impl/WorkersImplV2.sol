@@ -3,24 +3,23 @@ pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { EnigmaCommon } from "./EnigmaCommon.sol";
-import { EnigmaState } from "./EnigmaState.sol";
-import "../utils/SolRsaVerify.sol";
-import "../utils/Base64.sol";
+import { EnigmaCommon } from "../../impl/EnigmaCommon.sol";
+import { EnigmaState } from "../../impl/EnigmaState.sol";
+import { IEnigma } from "../../interfaces/IEnigma.sol";
+import "../../utils/SolRsaVerify.sol";
+import "../../utils/Base64.sol";
 
 /**
  * @author Enigma
  *
  * Library that maintains functionality associated with workers
  */
-library WorkersImpl {
+library WorkersImplV2 {
     using SafeMath for uint256;
 
     event Registered(address custodian, address signer);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
-    event LoggedIn(address workerAddress);
-    event LoggedOut(address workerAddress);
 
     uint constant internal WORD_SIZE = 32;
 
@@ -67,7 +66,7 @@ library WorkersImpl {
     }
 
     function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
-        bytes memory _signature)
+        bytes memory _signature, bytes memory _upgradeTransferSig)
     public {
         // TODO: consider exit if both signer and custodian are matching
         // If the custodian is not already register, we add an index entry
@@ -107,12 +106,14 @@ library WorkersImpl {
         address signerQuote = bytesToAddress(reportData);
 
         require(signerQuote == _signer, "Signer does not match contents of quote");
-//        require(mrSigner == state.mrSigner, "mrSigner does not match");
-//        require(isvSvn == state.isvSvn, "isvSvn does not match");
 
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
+
+        uint256 oldWorkerBalance = IEnigma(state.oldEnigmaContractAddress)
+            .transferWorkerStakePostUpgrade(msg.sender, _upgradeTransferSig);
+        worker.balance = oldWorkerBalance;
 
         emit Registered(msg.sender, _signer);
     }
@@ -151,7 +152,6 @@ library WorkersImpl {
             blockNumber: block.number,
             balance: worker.balance
         }));
-        emit LoggedIn(msg.sender);
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
@@ -162,7 +162,6 @@ library WorkersImpl {
             blockNumber: block.number,
             balance: worker.balance
         }));
-        emit LoggedOut(msg.sender);
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)

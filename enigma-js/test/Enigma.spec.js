@@ -1,5 +1,8 @@
 /* eslint-disable require-jsdoc */
 import dotenv from 'dotenv';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import Enigma from '../src/Enigma';
 import utils from '../src/enigma-utils';
 import forge from 'node-forge';
@@ -7,7 +10,9 @@ import Web3 from 'web3';
 import JSBI from 'jsbi';
 import EthCrypto from 'eth-crypto';
 import EnigmaContract from '../../build/contracts/Enigma';
+import EnigmaContractV2 from '../../build/contracts/EnigmaV2';
 import EnigmaContractSimulation from '../../build/contracts/EnigmaSimulation';
+import EnigmaContractSimulationV2 from '../../build/contracts/EnigmaSimulationV2';
 import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import data from './data';
 import * as eeConstants from '../src/emitterConstants';
@@ -94,6 +99,37 @@ describe('Enigma tests', () => {
       expect(privateKey).toEqual('1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f');
       expect(publicKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273' +
         'e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
+    });
+
+    it('should check mrSigner and isvSvn', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setMrSigner('0xab').send({
+          from: accounts[1],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setIsvSvn('0xbc').send({
+          from: accounts[1],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setMrSigner('0xab').send({
+          from: accounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setIsvSvn('0xbc').send({
+          from: accounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      const mrSigner = await enigma.enigmaContract.methods.getMrSigner().call();
+      const isvSvn = await enigma.enigmaContract.methods.getIsvSvn().call();
+      expect(mrSigner).toEqual('0xab');
+      expect(isvSvn).toEqual('0xbc');
     });
 
     it('should distribute ENG tokens', async () => {
@@ -683,6 +719,22 @@ describe('Enigma tests', () => {
           on(eeConstants.ERROR, (error) => reject(error));
         })).rejects.toEqual({message: 'Not enough tokens to pay the fee', name: 'NotEnoughTokens'});
       });
+
+    it('should fail to deploy secret contract from invalid address', async () => {
+      preCode = Buffer.from('9d075aef', 'hex');
+      let scTaskFn = 'deployContract(string,uint)';
+      let scTaskArgs = [
+        ['first_sc', 'string'],
+        [1, 'uint'],
+      ];
+      let scTaskGasLimit = 100;
+      let scTaskGasPx = utils.toGrains(1);
+      await expect(new Promise((resolve, reject) => {
+        enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[1], preCode)
+          .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+    });
 
     it('should create/send deploy contract task using wrapper function', async () => {
       preCode = Buffer.from('9d075aef', 'hex');
@@ -1814,6 +1866,7 @@ describe('Enigma tests', () => {
     });
 
     let gasUsedEthCall;
+    let latestTask;
     it('should simulate task receipt with eth call', async () => {
       let taskFn = 'medianWealth(int32,int32)';
       let taskArgs = [
@@ -1879,6 +1932,7 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(task.gasLimit * task.gasPx);
       expect(endingSenderBalance).toEqual(startingSenderBalance);
       expect(result.events.ReceiptVerified).toBeTruthy();
+      latestTask = task;
     });
 
     it('should get the confirmed task', async () => {
@@ -2220,6 +2274,195 @@ describe('Enigma tests', () => {
           resolve(response);
         });
       })).rejects.toEqual({code: -32602, message: 'Invalid params'});
+    });
+
+    let pendingTaskA;
+    let pendingTaskB;
+    it('should create a couple of tasks that will remain pending during Enigma contract upgrade', async () => {
+      let taskFn = 'medianWealth(int32,int32)';
+      let taskArgs = [
+        [200000, 'int32'],
+        [300000, 'int32'],
+      ];
+      let taskGasLimit = 100;
+      let taskGasPx = utils.toGrains(1);
+      const startingABalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[3]).call());
+      const startingBBalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[4]).call());
+      pendingTaskA = await new Promise((resolve, reject) => {
+        enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[3], scAddr).
+        on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
+        on(eeConstants.ERROR, (error) => reject(error));
+      });
+      pendingTaskB = await new Promise((resolve, reject) => {
+        enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[4], scAddr).
+        on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
+        on(eeConstants.ERROR, (error) => reject(error));
+      });
+      const endingABalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[3]).call());
+      const endingBBalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[4]).call());
+
+      expect(endingABalance - startingABalance).toEqual(-pendingTaskA.gasLimit * pendingTaskA.gasPx);
+      expect(endingBBalance - startingBBalance).toEqual(-pendingTaskB.gasLimit * pendingTaskB.gasPx);
+    });
+
+    let enigmaUpgradedContract;
+    it('should instantiate enigma upgraded contract address', async () => {
+      enigmaUpgradedContract = new web3.eth.Contract(EnigmaContractV2['abi'],
+        (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+          EnigmaContractSimulationV2.networks['4447'].address :
+          EnigmaContractV2.networks['4447'].address, {
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: accounts[0],
+        }
+      );
+    });
+
+    it('should fail to upgrade Enigma contract from invalid address', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.upgradeEnigmaContract(enigmaUpgradedContract.options.address).send({
+          from: accounts[1],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+    });
+
+    it('should upgrade Enigma contract successfully', async () => {
+      const startingABalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[3]).call());
+      const startingBBalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[4]).call());
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.upgradeEnigmaContract(enigmaUpgradedContract.options.address).send({
+          from: accounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      const updatedEnigmaContractAddress = await enigma.enigmaContract.methods.getUpdatedEnigmaContractAddress().call();
+      expect(updatedEnigmaContractAddress).toEqual(enigmaUpgradedContract.options.address);
+      const endingABalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[3]).call());
+      const endingBBalance = parseInt(await enigma.tokenContract.methods.balanceOf(accounts[4]).call());
+      pendingTaskA = await enigma.getTaskRecordStatus(pendingTaskA);
+      pendingTaskB = await enigma.getTaskRecordStatus(pendingTaskB);
+      expect(pendingTaskA.ethStatus).toEqual(5);
+      expect(pendingTaskB.ethStatus).toEqual(5);
+      expect(endingABalance - startingABalance).toEqual(pendingTaskA.gasLimit * pendingTaskA.gasPx);
+      expect(endingBBalance - startingBBalance).toEqual(pendingTaskB.gasLimit * pendingTaskB.gasPx);
+
+    });
+
+    it('should fail to deploy secret contract to old Enigma contract', async () => {
+        preCode = Buffer.from('9d075aef', 'hex');
+        let scTaskFn = 'deployContract(string,uint)';
+        let scTaskArgs = [
+          ['first_sc', 'string'],
+          [1, 'uint'],
+        ];
+        let scTaskGasLimit = 100;
+        let scTaskGasPx = utils.toGrains(1);
+        const startingContractBalance = parseInt(
+          await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+        );
+        await expect(new Promise((resolve, reject) => {
+          enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode).
+          on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
+          on(eeConstants.ERROR, (error) => reject(error));
+        })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not updated Enigma' +
+          ' contract');
+    });
+
+    it('should fail to deploy compute task to old Enigma contract', async () => {
+      let taskFn = 'medianWealth(int32,int32)';
+      let taskArgs = [
+        [200000, 'int32'],
+        [300000, 'int32'],
+      ];
+      let taskGasLimit = 100;
+      let taskGasPx = utils.toGrains(1);
+      await expect(new Promise((resolve, reject) => {
+        enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr)
+          .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (error) => reject(error));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not updated Enigma' +
+        ' contract');
+    });
+
+    it('should fail to commit receipt to old Enigma contract', async () => {
+      const gasUsed = 25;
+      const optionalEthereumData = '0x';
+      const optionalEthereumContractAddress = '0x0000000000000000000000000000000000000000';
+      stateDeltaHash = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      const proof = utils.hash([
+        codeHash, pendingTaskA.inputsHash, initStateDeltaHash, stateDeltaHash, outputHash,
+        JSBI.BigInt(gasUsed).toString(16).padStart(16, '0'), optionalEthereumData, optionalEthereumContractAddress,
+        '0x01']);
+      const workerParams = await enigma.getWorkerParams(pendingTaskA.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(pendingTaskA.scAddr, workerParams, 1))[0];
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const priv = data.workers.find((w) => w[0] === selectedWorkerAddr.toLowerCase())[4];
+      const sig = EthCrypto.sign(priv, proof);
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.commitReceipt(scAddr, pendingTaskA.taskId, stateDeltaHash, outputHash,
+          optionalEthereumData,
+          optionalEthereumContractAddress, gasUsed, sig).send({
+          from: worker.account,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not updated Enigma' +
+        ' contract');
+    });
+
+    it('should fail to re-register a worker with new contract due to an invalid signature', async () => {
+      const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const index = accounts.indexOf(worker.account);
+      const workerData = data.workers[index];
+      const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + workerData[3];
+      const proof = utils.hash(['0x00']);
+      const sig = await enigma.web3.eth.sign(proof, worker.account);
+      await expect(new Promise((resolve, reject) => {
+        enigmaUpgradedContract.methods.register(workerData[0], report, signature, sig).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: worker.account,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid signature');
+    });
+
+    it('should re-register workers and confirm worker balance has been transferred', async () => {
+      const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const index = accounts.indexOf(worker.account);
+      const workerData = data.workers[index];
+      const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + workerData[3];
+      const proof = utils.hash([enigmaUpgradedContract.options.address]);
+      const sig = await enigma.web3.eth.sign(proof, worker.account);
+      const startingOldContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      const startingNewContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigmaUpgradedContract.options.address).call(),
+      );
+      await new Promise((resolve, reject) => {
+        enigmaUpgradedContract.methods.register(workerData[0], report, signature, sig).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: worker.account,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
+      });
+      const endingOldContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
+      );
+      const endingNewContractBalance = parseInt(
+        await enigma.tokenContract.methods.balanceOf(enigmaUpgradedContract.options.address).call(),
+      );
+      expect(endingOldContractBalance - startingOldContractBalance).toEqual(-worker.balance);
+      expect(endingNewContractBalance - startingNewContractBalance).toEqual(worker.balance);
+      const oldWorker = await enigma.enigmaContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      const newWorker = await enigmaUpgradedContract.methods.getWorkerFromSigningAddress(selectedWorkerAddr).call();
+      expect(parseInt(oldWorker[1][3])).toEqual(0);
+      expect(parseInt(newWorker[1][3])).toEqual(worker.balance);
     });
   },
 );
