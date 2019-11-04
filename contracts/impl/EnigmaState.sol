@@ -30,6 +30,9 @@ library EnigmaState {
         address principal;
 
         address exchangeRate;
+        address updatedEnigmaContractAddress;
+
+        address oldEnigmaContractAddress;
 
         /**
         * The last 5 worker parameters
@@ -54,6 +57,9 @@ library EnigmaState {
         // A registry of all tasks with their attributes
         mapping(bytes32 => EnigmaCommon.TaskRecord) tasks;
 
+        // An array of all task IDs
+        bytes32[] taskIds;
+
         // A registry of all deployed secret contracts with their attributes
         mapping(bytes32 => EnigmaCommon.SecretContract) contracts;
 
@@ -63,5 +69,8 @@ library EnigmaState {
         // TODO: do we keep tasks forever? if not, when do we delete them?
         uint stakingThreshold;
         uint workerGroupSize;
+
+        bytes mrSigner;
+        bytes isvSvn;
     }
 }

@@ -61,6 +61,7 @@ library TaskImpl {
 
         // Create taskId and TaskRecord
         bytes32 taskId = keccak256(abi.encodePacked(msg.sender, state.userTaskDeployments[msg.sender]));
+        state.taskIds.push(taskId);
         EnigmaCommon.TaskRecord storage task = state.tasks[taskId];
         require(task.sender == address(0), "Task already exists");
         task.inputsHash = _inputsHash;
@@ -225,6 +226,7 @@ library TaskImpl {
 
         // Create taskId and TaskRecord
         bytes32 taskId = keccak256(abi.encodePacked(msg.sender, state.userTaskDeployments[msg.sender]));
+        state.taskIds.push(taskId);
         EnigmaCommon.TaskRecord storage task = state.tasks[taskId];
         require(task.sender == address(0), "Task already exists");
         task.inputsHash = _inputsHash;

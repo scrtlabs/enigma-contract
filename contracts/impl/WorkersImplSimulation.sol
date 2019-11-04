@@ -107,6 +107,8 @@ library WorkersImplSimulation {
 //        address signerQuote = bytesToAddress(reportData);
 //
 //        require(signerQuote == _signer, "Signer does not match contents of quote");
+//        require(mrSigner == state.mrSigner, "mrSigner does not match");
+//        require(isvSvn == state.isvSvn, "isvSvn does not match");
 
         worker.signer = _signer;
         worker.report = _report;
