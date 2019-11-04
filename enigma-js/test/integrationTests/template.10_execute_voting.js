@@ -83,7 +83,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the pending task', async () => {
     task1 = await enigma.getTaskRecordStatus(task1);
@@ -117,7 +117,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the pending task', async () => {
     task2 = await enigma.getTaskRecordStatus(task2);
@@ -180,7 +180,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the pending task', async () => {
     task3 = await enigma.getTaskRecordStatus(task3);

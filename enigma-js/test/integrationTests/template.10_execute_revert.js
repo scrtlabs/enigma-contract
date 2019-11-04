@@ -57,7 +57,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });    
+  }, constants.TIMEOUT_COMPUTE);    
 
   it('should get the confirmed task', async () => {
     do {
@@ -67,7 +67,7 @@ describe('Enigma tests', () => {
     } while (task1.ethStatus != 2);
     expect(task1.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task1.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the result and verify the computation is correct', async () => {
     task1 = await new Promise((resolve, reject) => {
@@ -98,7 +98,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the confirmed task failure', async () => {
     do {
@@ -108,7 +108,7 @@ describe('Enigma tests', () => {
     } while (task2.ethStatus != 4);
     expect(task2.ethStatus).toEqual(4);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   let task3;
   it('should read the state again, and validate the value is still the initial value, despite the write_state!', async () => {
@@ -121,7 +121,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });    
+  }, constants.TIMEOUT_COMPUTE);    
 
   it('should get the confirmed task', async () => {
     do {
@@ -131,7 +131,7 @@ describe('Enigma tests', () => {
     } while (task3.ethStatus != 2);
     expect(task3.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
-  }, 10000);
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the result and verify the computation is correct', async () => {
     task3 = await new Promise((resolve, reject) => {
