@@ -3,6 +3,7 @@ const EnigmaToken = artifacts.require('EnigmaToken.sol');
 const SolRsaVerify = artifacts.require('./utils/SolRsaVerify.sol');
 const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
 const Sample = artifacts.require('Sample.sol');
+const ExchangeRate = artifacts.require('ExchangeRate.sol');
 const fs = require('fs');
 const path = require('path');
 const VotingETH = artifacts.require('VotingETH.sol');
@@ -70,7 +71,8 @@ async function deployProtocol(deployer) {
     principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
   }
   console.log('using account', principal, 'as principal signer');
-  await deployer.deploy(Enigma, EnigmaToken.address, principal, EPOCH_SIZE, TIMEOUT_THRESHOLD);
+  await deployer.deploy(ExchangeRate);
+  await deployer.deploy(Enigma, EnigmaToken.address, principal, ExchangeRate.address, EPOCH_SIZE, TIMEOUT_THRESHOLD);
   await deployer.deploy(Sample);
   await deployer.deploy(VotingETH);
 

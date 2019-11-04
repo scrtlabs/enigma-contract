@@ -63,7 +63,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_FAILDEPLOY);
 
   it('should get the failed receipt', async () => {
     do {

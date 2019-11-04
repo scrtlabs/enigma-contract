@@ -29,6 +29,7 @@ library EnigmaState {
         */
         address principal;
 
+        address exchangeRate;
         address updatedEnigmaContractAddress;
 
         address oldEnigmaContractAddress;

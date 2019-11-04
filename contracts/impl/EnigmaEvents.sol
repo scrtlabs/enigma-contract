@@ -13,16 +13,18 @@ contract EnigmaEvents {
         uint[] stakes, uint nonce);
     event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
-        uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress,
-        bytes sig);
+    // ReceiptVerified => bytes32s [scAddr, taskId, stateDeltaHash, outputHash]
+    event ReceiptVerified(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
+        uint deltaHashIndex, uint gasUsedTotal, bytes optionalEthereumData, address workerAddress, bytes sig);
     event ReceiptFailed(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
-    event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
+    event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, uint gasUsedTotal, address workerAddress,
+        bytes sig);
     event TaskFeeReturned(bytes32 taskId);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
-    event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash, uint gasUsed,
-        bytes optionalEthereumData, address optionalEthereumContractAddress, address workerAddress);
+    // SecretContractDeployed => bytes32s [taskId, preCodeHash, codeHash, initStateDeltaHash]
+    event SecretContractDeployed(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
+        uint gasUsedTotal, bytes optionalEthereumData, address workerAddress);
     event LoggedIn(address workerAddress);
     event LoggedOut(address workerAddress);
 }
