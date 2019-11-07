@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import {EnigmaContract, EnigmaTokenContract, EnigmaContractAddress, EnigmaTokenContractAddress,
+  proxyAddress, ethNodeAddr} from './contractLoader'
 import VotingETHContract from '../../../build/contracts/VotingETH';
 import * as constants from './testConstants';
 
@@ -26,28 +27,24 @@ describe('Enigma tests', () => {
   let votingETHContract;
   let epochSize;
   it('initializes', () => {
-    const provider = new Web3.providers.HttpProvider('http://localhost:9545');
+    const provider = new Web3.providers.HttpProvider(ethNodeAddr);
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
       enigma = new Enigma(
         web3,
-        EnigmaContract.networks['4447'].address,
-        EnigmaTokenContract.networks['4447'].address,
-        'http://localhost:3346',
-        {
+        EnigmaContractAddress,
+        EnigmaTokenContractAddress,
+        proxyAddress,        {
           gas: 4712388,
           gasPrice: 100000000000,
           from: accounts[0],
         },
       );
       enigma.admin();
+      enigma.setTaskKeyPair('cupcake');
       expect(Enigma.version()).toEqual('0.0.1');
     });
-  });
-
-  it('should generate and save key/pair', () => {
-    enigma.setTaskKeyPair('cupcake');
   });
 
   it('initializes VotingETH contract', async () => {

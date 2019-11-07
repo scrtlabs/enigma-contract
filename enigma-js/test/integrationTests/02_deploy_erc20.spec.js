@@ -6,8 +6,13 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader'
+import elliptic from 'elliptic';
+import {EnigmaContract, EnigmaTokenContract, EnigmaContractAddress, EnigmaTokenContractAddress,
+  proxyAddress, ethNodeAddr} from './contractLoader';
+import * as constants from './testConstants';
 
+
+let ec = new elliptic.ec('secp256k1');
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -19,15 +24,15 @@ describe('Enigma tests', () => {
   let enigma;
   let epochSize;
   it('initializes', () => {
-    const provider = new Web3.providers.HttpProvider('http://localhost:9545');
+    const provider = new Web3.providers.HttpProvider(ethNodeAddr);
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
       enigma = new Enigma(
         web3,
-        EnigmaContract.networks['4447'].address,
-        EnigmaTokenContract.networks['4447'].address,
-        'http://localhost:3346',
+        EnigmaContractAddress,
+        EnigmaTokenContractAddress,
+        proxyAddress,
         {
           gas: 4712388,
           gasPrice: 100000000000,
@@ -35,6 +40,7 @@ describe('Enigma tests', () => {
         },
       );
       enigma.admin();
+      enigma.setTaskKeyPair('cupcake');
       expect(Enigma.version()).toEqual('0.0.1');
     });
   });
@@ -43,18 +49,22 @@ describe('Enigma tests', () => {
   let task;
   const homedir = os.homedir();
 
-  it('should generate and save key/pair', () => {
-    enigma.setTaskKeyPair('cupcake');
-  });
-
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
-    let scTaskArgs = '';
-    let scTaskGasLimit = 1000000;
+    const account_zero_private_key = '4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d';
+    const keyPair0 = ec.keyFromPrivate(account_zero_private_key);
+    const addr0 = web3.utils.keccak256(new Buffer.from(keyPair0.getPublic().encode("hex").substring(2), 'hex'));
+
+    // Sanity Checks
+    expect(keyPair0.getPrivate().toString(16)).toEqual(account_zero_private_key);
+    expect(addr0.slice(-40)).toString(utils.remove0x(accounts[0]));
+
+    let scTaskArgs =  [[addr0, 'bytes32'],[1000000, 'uint256']];
+    let scTaskGasLimit = 4000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
-      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/revert.wasm'));
+      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/erc20.wasm'));
     } catch(e) {
       console.log('Error:', e.stack);
     }
@@ -64,12 +74,12 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
 
-    fs.writeFile(path.join(homedir, '.enigma', 'addr-revert.txt'), scTask.scAddr, 'utf8', function(err) {
+    fs.writeFile(path.join(homedir, '.enigma', 'addr-erc20.txt'), scTask.scAddr, 'utf8', function(err) {
       if(err) {
         return console.log(err);
       }
     });
-  }, 30000);
+  }, constants.TIMEOUT_DEPLOY);
 
   it('should get the confirmed deploy contract task', async () => {
     do {
@@ -79,7 +89,7 @@ describe('Enigma tests', () => {
     } while (scTask.ethStatus != 2);
     expect(scTask.ethStatus).toEqual(2);
     process.stdout.write('Completed. Final Task Status is '+scTask.ethStatus+'\n');
-  }, 30000);
+  }, constants.TIMEOUT_DEPLOY);
 
   it('should verify deployed contract', async () => {
     const result = await enigma.admin.isDeployed(scTask.scAddr);

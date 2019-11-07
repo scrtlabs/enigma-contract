@@ -6,8 +6,10 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import {EnigmaContract, EnigmaTokenContract, EnigmaContractAddress, EnigmaTokenContractAddress,
+  proxyAddress, ethNodeAddr} from './contractLoader';
 import * as constants from './testConstants';
+
 
 
 function sleep(ms) {
@@ -20,15 +22,15 @@ describe('Enigma tests', () => {
   let enigma;
   let epochSize;
   it('initializes', () => {
-    const provider = new Web3.providers.HttpProvider('http://localhost:9545');
+    const provider = new Web3.providers.HttpProvider(ethNodeAddr);
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
       enigma = new Enigma(
         web3,
-        EnigmaContract.networks['4447'].address,
-        EnigmaTokenContract.networks['4447'].address,
-        'http://localhost:3346',
+        EnigmaContractAddress,
+        EnigmaTokenContractAddress,
+        proxyAddress,
         {
           gas: 4712388,
           gasPrice: 100000000000,
@@ -36,37 +38,26 @@ describe('Enigma tests', () => {
         },
       );
       enigma.admin();
+      enigma.setTaskKeyPair('cupcake');
       expect(Enigma.version()).toEqual('0.0.1');
     });
   });
 
   const homedir = os.homedir();
+  const revertAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-revert.txt'), 'utf-8');
 
-  it('should generate and save key/pair', () => {
-    enigma.setTaskKeyPair('cupcake');
-  });
-
-  const calculatorAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-calculator.txt'), 'utf-8');
   let task1;
-  it('should execute compute task', async () => {
-    let taskFn = 'sub(uint256,uint256)';
-    let taskArgs = [
-      [76, 'uint256'],
-      [17, 'uint256'],
-    ];
+  it('should read the state and validate initial value', async () => {
+    let taskFn = 'get_last_sum()';
+    let taskArgs = [];
     let taskGasLimit = 100000;
     let taskGasPx = utils.toGrains(1);
     task1 = await new Promise((resolve, reject) => {
-      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], calculatorAddr)
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], revertAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  }, constants.TIMEOUT_COMPUTE);
-
-  it('should get the pending task', async () => {
-    task1 = await enigma.getTaskRecordStatus(task1);
-    expect(task1.ethStatus).toEqual(1);
-  });
+  }, constants.TIMEOUT_COMPUTE);    
 
   it('should get the confirmed task', async () => {
     do {
@@ -89,52 +80,71 @@ describe('Enigma tests', () => {
     task1 = await enigma.decryptTaskResult(task1);
     expect(task1.usedGas).toBeTruthy();
     expect(task1.workerTaskSig).toBeTruthy();
-    expect(parseInt(task1.decryptedOutput, 16)).toEqual(76-17);
+    expect(parseInt(task1.decryptedOutput, 16)).toEqual(12);
   });
 
   let task2;
-  it('should execute compute task', async () => {
-    let taskFn = 'mul(uint256,uint256)';
+  it('should execute sum_and_call, and verify output of computation', async () => {
+    let taskFn = 'sum_and_call(uint256,uint256,address)';
     let taskArgs = [
-      [76, 'uint256'],
-      [17, 'uint256'],
+      [2, 'uint256'],
+      [3, 'uint256'],
+      ["0x9b1f7F645351AF3631a656421eD2e40f2802E6c0", 'address']
     ];
     let taskGasLimit = 100000;
     let taskGasPx = utils.toGrains(1);
     task2 = await new Promise((resolve, reject) => {
-      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], calculatorAddr)
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], revertAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
   }, constants.TIMEOUT_COMPUTE);
 
-  it('should get the pending task', async () => {
-    task2 = await enigma.getTaskRecordStatus(task2);
-    expect(task2.ethStatus).toEqual(1);
-  });
-
-  it('should get the confirmed task', async () => {
+  it('should get the confirmed task failure', async () => {
     do {
       await sleep(1000);
       task2 = await enigma.getTaskRecordStatus(task2);
       process.stdout.write('Waiting. Current Task Status is '+task2.ethStatus+'\r');
-    } while (task2.ethStatus != 2);
-    expect(task2.ethStatus).toEqual(2);
+    } while (task2.ethStatus != 4);
+    expect(task2.ethStatus).toEqual(4);
     process.stdout.write('Completed. Final Task Status is '+task2.ethStatus+'\n');
   }, constants.TIMEOUT_COMPUTE);
 
-  it('should get and validate the result', async () => {
-    task2 = await new Promise((resolve, reject) => {
-      enigma.getTaskResult(task2)
+  let task3;
+  it('should read the state again, and validate the value is still the initial value, despite the write_state!', async () => {
+    let taskFn = 'get_last_sum()';
+    let taskArgs = [];
+    let taskGasLimit = 100000;
+    let taskGasPx = utils.toGrains(1);
+    task3 = await new Promise((resolve, reject) => {
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], revertAddr)
+        .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
+        .on(eeConstants.ERROR, (error) => reject(error));
+    });
+  }, constants.TIMEOUT_COMPUTE);    
+
+  it('should get the confirmed task', async () => {
+    do {
+      await sleep(1000);
+      task3 = await enigma.getTaskRecordStatus(task3);
+      process.stdout.write('Waiting. Current Task Status is '+task3.ethStatus+'\r');
+    } while (task3.ethStatus != 2);
+    expect(task3.ethStatus).toEqual(2);
+    process.stdout.write('Completed. Final Task Status is '+task3.ethStatus+'\n');
+  }, constants.TIMEOUT_COMPUTE);
+
+  it('should get the result and verify the computation is correct', async () => {
+    task3 = await new Promise((resolve, reject) => {
+      enigma.getTaskResult(task3)
         .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-    expect(task2.engStatus).toEqual('SUCCESS');
-    expect(task2.encryptedAbiEncodedOutputs).toBeTruthy();
-    task2 = await enigma.decryptTaskResult(task2);
-    expect(task2.usedGas).toBeTruthy();
-    expect(task2.workerTaskSig).toBeTruthy();
-    expect(parseInt(task2.decryptedOutput, 16)).toEqual(76*17);
+    expect(task3.engStatus).toEqual('SUCCESS');
+    expect(task3.encryptedAbiEncodedOutputs).toBeTruthy();
+    task3 = await enigma.decryptTaskResult(task3);
+    expect(task3.usedGas).toBeTruthy();
+    expect(task3.workerTaskSig).toBeTruthy();
+    expect(parseInt(task3.decryptedOutput, 16)).toEqual(12);
   });
 
 });

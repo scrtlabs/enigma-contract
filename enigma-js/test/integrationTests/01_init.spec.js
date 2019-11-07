@@ -7,7 +7,8 @@ import JSBI from 'jsbi';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract, SampleContract} from './contractLoader';
+import {EnigmaContract, EnigmaTokenContract, SampleContract, EnigmaContractAddress,
+  EnigmaTokenContractAddress, proxyAddress, ethNodeAddr} from './contractLoader';
 import * as constants from './testConstants';
 
 
@@ -25,16 +26,16 @@ describe('Init tests', () => {
   let nodes = parseInt((typeof process.env.NODES !== 'undefined') ? process.env.NODES : 1);
 
   it('initializes', () => {
-    const provider = new Web3.providers.HttpProvider('http://localhost:9545');
+    const provider = new Web3.providers.HttpProvider(ethNodeAddr);
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
       console.log('the accounts', accounts);
       enigma = new Enigma(
         web3,
-        EnigmaContract.networks['4447'].address,
-        EnigmaTokenContract.networks['4447'].address,
-        'http://localhost:3346',
+        EnigmaContractAddress,
+        EnigmaTokenContractAddress,
+        proxyAddress,
         {
           gas: 4712388,
           gasPrice: 100000000000,
@@ -42,15 +43,12 @@ describe('Init tests', () => {
         },
       );
       enigma.admin();
+      enigma.setTaskKeyPair('cupcake');
       expect(Enigma.version()).toEqual('0.0.1');
     });
   });
 
   const homedir = os.homedir();
-
-  it('should generate and save key/pair', () => {
-    enigma.setTaskKeyPair('cupcake');
-  });
 
   it('initializes Sample contract', async () => {
     sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],

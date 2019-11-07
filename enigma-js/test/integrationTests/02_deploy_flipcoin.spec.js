@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import {EnigmaContract, EnigmaTokenContract, EnigmaContractAddress, EnigmaTokenContractAddress,
+  proxyAddress, ethNodeAddr} from './contractLoader';
 import * as constants from './testConstants';
 
 
@@ -20,15 +21,15 @@ describe('Enigma tests', () => {
   let enigma;
   let epochSize;
   it('initializes', () => {
-    const provider = new Web3.providers.HttpProvider('http://localhost:9545');
+    const provider = new Web3.providers.HttpProvider(ethNodeAddr);
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
       enigma = new Enigma(
         web3,
-        EnigmaContract.networks['4447'].address,
-        EnigmaTokenContract.networks['4447'].address,
-        'http://localhost:3346',
+        EnigmaContractAddress,
+        EnigmaTokenContractAddress,
+        proxyAddress,
         {
           gas: 4712388,
           gasPrice: 100000000000,
@@ -36,6 +37,7 @@ describe('Enigma tests', () => {
         },
       );
       enigma.admin();
+      enigma.setTaskKeyPair('cupcake');
       expect(Enigma.version()).toEqual('0.0.1');
     });
   });
@@ -44,10 +46,6 @@ describe('Enigma tests', () => {
   let task;
   const homedir = os.homedir();
 
-  it('should generate and save key/pair', () => {
-    enigma.setTaskKeyPair('cupcake');
-  });
-
   it('should deploy secret contract', async () => {
     let scTaskFn = 'construct()';
     let scTaskArgs = '';
@@ -55,7 +53,7 @@ describe('Enigma tests', () => {
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
-      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/calculator.wasm'));
+      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/flipcoin.wasm'));
     } catch(e) {
       console.log('Error:', e.stack);
     }
@@ -65,7 +63,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
 
-    fs.writeFile(path.join(homedir, '.enigma', 'addr-calculator.txt'), scTask.scAddr, 'utf8', function(err) {
+    fs.writeFile(path.join(homedir, '.enigma', 'addr-flipcoin.txt'), scTask.scAddr, 'utf8', function(err) {
       if(err) {
         return console.log(err);
       }

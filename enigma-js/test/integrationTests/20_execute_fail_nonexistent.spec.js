@@ -6,7 +6,8 @@ import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import {EnigmaContract, EnigmaTokenContract, EnigmaContractAddress, EnigmaTokenContractAddress,
+  proxyAddress, ethNodeAddr} from './contractLoader';
 import * as constants from './testConstants';
 
 
@@ -20,15 +21,15 @@ describe('Enigma tests', () => {
   let enigma;
   let epochSize;
   it('initializes', () => {
-    const provider = new Web3.providers.HttpProvider('http://localhost:9545');
+    const provider = new Web3.providers.HttpProvider(ethNodeAddr);
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
       enigma = new Enigma(
         web3,
-        EnigmaContract.networks['4447'].address,
-        EnigmaTokenContract.networks['4447'].address,
-        'http://localhost:3346',
+        EnigmaContractAddress,
+        EnigmaTokenContractAddress,
+        proxyAddress,
         {
           gas: 4712388,
           gasPrice: 100000000000,
@@ -36,25 +37,20 @@ describe('Enigma tests', () => {
         },
       );
       enigma.admin();
+      enigma.setTaskKeyPair('cupcake');
       expect(Enigma.version()).toEqual('0.0.1');
     });
   });
 
-  const homedir = os.homedir();
-
-  it('should generate and save key/pair', () => {
-    enigma.setTaskKeyPair('cupcake');
-  });
-
-  const calculatorAddr = fs.readFileSync(path.join(homedir, '.enigma', 'addr-calculator.txt'), 'utf-8');
   let task;
   it('should execute compute task', async () => {
-    let taskFn = 'add(uint,uint)';
-    let taskArgs = [[24, 'uint256']];
-    let taskGasLimit = 1000000;
+    let nonExistentAddr = '0x1234567890123456789012345678901234567890123456789012345678901234'
+    let taskFn = 'function()';
+    let taskArgs = '';
+    let taskGasLimit = 1000;
     let taskGasPx = utils.toGrains(1);
     task = await new Promise((resolve, reject) => {
-      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], calculatorAddr)
+      enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], nonExistentAddr)
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
@@ -75,7 +71,7 @@ describe('Enigma tests', () => {
     process.stdout.write('Completed. Final Task Status is '+task.ethStatus+'\n');
   }, constants.TIMEOUT_COMPUTE);
 
-  it('should get the failed result', async () => {
+  xit('should get the failed result', async () => {
     task = await new Promise((resolve, reject) => {
         enigma.getTaskResult(task)
           .on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result))
@@ -85,8 +81,6 @@ describe('Enigma tests', () => {
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task.usedGas).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
-    task = await enigma.decryptTaskResult(task);
-    console.log('Output is: '+task.decryptedOutput);
   });
 
 });

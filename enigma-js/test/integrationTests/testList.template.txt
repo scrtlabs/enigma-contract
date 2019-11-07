@@ -10,6 +10,7 @@
 03_deploy_fail_parameters.spec.js
 03_deploy_fail_wrong_encryption_key.spec.js
 03_deploy_fail_wrong_eth_address.spec.js
+03_deploy_fail_wrong_worker.spec.js
 10_execute_calculator.spec.js
 10_execute_flipcoin.spec.js
 10_execute_millionaire.spec.js
@@ -19,3 +20,4 @@
 20_execute_fail_outofgas.spec.js
 20_execute_fail_parameters.spec.js
 20_execute_fail_wrong_encryption_key.spec.js
+20_execute_fail_wrong_worker.spec.js

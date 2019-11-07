@@ -5,9 +5,9 @@ import path from 'path';
 import Web3 from 'web3';
 import Enigma from '../../src/Enigma';
 import utils from '../../src/enigma-utils';
-import VotingETHContract from '../../../build/contracts/VotingETH';
 import * as eeConstants from '../../src/emitterConstants';
-import {EnigmaContract, EnigmaTokenContract} from './contractLoader';
+import {EnigmaContract, EnigmaTokenContract, EnigmaContractAddress, EnigmaTokenContractAddress,
+  proxyAddress, ethNodeAddr} from './contractLoader';
 import * as constants from './testConstants';
 
 
@@ -19,18 +19,17 @@ describe('Enigma tests', () => {
   let accounts;
   let web3;
   let enigma;
-  let votingETHContract;
   let epochSize;
   it('initializes', () => {
-    const provider = new Web3.providers.HttpProvider('http://localhost:9545');
+    const provider = new Web3.providers.HttpProvider(ethNodeAddr);
     web3 = new Web3(provider);
     return web3.eth.getAccounts().then((result) => {
       accounts = result;
       enigma = new Enigma(
         web3,
-        EnigmaContract.networks['4447'].address,
-        EnigmaTokenContract.networks['4447'].address,
-        'http://localhost:3346',
+        EnigmaContractAddress,
+        EnigmaTokenContractAddress,
+        proxyAddress,
         {
           gas: 4712388,
           gasPrice: 100000000000,
@@ -38,33 +37,23 @@ describe('Enigma tests', () => {
         },
       );
       enigma.admin();
+      enigma.setTaskKeyPair('cupcake');
       expect(Enigma.version()).toEqual('0.0.1');
     });
-  });
-
-  it('should generate and save key/pair', () => {
-    enigma.setTaskKeyPair('cupcake');
-  });
-
-  it('initializes VotingETH contract', async () => {
-    votingETHContract = new enigma.web3.eth.Contract(VotingETHContract['abi'],
-      VotingETHContract.networks['4447'].address);
-    expect(votingETHContract.options.address).toBeTruthy();
   });
 
   let scTask;
   let task;
   const homedir = os.homedir();
+
   it('should deploy secret contract', async () => {
-    let scTaskFn = `construct(address)`;
-    let scTaskArgs = [
-      [votingETHContract.options.address, 'address'],
-    ];
-    let scTaskGasLimit = 4000000;
+    let scTaskFn = 'construct()';
+    let scTaskArgs = '';
+    let scTaskGasLimit = 1000000;
     let scTaskGasPx = utils.toGrains(1);
     let preCode;
     try {
-      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/voting.wasm'));
+      preCode = fs.readFileSync(path.resolve(__dirname,'secretContracts/millionaire.wasm'));
     } catch(e) {
       console.log('Error:', e.stack);
     }
@@ -74,7 +63,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.ERROR, (error) => reject(error));
     });
 
-    fs.writeFile(path.join(homedir, '.enigma', 'addr-voting.txt'), scTask.scAddr, 'utf8', function(err) {
+    fs.writeFile(path.join(homedir, '.enigma', 'addr-millionaire.txt'), scTask.scAddr, 'utf8', function(err) {
       if(err) {
         return console.log(err);
       }
