@@ -34,7 +34,7 @@ else
 fi
 
 # Comment out a block to support Simulation Mode in WorkersImpl.sol
-sed -e '/require(verifyReportImpl/,/require(signerQuote/ s_^_//_' $IMPLDIR/WorkersImpl.sol > WorkersImplSimulation.sol
+sed -e '/require(verifyReportImpl/,/require(isvSvn/ s_^_//_' $IMPLDIR/WorkersImpl.sol > WorkersImplSimulation.sol
 sed -e "s/library WorkersImpl /library WorkersImplSimulation /" WorkersImplSimulation.sol > WorkersImplSimulation.tmp && mv WorkersImplSimulation.tmp WorkersImplSimulation.sol
 
 # Check if the existing WorkersImpl-Simulation matches the above substitution
