@@ -9,6 +9,8 @@ const path = require('path');
 const VotingETH = artifacts.require('VotingETH.sol');
 
 const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
+const ISVSVN = '0x0000';
+const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
 const EPOCH_SIZE = 10;
 const TIMEOUT_THRESHOLD = 2;
 
@@ -72,7 +74,8 @@ async function deployProtocol(deployer) {
   }
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(ExchangeRate);
-  await deployer.deploy(Enigma, EnigmaToken.address, principal, ExchangeRate.address, EPOCH_SIZE, TIMEOUT_THRESHOLD);
+  await deployer.deploy(Enigma, EnigmaToken.address, principal, ExchangeRate.address, EPOCH_SIZE, TIMEOUT_THRESHOLD,
+      MRSIGNER, ISVSVN);
   await deployer.deploy(Sample);
   await deployer.deploy(VotingETH);
 

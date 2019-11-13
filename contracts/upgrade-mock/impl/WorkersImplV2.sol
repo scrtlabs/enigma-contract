@@ -8,6 +8,7 @@ import { EnigmaState } from "../../impl/EnigmaState.sol";
 import { IEnigma } from "../../interfaces/IEnigma.sol";
 import "../../utils/SolRsaVerify.sol";
 import "../../utils/Base64.sol";
+import { Bytes } from "../../utils/Bytes.sol";
 
 /**
  * @author Enigma
@@ -16,6 +17,7 @@ import "../../utils/Base64.sol";
  */
 library WorkersImplV2 {
     using SafeMath for uint256;
+    using Bytes for bytes;
 
     event Registered(address custodian, address signer);
     event DepositSuccessful(address from, uint value);
@@ -100,12 +102,14 @@ library WorkersImplV2 {
         // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
         // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
         // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
-        // bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
-        // bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
+        bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+        bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
         address signerQuote = bytesToAddress(reportData);
 
         require(signerQuote == _signer, "Signer does not match contents of quote");
+        require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
+        require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
 
         worker.signer = _signer;
         worker.report = _report;

@@ -24,8 +24,8 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
 
     // ========================================== Constructor ==========================================
 
-    constructor(address _tokenAddress, address _principal, address _oldEnigmaContractAddress, uint _epochSize)
-    public {
+    constructor(address _tokenAddress, address _principal, address _exchangeRate, address _oldEnigmaContractAddress,
+        uint _epochSize, uint _timeoutThreshold, bytes memory _mrSigner, bytes memory _isvSvn) public {
         state.engToken = ERC20(_tokenAddress);
         state.epochSize = _epochSize;
         state.taskTimeoutSize = 200;
@@ -34,6 +34,8 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
         state.oldEnigmaContractAddress = _oldEnigmaContractAddress;
         state.stakingThreshold = 1;
         state.workerGroupSize = 1;
+        state.mrSigner = _mrSigner;
+        state.isvSvn = _isvSvn;
     }
 
     // ========================================== Modifiers ==========================================

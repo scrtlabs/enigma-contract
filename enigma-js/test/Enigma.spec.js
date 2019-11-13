@@ -126,10 +126,27 @@ describe('Enigma tests', () => {
           gasLimit: 300000,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
-      const mrSigner = await enigma.enigmaContract.methods.getMrSigner().call();
-      const isvSvn = await enigma.enigmaContract.methods.getIsvSvn().call();
+      let mrSigner = await enigma.enigmaContract.methods.getMrSigner().call();
+      let isvSvn = await enigma.enigmaContract.methods.getIsvSvn().call();
       expect(mrSigner).toEqual('0xab');
       expect(isvSvn).toEqual('0xbc');
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setMrSigner('0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e')
+          .send({
+          from: accounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.setIsvSvn('0x0000').send({
+          from: accounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      mrSigner = await enigma.enigmaContract.methods.getMrSigner().call();
+      isvSvn = await enigma.enigmaContract.methods.getIsvSvn().call();
+      expect(mrSigner).toEqual('0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e');
+      expect(isvSvn).toEqual('0x0000');
     });
 
     it('should distribute ENG tokens', async () => {

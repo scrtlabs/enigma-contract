@@ -2,11 +2,15 @@ const dotenv = require('dotenv');
 const EnigmaToken = artifacts.require('EnigmaToken.sol');
 const SolRsaVerify = artifacts.require('./utils/SolRsaVerify.sol');
 const SecretContractImpl = artifacts.require('./impl/SecretContractImpl.sol');
+const ExchangeRate = artifacts.require('ExchangeRate.sol');
 const fs = require('fs');
 const path = require('path');
 
 const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
+const ISVSVN = '0x0000';
+const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
 const EPOCH_SIZE = 10;
+const TIMEOUT_THRESHOLD = 2;
 
 dotenv.config();    // Reads .env configuration file, if present
 
@@ -51,6 +55,7 @@ async function deployProtocol(deployer) {
   ]);
 
   const enigmaAddress = (await Enigma.deployed()).address;
+  const exchangeRateAddress = (await ExchangeRate.deployed()).address;
   const upgradeImplAddress = (await UpgradeImpl.deployed()).address;
   const secretContractImplAddress = (await SecretContractImpl.deployed()).address;
   if (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') {
@@ -80,7 +85,8 @@ async function deployProtocol(deployer) {
   console.log('using account', principal, 'as principal signer');
   const enigmaTokenAddress = (await EnigmaToken.deployed()).address;
   console.log('OLD ENIGMA ADDRESS PASSED INTO', enigmaAddress);
-  await deployer.deploy(EnigmaV2, enigmaTokenAddress, principal, enigmaAddress, EPOCH_SIZE);
+  await deployer.deploy(EnigmaV2, enigmaTokenAddress, principal, exchangeRateAddress, enigmaAddress, EPOCH_SIZE,
+      TIMEOUT_THRESHOLD, MRSIGNER, ISVSVN);
 }
 
 async function doMigration(deployer) {
