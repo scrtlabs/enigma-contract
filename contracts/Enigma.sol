@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -20,6 +20,7 @@ import { ERC20 } from "./interfaces/ERC20.sol";
 
 contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     using SafeMath for uint256;
+    using SafeMath for uint64;
     using ECDSA for bytes32;
 
     // ========================================== Constructor ==========================================
