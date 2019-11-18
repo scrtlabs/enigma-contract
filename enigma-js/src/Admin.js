@@ -140,7 +140,7 @@ export default class Admin {
    */
   async isValidDeltaHash(scAddr, stateDeltaHash) {
     return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes.includes(
-      stateDeltaHash);
+        stateDeltaHash);
   }
 
   /**
@@ -150,7 +150,7 @@ export default class Admin {
    * @return {EventEmitter} EventEmitter to be listened to track login transaction
    */
   login(account) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       try {
         await this.enigmaContract.methods.login().send({from: account}).on('transactionHash', (hash) => {
@@ -174,7 +174,7 @@ export default class Admin {
    * @return {EventEmitter} EventEmitter to be listened to track logout transaction
    */
   logout(account) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       try {
         await this.enigmaContract.methods.logout().send({from: account}).on('transactionHash', (hash) => {
@@ -199,7 +199,7 @@ export default class Admin {
    * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
   deposit(account, amount) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       const balance = await this.tokenContract.methods.balanceOf(account).call();
       if (balance < amount) {
@@ -213,13 +213,13 @@ export default class Admin {
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send({from: account});
       try {
         const receipt = await this.enigmaContract.methods.deposit(account, amount)
-          .send({from: account})
-          .on('transactionHash', (hash) => {
-            emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
-          })
-          .on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
-          });
+            .send({from: account})
+            .on('transactionHash', (hash) => {
+              emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
+            })
+            .on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
+            });
         emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
@@ -237,20 +237,20 @@ export default class Admin {
    * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
   withdraw(account, amount) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       try {
         await this.enigmaContract.methods.withdraw(amount).
-          send({from: account}).
-          on('transactionHash', (hash) => {
-            emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
-          }).
-          on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit(eeConstants.WITHDRAW_CONFIRMATION, confirmationNumber, receipt);
-          }).
-          on('receipt', (receipt) => {
-            emitter.emit(eeConstants.WITHDRAW_RECEIPT, receipt);
-          });
+            send({from: account}).
+            on('transactionHash', (hash) => {
+              emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
+            }).
+            on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.WITHDRAW_CONFIRMATION, confirmationNumber, receipt);
+            }).
+            on('receipt', (receipt) => {
+              emitter.emit(eeConstants.WITHDRAW_RECEIPT, receipt);
+            });
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
       }

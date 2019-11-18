@@ -7,7 +7,13 @@ import data from '../test/data';
 import EthCrypto from 'eth-crypto';
 import utils from './enigma-utils';
 
+/**
+ * RPC Server Mock for testing purposes
+ */
 export default class RPCServer {
+  /**
+   * @constructor
+   */
   constructor() {
     let _counter = 0;
     this.app = connect();
@@ -17,11 +23,12 @@ export default class RPCServer {
     };
     this.server = jayson.server({
       getWorkerEncryptionKey: function(args, callback) {
-        if(args.userPubKey && args.workerAddress){
+        if (args.userPubKey && args.workerAddress) {
           const worker = data.workers.find((w) => w[0] === '0x' + args.workerAddress);
           const identity = EthCrypto.createIdentity();
           // see the corresponding implementation in Enigma.js for an explanation of this hardcoded hex string
-          const hexToSign = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040'+identity.publicKey;
+          const hexToSign = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040' +
+            identity.publicKey;
           const signature = EthCrypto.sign(worker[4], web3Utils.soliditySha3({t: 'bytes', value: hexToSign}));
           callback(null, {
             result: {
@@ -43,7 +50,8 @@ export default class RPCServer {
         }
       },
       sendTaskInput: function(args, callback) {
-        if (args.taskId && args.workerAddress && args.encryptedFn && args.encryptedArgs && args.contractAddress && args.userDHKey) {
+        if (args.taskId && args.workerAddress && args.encryptedFn && args.encryptedArgs && args.contractAddress &&
+          args.userDHKey) {
           callback(null, {
             sendTaskResult: true,
           });
@@ -54,7 +62,7 @@ export default class RPCServer {
       getTaskStatus: function(args, callback) {
         if (args.taskId && args.workerAddress) {
           _counter++;
-          let status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
+          const status = (_counter < 5) ? 'INPROGRESS' : 'SUCCESS';
           callback(null, {
             result: {
               output: '02dc75395879faa78a598e11945c1ac926e3ba591ce91f387694983bc1d2000102030405060708090a0b',
@@ -79,7 +87,7 @@ export default class RPCServer {
             case (1):
               _counter++;
               callback(null, {
-                result: null
+                result: null,
               });
               break;
             case (2):
@@ -134,6 +142,9 @@ export default class RPCServer {
     });
   }
 
+  /**
+   * Start RPC Server
+   */
   listen() {
     this.app.use(cors({methods: ['POST']}));
     this.app.use(bodyParser.json());
@@ -141,6 +152,10 @@ export default class RPCServer {
     this.serverInstance = this.app.listen(3000);
   }
 
+  /**
+   * Shut down RPC Server
+     @param {string} done
+   */
   close(done) {
     this.serverInstance.close(done);
   }
