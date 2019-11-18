@@ -212,12 +212,12 @@ export default class Admin {
       }
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send({from: account});
       try {
-        const receipt = await this.enigmaContract.methods.deposit(account, amount).
-          send({from: account}).
-          on('transactionHash', (hash) => {
+        const receipt = await this.enigmaContract.methods.deposit(account, amount)
+          .send({from: account})
+          .on('transactionHash', (hash) => {
             emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
-          }).
-          on('confirmation', (confirmationNumber, receipt) => {
+          })
+          .on('confirmation', (confirmationNumber, receipt) => {
             emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
           });
         emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
