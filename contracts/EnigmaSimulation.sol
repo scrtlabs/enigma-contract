@@ -20,6 +20,7 @@ import { ERC20 } from "./interfaces/ERC20.sol";
 
 contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     using SafeMath for uint256;
+    using SafeMath for uint64;
     using ECDSA for bytes32;
 
     // ========================================== Constructor ==========================================
