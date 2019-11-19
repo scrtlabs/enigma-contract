@@ -24,18 +24,19 @@ library TaskImplV2 {
     using Bytes for uint64;
     using Bytes for address;
 
-    event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
+    event TaskRecordCreated(bytes32 indexed taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
     event TaskRecordsCreated(bytes32[] taskIds, bytes32[] inputsHashes, uint64[] gasLimits, uint64[] gasPxs, address sender,
         uint blockNumber);
     event SecretContractDeployed(bytes32 scAddr, bytes32 codeHash, bytes32 initStateDeltaHash);
-    event ReceiptVerified(bytes32 taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr, uint gasUsed,
-        uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
+    event ReceiptVerified(bytes32 indexed taskId, bytes32 stateDeltaHash, bytes32 outputHash, bytes32 scAddr,
+        uint gasUsed, uint deltaHashIndex, bytes optionalEthereumData, address optionalEthereumContractAddress,
+        bytes sig);
     event ReceiptsVerified(bytes32[] taskIds, bytes32[] stateDeltaHashes, bytes32[] outputHashes,
         bytes _optionalEthereumData, address optionalEthereumContractAddress, bytes sig);
-    event ReceiptFailed(bytes32 taskId, bytes sig);
-    event ReceiptFailedETH(bytes32 taskId, bytes sig);
-    event TaskFeeReturned(bytes32 taskId);
+    event ReceiptFailed(bytes32 indexed taskId, bytes sig);
+    event ReceiptFailedETH(bytes32 indexed taskId, bytes sig);
+    event TaskFeeReturned(bytes32 indexed taskId);
 
     function createDeploymentTaskRecordImpl(
         EnigmaState.State storage state,
