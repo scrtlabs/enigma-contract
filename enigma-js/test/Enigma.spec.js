@@ -717,7 +717,7 @@ describe('Enigma tests', () => {
         enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode).
         on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
         on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
@@ -1282,7 +1282,7 @@ describe('Enigma tests', () => {
         enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr).
         on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
         on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
@@ -1316,7 +1316,7 @@ describe('Enigma tests', () => {
             resolve();
           }
         }).on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
@@ -1438,7 +1438,7 @@ describe('Enigma tests', () => {
         enigma.getTaskResult(task).
         on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
         on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
