@@ -3043,7 +3043,7 @@ utils.gunzip = gunzip;
 /*!**********************!*\
   !*** ./src/index.js ***!
   \**********************/
-/*! exports provided: Enigma, utils, eeConstants */
+/*! exports provided: Enigma, utils, eeConstants, Task */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -3060,8 +3060,12 @@ __webpack_require__.r(__webpack_exports__);
 
 /* harmony import */ var _emitterConstants__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./emitterConstants */ "./src/emitterConstants.js");
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "eeConstants", function() { return _emitterConstants__WEBPACK_IMPORTED_MODULE_4__; });
+/* harmony import */ var _models_Task__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./models/Task */ "./src/models/Task.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "Task", function() { return _models_Task__WEBPACK_IMPORTED_MODULE_5__["default"]; });
+
 
  // window.Promise = Promise;
+
 
 
 
@@ -3162,7 +3166,7 @@ function Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, msg
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(/*! /Users/adityapalepu/Startups/enigma/enigma-contract-internal/enigma-js/src/index.js */"./src/index.js");
+module.exports = __webpack_require__(/*! /Volumes/Data/Users/victoris/Desktop/Enigma/user-install/enigma-contract/enigma-js/src/index.js */"./src/index.js");
 
 
 /***/ }),
