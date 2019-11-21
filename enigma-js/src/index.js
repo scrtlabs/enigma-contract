@@ -4,5 +4,6 @@ import 'regenerator-runtime/runtime';
 import utils from './enigma-utils';
 import Enigma from './Enigma';
 import * as eeConstants from './emitterConstants';
+import Task from './models/Task';
 
-export {Enigma, utils, eeConstants};
+export {Enigma, utils, eeConstants, Task};

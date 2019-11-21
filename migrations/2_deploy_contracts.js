@@ -91,6 +91,16 @@ async function deployProtocol(deployer) {
         return console.log(err);
       }
     });
+    fs.writeFile(path.join(homedir, '.enigma', 'votingcontract.txt'), VotingETH.address, 'utf8', function(err) {
+      if(err) {
+        return console.log(err);
+      }
+    });
+    fs.writeFile(path.join(homedir, '.enigma', 'samplecontract.txt'), Sample.address, 'utf8', function(err) {
+      if(err) {
+        return console.log(err);
+      }
+    });
   }
 }
 
