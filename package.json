@@ -15,7 +15,7 @@
   "homepage": "https://enigma.co",
   "dependencies": {
     "bn.js": "^5.0.0",
-    "web3-utils": "1.0.0-beta.37"
+    "web3-utils": "^1.2.4"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.5",
@@ -34,6 +34,6 @@
     "regenerator-runtime": "^0.13.3",
     "rlp": "^2.2.0",
     "truffle-contract": "^4.0.31",
-    "web3": "1.0.0-beta.37"
+    "web3": "^1.2.4"
   }
 }

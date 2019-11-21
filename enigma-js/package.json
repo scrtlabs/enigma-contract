@@ -57,7 +57,7 @@
     "tls": "0.0.1",
     "truffle-contract": "^4.0.31",
     "uuid": "^3.3.2",
-    "web3-utils": "1.0.0-beta.37",
+    "web3-utils": "^1.2.4",
     "webpack-node-externals": "^1.7.2",
     "whatwg-fetch": "^3.0.0"
   },
@@ -83,7 +83,7 @@
     "jsdom-global": "3.0.2",
     "mock-local-storage": "^1.1.11",
     "uglifyjs-webpack-plugin": "^2.2.0",
-    "web3": "1.0.0-beta.37",
+    "web3": "^1.2.4",
     "webpack": "^4.12.2",
     "webpack-cli": "^3.0.8",
     "yargs": "^15.0.0"
