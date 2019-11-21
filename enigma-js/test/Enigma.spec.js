@@ -107,13 +107,15 @@ describe('Enigma tests', () => {
           from: accounts[1],
           gasLimit: 300000,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
-      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ownable: caller is not' +
+        ' the owner');
       await expect(new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.setIsvSvn('0xbc').send({
           from: accounts[1],
           gasLimit: 300000,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
-      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ownable: caller is not' +
+        ' the owner');
       await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.setMrSigner('0xab').send({
           from: accounts[0],
@@ -518,7 +520,8 @@ describe('Enigma tests', () => {
         active += blockNumberNow - loggedIn
       }
       // the variable `active` contains the total number of blocks a worker has been active (logged in)
-      expect(active).toEqual(11);
+      expect(active).toBeGreaterThan(9);
+      expect(active).toBeLessThan(20);
       expect(loggedIn).toBeTruthy();
     });
 
@@ -557,9 +560,10 @@ describe('Enigma tests', () => {
     it('should get the worker parameters for the current block', async () => {
       const blockNumber = await web3.eth.getBlockNumber();
       const workerParams = await enigma.getWorkerParams(blockNumber);
-      expect(workerParams.workers).toEqual(data.workers.map((w) => web3.utils.toChecksumAddress(w[0])).slice(0, 7));
-      expect(workerParams.stakes).
-      toEqual([900, 100, 10, 20, 100, 200, 40].map((stake) => (JSBI.BigInt(stake * 10 ** 8))));
+      expect(workerParams.workers.concat().sort())
+        .toEqual((data.workers.map((w) => web3.utils.toChecksumAddress(w[0])).slice(0, 7)).concat().sort());
+      expect(workerParams.stakes.concat().sort())
+        .toEqual(([900, 100, 10, 20, 100, 200, 40].map((stake) => (JSBI.BigInt(stake * 10 ** 8)))).concat().sort());
     });
 
     it('should fail to withdraw too many tokens from worker bank', async () => {
@@ -715,7 +719,7 @@ describe('Enigma tests', () => {
         enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[0], preCode).
         on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
         on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
@@ -750,7 +754,8 @@ describe('Enigma tests', () => {
         enigma.deploySecretContract(scTaskFn, scTaskArgs, scTaskGasLimit, scTaskGasPx, accounts[1], preCode)
           .on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt))
           .on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ownable: caller is not' +
+        ' the owner');
     });
 
     it('should create/send deploy contract task using wrapper function', async () => {
@@ -1279,7 +1284,7 @@ describe('Enigma tests', () => {
         enigma.computeTask(taskFn, taskArgs, taskGasLimit, taskGasPx, accounts[0], scAddr).
         on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result)).
         on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
@@ -1313,7 +1318,7 @@ describe('Enigma tests', () => {
             resolve();
           }
         }).on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
@@ -1435,7 +1440,7 @@ describe('Enigma tests', () => {
         enigma.getTaskResult(task).
         on(eeConstants.GET_TASK_RESULT_RESULT, (result) => resolve(result)).
         on(eeConstants.ERROR, (error) => reject(error));
-      })).rejects.toEqual({code: -32000, message: 'Network Error'});
+      })).rejects.toEqual({code: -32000, message: 'connect ECONNREFUSED 127.0.0.1:3000'});
       console.error = consoleError; // restore the original console
       server.listen();
     });
@@ -2353,7 +2358,8 @@ describe('Enigma tests', () => {
           from: accounts[1],
           gasLimit: 300000,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
-      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ownable: caller is not' +
+        ' the owner');
     });
 
     it('should upgrade Enigma contract successfully', async () => {
@@ -2466,14 +2472,25 @@ describe('Enigma tests', () => {
       const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
       const signature = '0x' + workerData[3];
       const proof = utils.hash([enigmaUpgradedContract.options.address]);
-      const sig = await enigma.web3.eth.sign(proof, worker.account);
+      function fixSignature (signature) {
+        // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
+        // signature malleability if version is 0/1
+        // see https://github.com/ethereum/go-ethereum/blob/v1.8.23/internal/ethapi/api.go#L465
+        let v = parseInt(signature.slice(130, 132), 16);
+        if (v < 27) {
+          v += 27;
+        }
+        const vHex = v.toString(16);
+        return signature.slice(0, 130) + vHex;
+      }
+      const sig = fixSignature(await enigma.web3.eth.sign(proof, worker.account));
       const startingOldContractBalance = parseInt(
         await enigma.tokenContract.methods.balanceOf(enigma.enigmaContract.options.address).call(),
       );
       const startingNewContractBalance = parseInt(
         await enigma.tokenContract.methods.balanceOf(enigmaUpgradedContract.options.address).call(),
       );
-      await new Promise((resolve, reject) => {
+      const receipt = await new Promise((resolve, reject) => {
         enigmaUpgradedContract.methods.register(workerData[0], report, signature, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -168,10 +168,11 @@ library WorkersImplSimulationV2 {
     public
     {
         require(state.engToken.allowance(_custodian, address(this)) >= _amount, "Not enough tokens allowed for transfer");
-        require(state.engToken.transferFrom(_custodian, address(this), _amount), "Token transfer failed");
 
         EnigmaCommon.Worker storage worker = state.workers[_custodian];
         worker.balance = worker.balance.add(_amount);
+
+        require(state.engToken.transferFrom(_custodian, address(this), _amount), "Token transfer failed");
 
         emit DepositSuccessful(_custodian, _amount);
     }
@@ -181,9 +182,10 @@ library WorkersImplSimulationV2 {
     {
         EnigmaCommon.Worker storage worker = state.workers[msg.sender];
         require(worker.balance >= _amount, "Not enough tokens in worker balance");
-        require(state.engToken.transfer(msg.sender, _amount), "Token transfer failed");
 
         worker.balance = worker.balance.sub(_amount);
+
+        require(state.engToken.transfer(msg.sender, _amount), "Token transfer failed");
 
         emit WithdrawSuccessful(msg.sender, _amount);
     }

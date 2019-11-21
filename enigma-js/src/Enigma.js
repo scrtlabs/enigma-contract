@@ -47,8 +47,8 @@ export default class Enigma {
       (config.retry.randomize != null ? config.retry.randomize : true) : true;
 
     // axios callback for jayson rpc client to interface with ENG network
-    let callServer = function(request, callback) {
-      let config = {
+    const callServer = function(request, callback) {
+      const config = {
         headers: {
           'Content-Type': 'application/json',
           'credentials': 'include',
@@ -58,7 +58,7 @@ export default class Enigma {
         if (eeConstants.ERROR in response.data) {
           callback(response.data.error, null);
         } else {
-          let text = JSON.stringify(response.data.result);
+          const text = JSON.stringify(response.data.result);
           callback(null, text);
         }
       }).catch(function(err) {
@@ -87,9 +87,9 @@ export default class Enigma {
    */
   createContracts(enigmaContractAddr, tokenContractAddr) {
     this.enigmaContract = new this.web3.eth.Contract(EnigmaContract['abi'],
-      enigmaContractAddr, this.txDefaults);
+        enigmaContractAddr, this.txDefaults);
     this.tokenContract = new this.web3.eth.Contract(EnigmaTokenContract['abi'],
-      tokenContractAddr, this.txDefaults);
+        tokenContractAddr, this.txDefaults);
   }
 
   /**
@@ -107,7 +107,7 @@ export default class Enigma {
    * to be used for remainder of task lifecycle
    */
   createTask(fn, args, gasLimit, gasPx, sender, scAddrOrPreCode, isContractDeploymentTask) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       // TODO: never larger that 53-bit?
       const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
@@ -132,7 +132,7 @@ export default class Enigma {
       const argsTranspose = (args === undefined || args.length === 0) ? [[], []] :
         args[0].map((col, i) => args.map((row) => row[i]));
       const abiEncodedArgs = utils.remove0x(this.web3.eth.abi.encodeParameters(argsTranspose[1], argsTranspose[0]));
-      let abiEncodedArgsArray = [];
+      const abiEncodedArgsArray = [];
       for (let n = 0; n < abiEncodedArgs.length; n += 2) {
         abiEncodedArgsArray.push(parseInt(abiEncodedArgs.substr(n, 2), 16));
       }
@@ -145,13 +145,13 @@ export default class Enigma {
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           this.client.request('getWorkerEncryptionKey',
-            {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              resolve(response);
-            });
+              {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve(response);
+              });
         });
         const {result, id} = getWorkerEncryptionKeyResult;
         const {workerEncryptionKey, workerSig} = result;
@@ -168,7 +168,7 @@ export default class Enigma {
 
         // the hashing function soliditySha3 expects hex instead of bytes
         let recAddress = EthCrypto.recover('0x'+workerSig,
-          this.web3.utils.soliditySha3({t: 'bytes', value: hexToVerify}));
+            this.web3.utils.soliditySha3({t: 'bytes', value: hexToVerify}));
 
         recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
 
@@ -185,13 +185,13 @@ export default class Enigma {
           const encryptedFn = utils.encryptMessage(derivedKey, fn);
           const encryptedAbiEncodedArgs = utils.encryptMessage(derivedKey, Buffer.from(abiEncodedArgsArray));
           const msg = this.web3.utils.soliditySha3(
-            {t: 'bytes', v: encryptedFn},
-            {t: 'bytes', v: encryptedAbiEncodedArgs},
+              {t: 'bytes', v: encryptedFn},
+              {t: 'bytes', v: encryptedAbiEncodedArgs},
           );
           const userTaskSig = await this.web3.eth.sign(msg, sender);
           emitter.emit(eeConstants.CREATE_TASK, new Task(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx,
-            id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
-            preCodeGzip.toString('base64'), preCodeHash, isContractDeploymentTask));
+              id, publicKey, firstBlockNumber, workerAddress, workerEncryptionKey, sender, userTaskSig, nonce,
+              preCodeGzip.toString('base64'), preCodeHash, isContractDeploymentTask));
         }
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err);
@@ -211,7 +211,7 @@ export default class Enigma {
    * record creation attributes to be used for remainder of task lifecycle
    */
   createTaskRecord(task) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       const balance = await this.tokenContract.methods.balanceOf(task.sender).call();
       if (balance < (task.gasLimit * task.gasPx)) {
@@ -227,17 +227,16 @@ export default class Enigma {
       try {
         const receipt = task.isContractDeploymentTask ?
           await this.enigmaContract.methods.createDeploymentTaskRecord(task.inputsHash, task.gasLimit,
-            task.gasPx, task.firstBlockNumber, task.nonce).send({
+              task.gasPx, task.firstBlockNumber, task.nonce).send({
             from: task.sender,
           }).on('transactionHash', (hash) => {
             task.transactionHash = hash;
             emitter.emit(eeConstants.CREATE_TASK_RECORD_TRANSACTION_HASH, hash);
           }).on('confirmation', (confirmationNumber, receipt) => {
             emitter.emit(eeConstants.CREATE_TASK_RECORD_CONFIRMATION, confirmationNumber, receipt);
-          })
-          :
+          }) :
           await this.enigmaContract.methods.createTaskRecord(task.inputsHash, task.gasLimit, task.gasPx,
-            task.firstBlockNumber).send({
+              task.firstBlockNumber).send({
             from: task.sender,
           }).on('transactionHash', (hash) => {
             task.transactionHash = hash;
@@ -346,14 +345,14 @@ export default class Enigma {
    */
   selectWorkerGroup(scAddr, params, workerGroupSize = 5) {
     // Find total number of staked tokens for workers
-    let tokenCpt = params.stakes.reduce((a, b) => JSBI.add(a, b), JSBI.BigInt(0));
+    const tokenCpt = params.stakes.reduce((a, b) => JSBI.add(a, b), JSBI.BigInt(0));
     let nonce = 0;
-    let selectedWorkers = [];
+    const selectedWorkers = [];
     do {
       // Unique hash for epoch, secret contract address, and nonce
       const msg = abi.rawEncode(
-        ['uint256', 'bytes32', 'uint256'],
-        [params.seed.toString(10), scAddr, nonce],
+          ['uint256', 'bytes32', 'uint256'],
+          [params.seed.toString(10), scAddr, nonce],
       );
       const hash = web3Utils.keccak256(msg);
       // Find random number between [0, tokenCpt)
@@ -386,7 +385,7 @@ export default class Enigma {
    * a response from the ENG network indicating whether client is ready to track the remainder of the task lifecycle
    */
   sendTaskInput(task) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       let rpcEndpointName = eeConstants.RPC_SEND_TASK_INPUT;
       let emitName = eeConstants.SEND_TASK_INPUT_RESULT;
@@ -420,20 +419,20 @@ export default class Enigma {
    * a response from the ENG network.
    */
   getTaskResult(task) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
 
-    let operation = retry.operation(this.config.retry);
+    const operation = retry.operation(this.config.retry);
     operation.attempt(async (currentAttempt)=>{
       try {
         const getTaskResultResult = await new Promise((resolve, reject) => {
           this.client.request(eeConstants.RPC_GET_TASK_RESULT,
-            {taskId: utils.remove0x(task.taskId)}, (err, response) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve(response);
-          });
+              {taskId: utils.remove0x(task.taskId)}, (err, response) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve(response);
+              });
         });
         if (getTaskResultResult.result) {
           switch (getTaskResultResult.result.status) {
@@ -478,7 +477,7 @@ export default class Enigma {
    * @returns {EventEmitter} EventEmitter to be listened to track return of fees
    */
   returnFeesForTask(task) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       const taskTimeoutSize = await this.enigmaContract.methods.getTaskTimeoutSize().call();
       const blockNumber = await this.web3.eth.getBlockNumber();
@@ -531,7 +530,7 @@ export default class Enigma {
   async verifyTaskOutput(task) {
     const ethOutputHash = await this.getTaskOutputHash(task);
     const engOutputHash = this.web3.utils.soliditySha3(
-      {t: 'bytes', value: task.encryptedAbiEncodedOutputs.toString('hex')}
+        {t: 'bytes', value: task.encryptedAbiEncodedOutputs.toString('hex')}
     );
     return ethOutputHash === engOutputHash;
   }
@@ -595,7 +594,7 @@ export default class Enigma {
    * @param {EventEmitter} emitter - EventEmitter to track Enigma p2p network polling for Task status
    */
   innerPollTaskStatus(task, generator, emitter) {
-    let p = generator.next();
+    const p = generator.next();
     p.value.then((d) => {
       emitter.emit(eeConstants.POLL_TASK_STATUS_RESULT, d);
       if (d.engStatus !== 'SUCCESS' && d.engStatus !== 'FAILED') {
@@ -615,8 +614,8 @@ export default class Enigma {
    * Emits a Task with task result attributes
    */
   pollTaskStatus(task, withResult = false) {
-    let emitter = new EventEmitter();
-    let generator = this.pollTaskStatusGen(task, withResult);
+    const emitter = new EventEmitter();
+    const generator = this.pollTaskStatusGen(task, withResult);
     this.innerPollTaskStatus(task, generator, emitter);
     return emitter;
   }
@@ -664,14 +663,14 @@ export default class Enigma {
     // TODO: Developer tool to allow users to select their own unique passphrase to generate private key
     const isBrowser = typeof window !== 'undefined';
     let privateKey;
-    let encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
+    const encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
       this.taskKeyLocalStorage['encodedPrivateKey'];
     if (encodedPrivateKey == null) {
       throw Error('Need to set task key pair first');
     } else {
       privateKey = isBrowser ? atob(encodedPrivateKey) : Buffer.from(encodedPrivateKey, 'base64').toString('binary');
     }
-    let publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
+    const publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
     return {publicKey, privateKey};
   }
 
@@ -690,7 +689,7 @@ export default class Enigma {
         seed += characters.charAt(Math.floor(Math.random() * characters.length));
       }
     }
-    let random = forge.random.createInstance();
+    const random = forge.random.createInstance();
     // TODO: Query user for passphrase
     random.seedFileSync = function(needed) {
       return forge.util.fillString(seed, needed);
@@ -716,27 +715,27 @@ export default class Enigma {
    * @return {Task} Task with attributes necessary for task record and Enigma network
    */
   deploySecretContract(fn, args, gasLimit, gasPx, sender, preCode, maxRetries=1) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       let retryCount = 0;
       while (true) {
         try {
           let scTask = await new Promise((resolve, reject) => {
             this.createTask(fn, args, gasLimit, gasPx, sender, preCode, true).
-            on(eeConstants.CREATE_TASK, (result) => resolve(result)).
-            on(eeConstants.ERROR, (error) => reject(error));
+                on(eeConstants.CREATE_TASK, (result) => resolve(result)).
+                on(eeConstants.ERROR, (error) => reject(error));
           });
           emitter.emit(eeConstants.CREATE_TASK, scTask);
           scTask = await new Promise((resolve, reject) => {
             this.createTaskRecord(scTask).
-            on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result)).
-            on(eeConstants.ERROR, (error) => reject(error));
+                on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result)).
+                on(eeConstants.ERROR, (error) => reject(error));
           });
           emitter.emit(eeConstants.CREATE_TASK_RECORD, scTask);
           await new Promise((resolve, reject) => {
             this.sendTaskInput(scTask).
-            on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
-            on(eeConstants.ERROR, (error) => reject(error));
+                on(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, (receipt) => resolve(receipt)).
+                on(eeConstants.ERROR, (error) => reject(error));
           });
           emitter.emit(eeConstants.DEPLOY_SECRET_CONTRACT_RESULT, scTask);
           break;
@@ -766,27 +765,27 @@ export default class Enigma {
    * @return {Task} Task with attributes necessary for task record and Enigma network
    */
   computeTask(fn, args, gasLimit, gasPx, sender, scAddr, maxRetries=1) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       let retryCount = 0;
       while (true) {
         try {
           let task = await new Promise((resolve, reject) => {
             this.createTask(fn, args, gasLimit, gasPx, sender, scAddr, false).
-            on(eeConstants.CREATE_TASK, (result) => resolve(result)).
-            on(eeConstants.ERROR, (error) => reject(error));
+                on(eeConstants.CREATE_TASK, (result) => resolve(result)).
+                on(eeConstants.ERROR, (error) => reject(error));
           });
           emitter.emit(eeConstants.CREATE_TASK, task);
           task = await new Promise((resolve, reject) => {
             this.createTaskRecord(task).
-            on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result)).
-            on(eeConstants.ERROR, (error) => reject(error));
+                on(eeConstants.CREATE_TASK_RECORD, (result) => resolve(result)).
+                on(eeConstants.ERROR, (error) => reject(error));
           });
           emitter.emit(eeConstants.CREATE_TASK_RECORD, task);
           await new Promise((resolve, reject) => {
             this.sendTaskInput(task).
-            on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt)).
-            on(eeConstants.ERROR, (error) => reject(error));
+                on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt)).
+                on(eeConstants.ERROR, (error) => reject(error));
           });
           emitter.emit(eeConstants.SEND_TASK_INPUT_RESULT, task);
           break;
