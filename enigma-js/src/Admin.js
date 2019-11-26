@@ -31,10 +31,11 @@ export default class Admin {
     const result = await this.enigmaContract.methods.getWorkerFromSigningAddress(sigAddr).call();
     return {
       account: result[0],
-      status: parseInt(result[1][1]),
-      report: result[1][2],
-      balance: parseInt(result[1][3]),
-      logs: result[1][4],
+      operatingAddress: result[1][0],
+      status: parseInt(result[1][2]),
+      report: result[1][3],
+      balance: parseInt(result[1][4]),
+      logs: result[1][5],
     };
   }
 

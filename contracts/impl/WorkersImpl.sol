@@ -68,8 +68,8 @@ library WorkersImpl {
         }
     }
 
-    function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
-        bytes memory _signature)
+    function registerImpl(EnigmaState.State storage state, address _operatingAddress, address _signer,
+        bytes memory _report, bytes memory _signature)
     public {
         // TODO: consider exit if both signer and custodian are matching
         // If the custodian is not already register, we add an index entry
@@ -112,6 +112,9 @@ library WorkersImpl {
         require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
         require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
 
+        delete state.operatingToStakingAddresses[worker.operatingAddress];
+        state.operatingToStakingAddresses[_operatingAddress] = msg.sender;
+        worker.operatingAddress = _operatingAddress;
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
@@ -124,7 +127,7 @@ library WorkersImpl {
     view
     returns (address, bytes memory)
     {
-        EnigmaCommon.Worker memory worker = state.workers[_custodian];
+        EnigmaCommon.Worker memory worker = state.workers[state.operatingToStakingAddresses[_custodian]];
         // The RLP encoded report and signer's address for the specified worker
         require(worker.signer != address(0), "Worker not registered");
         return (worker.signer, worker.report);
@@ -146,7 +149,7 @@ library WorkersImpl {
     }
 
     function loginImpl(EnigmaState.State storage state) public {
-        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        EnigmaCommon.Worker storage worker = state.workers[state.operatingToStakingAddresses[msg.sender]];
         worker.status = EnigmaCommon.WorkerStatus.LoggedIn;
         worker.workerLogs.push(EnigmaCommon.WorkerLog({
             workerEventType: EnigmaCommon.WorkerLogType.LogIn,
@@ -157,7 +160,7 @@ library WorkersImpl {
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
-        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        EnigmaCommon.Worker storage worker = state.workers[state.operatingToStakingAddresses[msg.sender]];
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
         worker.workerLogs.push(EnigmaCommon.WorkerLog({
             workerEventType: EnigmaCommon.WorkerLogType.LogOut,
@@ -170,7 +173,8 @@ library WorkersImpl {
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)
     public
     {
-        require(state.engToken.allowance(_custodian, address(this)) >= _amount, "Not enough tokens allowed for transfer");
+        require(state.engToken.allowance(_custodian, address(this)) >= _amount,
+            "Not enough tokens allowed for transfer");
 
         EnigmaCommon.Worker storage worker = state.workers[_custodian];
         worker.balance = worker.balance.add(_amount);

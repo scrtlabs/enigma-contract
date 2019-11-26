@@ -20,6 +20,7 @@ import { ERC20 } from "../interfaces/ERC20.sol";
 
 contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     using SafeMath for uint256;
+    using SafeMath for uint64;
     using ECDSA for bytes32;
 
     // ========================================== Constructor ==========================================
@@ -28,8 +29,9 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
         uint _epochSize, uint _timeoutThreshold, bytes memory _mrSigner, bytes memory _isvSvn) public {
         state.engToken = ERC20(_tokenAddress);
         state.epochSize = _epochSize;
-        state.taskTimeoutSize = 200;
+        state.taskTimeoutSize = _timeoutThreshold * state.epochSize;
         state.principal = _principal;
+        state.exchangeRate = _exchangeRate;
         state.updatedEnigmaContractAddress = address(this);
         state.oldEnigmaContractAddress = _oldEnigmaContractAddress;
         state.stakingThreshold = 1;
@@ -54,32 +56,19 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Checks if the custodian wallet is logged in as a worker
     *
-    * @param _user The custodian address of the worker
     */
-    modifier workerLoggedIn(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
+    modifier workerLoggedIn() {
+        EnigmaCommon.Worker memory worker = state.workers[state.operatingToStakingAddresses[msg.sender]];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedIn, "Worker not logged in");
-        _;
-    }
-
-    /**
-    * Checks if the custodian wallet is logged out as a worker
-    *
-    * @param _user The custodian address of the worker
-    */
-    modifier workerLoggedOut(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
-        require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not logged out");
         _;
     }
 
     /**
     * Checks if worker can log in
     *
-    * @param _user The custodian address of the worker
     */
-    modifier canLogIn(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
+    modifier canLogIn() {
+        EnigmaCommon.Worker memory worker = state.workers[state.operatingToStakingAddresses[msg.sender]];
         require(getFirstBlockNumber(block.number) != 0, "Principal node has not been initialized");
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
         require(worker.balance >= state.stakingThreshold, "Worker's balance is not sufficient");
@@ -89,10 +78,9 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Checks if the worker can withdraw
     *
-    * @param _user The custodian address of the worker
     */
-    modifier canWithdraw(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
+    modifier canWithdraw() {
+        EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
         EnigmaCommon.WorkerLog memory workerLog = WorkersImplSimulationV2.getLatestWorkerLogImpl(worker, block.number);
         require(workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogOut,
@@ -135,11 +123,21 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Ensure signing key used for registration is unique
     *
+    */
+    modifier areOperatingAndStakingDiff(address _operatingAddress) {
+        require(_operatingAddress != msg.sender, "Operating address not different from staking address");
+        _;
+    }
+
+    /**
+    * Ensure signing key used for registration is unique
+    *
     * @param _signer Signing key
     */
     modifier isUniqueSigningKey(address _signer) {
         for (uint i = 0; i < state.workerAddresses.length; i++) {
-            require(state.workers[state.workerAddresses[i]].signer != _signer, "Not a unique signing key");
+            require(state.workers[state.workerAddresses[i]].signer != _signer,
+                "Not a unique signing key");
         }
         _;
     }
@@ -169,17 +167,19 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * worker. This should be called by every worker (and the principal)
     * node in order to receive tasks.
     *
+    * @param _operatingAddress The operating address
     * @param _signer The signer address, derived from the enclave public key
     * @param _report The RLP encoded report returned by the IAS
     * @param _signature Signature
-    * @param _upgradeTransferSig Signature
     */
-    function register(address _signer, bytes memory _report, bytes memory _signature, bytes memory _upgradeTransferSig)
+    function register(address _operatingAddress, address _signer, bytes memory _report, bytes memory _signature,
+        bytes memory _upgradeTransferSig)
     public
     isUpdatedEnigmaContract
     isUniqueSigningKey(_signer)
+    areOperatingAndStakingDiff(_operatingAddress)
     {
-        WorkersImplSimulationV2.registerImpl(state, _signer, _report, _signature, _upgradeTransferSig);
+        WorkersImplSimulationV2.registerImpl(state, _operatingAddress, _signer, _report, _signature, _upgradeTransferSig);
     }
 
     /**
@@ -203,7 +203,7 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     */
     function withdraw(uint _amount)
     public
-    canWithdraw(msg.sender)
+    canWithdraw
     {
         WorkersImplSimulationV2.withdrawImpl(state, _amount);
     }
@@ -212,14 +212,14 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * Login worker. Worker must be registered to do so, and must be logged in at start of epoch to be part of worker
     * selection process.
     */
-    function login() public canLogIn(msg.sender) {
+    function login() public canLogIn {
         WorkersImplSimulationV2.loginImpl(state);
     }
 
     /**
     * Logout worker. Worker must be logged in to do so.
     */
-    function logout() public workerLoggedIn(msg.sender) {
+    function logout() public workerLoggedIn {
         WorkersImplSimulationV2.logoutImpl(state);
     }
 
@@ -227,51 +227,47 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * Deploy secret contract from user, called by the worker.
     *
     * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
+    * @param _codeHash Deployed bytecode hash
     * @param _gasUsed Gas used for task
     * @param _sig Worker's signature for deployment
     */
     function deploySecretContractFailure(
         bytes32 _taskId,
+        bytes32 _codeHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
+    workerLoggedIn
     contractUndefined(_taskId)
     {
-        TaskImplSimulationV2.deploySecretContractFailureImpl(state, _taskId, _gasUsed, _sig);
+        TaskImplSimulationV2.deploySecretContractFailureImpl(state, _taskId, _codeHash, _gasUsed, _sig);
     }
 
     /**
     * Deploy secret contract from user, called by the worker.
     *
-    * @param _taskId Task ID of corresponding deployment task (taskId == scAddr)
-    * @param _preCodeHash Predeployed bytecode hash
-    * @param _codeHash Deployed bytecode hash
-    * @param _initStateDeltaHash Initial state delta hash as a result of the contract's constructor
-    * @param _optionalEthereumData Initial state delta hash as a result of the contract's constructor
-    * @param _optionalEthereumContractAddress Initial state delta hash as a result of the contract's constructor
     * @param _gasUsed Gas used for task
+    * @param _optionalEthereumContractAddress Initial state delta hash as a result of the contract's constructor
+    * @param _bytes32s [taskId, preCodeHash, codeHash, initStateDeltaHash]
+    * @param _optionalEthereumData Initial state delta hash as a result of the contract's constructor
     * @param _sig Worker's signature for deployment
     */
     function deploySecretContract(
-        bytes32 _taskId,
-        bytes32 _preCodeHash,
-        bytes32 _codeHash,
-        bytes32 _initStateDeltaHash,
-        bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress,
         uint64 _gasUsed,
+        address _optionalEthereumContractAddress,
+        bytes32[4] memory _bytes32s,
+        bytes memory _optionalEthereumData,
         bytes memory _sig
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
-    contractUndefined(_taskId)
+    workerLoggedIn
+    contractUndefined(_bytes32s[0])
     {
-        TaskImplSimulationV2.deploySecretContractImpl(state, _taskId, _preCodeHash, _codeHash, _initStateDeltaHash,
-            _optionalEthereumData, _optionalEthereumContractAddress, _gasUsed, _sig);
+        TaskImplSimulationV2.deploySecretContractImpl(state, _gasUsed, _optionalEthereumContractAddress, _bytes32s,
+            _optionalEthereumData, _sig);
     }
 
     /**
@@ -323,6 +319,7 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
         uint _nonce
     )
     public
+    onlyOwner
     isUpdatedEnigmaContract
     {
         TaskImplSimulationV2.createDeploymentTaskRecordImpl(state, _inputsHash, _gasLimit, _gasPx, _firstBlockNumber, _nonce);
@@ -351,57 +348,29 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
-    * Create task records for tasks (either contract deployment or regular tasks). This is necessary for
-    * transferring task fee from sender to contract, generating the unique taskId, saving the block number
-    * when the record was mined, and incrementing the user's task deployment counter nonce.
-    *
-    * @param _inputsHashes Hashes of encrypted fn sig, encrypted ABI-encoded args, and contract address
-    * @param _gasLimits ENG gas limit
-    * @param _gasPxs ENG gas price in grains format (10 ** 8)
-    * @param _firstBlockNumber Locally-computed first block number of epoch
-    */
-    function createTaskRecords(
-        bytes32[] memory _inputsHashes,
-        uint64[] memory _gasLimits,
-        uint64[] memory _gasPxs,
-        uint _firstBlockNumber
-    )
-    public
-    isUpdatedEnigmaContract
-    {
-        TaskImplSimulationV2.createTaskRecordsImpl(state, _inputsHashes, _gasLimits, _gasPxs, _firstBlockNumber);
-    }
-
-    /**
     * Commit the computation task results on chain by first verifying the receipt and then the worker's signature.
     * The task record is finalized and the worker is credited with the task fee.
     *
-    * @param _scAddr Secret contract address
-    * @param _taskId Unique taskId
-    * @param _stateDeltaHash Input state delta hash
-    * @param _outputHash Output state hash
-    * @param _optionalEthereumData Output state hash
-    * @param _optionalEthereumContractAddress Output state hash
     * @param _gasUsed Gas used for task computation
+    * @param _optionalEthereumContractAddress Output state hash
+    * @param _bytes32s [scAddr, taskId, stateDeltaHash, outputHash]
+    * @param _optionalEthereumData Output state hash
     * @param _sig Worker's signature
     */
     function commitReceipt(
-        bytes32 _scAddr,
-        bytes32 _taskId,
-        bytes32 _stateDeltaHash,
-        bytes32 _outputHash,
-        bytes memory _optionalEthereumData,
-        address _optionalEthereumContractAddress,
         uint64 _gasUsed,
+        address _optionalEthereumContractAddress,
+        bytes32[4] memory _bytes32s,
+        bytes memory _optionalEthereumData,
         bytes memory _sig
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
-    contractDeployed(_scAddr)
+    workerLoggedIn
+    contractDeployed(_bytes32s[0])
     {
-        TaskImplSimulationV2.commitReceiptImpl(state, _scAddr, _taskId, _stateDeltaHash, _outputHash, _optionalEthereumData,
-            _optionalEthereumContractAddress, _gasUsed, _sig);
+        TaskImplSimulationV2.commitReceiptImpl(state, _gasUsed, _optionalEthereumContractAddress,
+            _bytes32s, _optionalEthereumData, _sig);
     }
 
     /**
@@ -410,21 +379,23 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     *
     * @param _scAddr Secret contract address
     * @param _taskId Unique taskId
+    * @param _outputHash Output state hash
     * @param _gasUsed Gas used for task computation
     * @param _sig Worker's signature
     */
     function commitTaskFailure(
         bytes32 _scAddr,
         bytes32 _taskId,
+        bytes32 _outputHash,
         uint64 _gasUsed,
         bytes memory _sig
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
+    workerLoggedIn
     contractDeployed(_scAddr)
     {
-        TaskImplSimulationV2.commitTaskFailureImpl(state, _scAddr, _taskId, _gasUsed, _sig);
+        TaskImplSimulationV2.commitTaskFailureImpl(state, _scAddr, _taskId, _outputHash, _gasUsed, _sig);
     }
 
     /**
@@ -450,7 +421,7 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     function setWorkersParams(uint _blockNumber, uint _seed, bytes memory _sig)
     public
     isUpdatedEnigmaContract
-    workerRegistered(msg.sender)
+    workerRegistered(state.operatingToStakingAddresses[msg.sender])
     {
         PrincipalImplSimulationV2.setWorkersParamsImpl(state, _blockNumber, _seed, _sig);
     }
@@ -521,7 +492,7 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     function getReport(address _custodian)
     public
     view
-    workerRegistered(_custodian)
+    workerRegistered(state.operatingToStakingAddresses[_custodian])
     returns (address, bytes memory)
     {
         return WorkersImplSimulationV2.getReportImpl(state, _custodian);
@@ -553,7 +524,7 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
-    * Upgrade Enigma Contract
+    * Transfer worker stake from old contract to new contract upon registration
     * @param _workerAddress Newly-registered worker address
     * @param _sig Signature
     */
@@ -563,5 +534,27 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     returns (uint256)
     {
         return UpgradeImpl.transferWorkerStakePostUpgradeImpl(state, _workerAddress, _sig);
+    }
+
+    /**
+    * Set mrSigner
+    * @param _mrSigner mrSigner
+    */
+    function setMrSigner(bytes memory _mrSigner)
+    public
+    onlyOwner
+    {
+        state.mrSigner = _mrSigner;
+    }
+
+    /**
+    * Set isvSvn
+    * @param _isvSvn mrSigner
+    */
+    function setIsvSvn(bytes memory _isvSvn)
+    public
+    onlyOwner
+    {
+        state.isvSvn = _isvSvn;
     }
 }

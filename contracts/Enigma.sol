@@ -55,32 +55,19 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Checks if the custodian wallet is logged in as a worker
     *
-    * @param _user The custodian address of the worker
     */
-    modifier workerLoggedIn(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
+    modifier workerLoggedIn() {
+        EnigmaCommon.Worker memory worker = state.workers[state.operatingToStakingAddresses[msg.sender]];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedIn, "Worker not logged in");
-        _;
-    }
-
-    /**
-    * Checks if the custodian wallet is logged out as a worker
-    *
-    * @param _user The custodian address of the worker
-    */
-    modifier workerLoggedOut(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
-        require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not logged out");
         _;
     }
 
     /**
     * Checks if worker can log in
     *
-    * @param _user The custodian address of the worker
     */
-    modifier canLogIn(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
+    modifier canLogIn() {
+        EnigmaCommon.Worker memory worker = state.workers[state.operatingToStakingAddresses[msg.sender]];
         require(getFirstBlockNumber(block.number) != 0, "Principal node has not been initialized");
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
         require(worker.balance >= state.stakingThreshold, "Worker's balance is not sufficient");
@@ -90,10 +77,9 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Checks if the worker can withdraw
     *
-    * @param _user The custodian address of the worker
     */
-    modifier canWithdraw(address _user) {
-        EnigmaCommon.Worker memory worker = state.workers[_user];
+    modifier canWithdraw() {
+        EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedOut, "Worker not registered or not logged out");
         EnigmaCommon.WorkerLog memory workerLog = WorkersImpl.getLatestWorkerLogImpl(worker, block.number);
         require(workerLog.workerEventType == EnigmaCommon.WorkerLogType.LogOut,
@@ -136,11 +122,21 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Ensure signing key used for registration is unique
     *
+    */
+    modifier areOperatingAndStakingDiff(address _operatingAddress) {
+        require(_operatingAddress != msg.sender, "Operating address not different from staking address");
+        _;
+    }
+
+    /**
+    * Ensure signing key used for registration is unique
+    *
     * @param _signer Signing key
     */
     modifier isUniqueSigningKey(address _signer) {
         for (uint i = 0; i < state.workerAddresses.length; i++) {
-            require(state.workers[state.workerAddresses[i]].signer != _signer, "Not a unique signing key");
+            require(state.workers[state.workerAddresses[i]].signer != _signer,
+                "Not a unique signing key");
         }
         _;
     }
@@ -170,16 +166,18 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * worker. This should be called by every worker (and the principal)
     * node in order to receive tasks.
     *
+    * @param _operatingAddress The operating address
     * @param _signer The signer address, derived from the enclave public key
     * @param _report The RLP encoded report returned by the IAS
     * @param _signature Signature
     */
-    function register(address _signer, bytes memory _report, bytes memory _signature)
+    function register(address _operatingAddress, address _signer, bytes memory _report, bytes memory _signature)
     public
     isUpdatedEnigmaContract
     isUniqueSigningKey(_signer)
+    areOperatingAndStakingDiff(_operatingAddress)
     {
-        WorkersImpl.registerImpl(state, _signer, _report, _signature);
+        WorkersImpl.registerImpl(state, _operatingAddress, _signer, _report, _signature);
     }
 
     /**
@@ -203,7 +201,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     */
     function withdraw(uint _amount)
     public
-    canWithdraw(msg.sender)
+    canWithdraw
     {
         WorkersImpl.withdrawImpl(state, _amount);
     }
@@ -212,14 +210,14 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * Login worker. Worker must be registered to do so, and must be logged in at start of epoch to be part of worker
     * selection process.
     */
-    function login() public canLogIn(msg.sender) {
+    function login() public canLogIn {
         WorkersImpl.loginImpl(state);
     }
 
     /**
     * Logout worker. Worker must be logged in to do so.
     */
-    function logout() public workerLoggedIn(msg.sender) {
+    function logout() public workerLoggedIn {
         WorkersImpl.logoutImpl(state);
     }
 
@@ -239,7 +237,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
+    workerLoggedIn
     contractUndefined(_taskId)
     {
         TaskImpl.deploySecretContractFailureImpl(state, _taskId, _codeHash, _gasUsed, _sig);
@@ -263,7 +261,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
+    workerLoggedIn
     contractUndefined(_bytes32s[0])
     {
         TaskImpl.deploySecretContractImpl(state, _gasUsed, _optionalEthereumContractAddress, _bytes32s,
@@ -366,7 +364,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
+    workerLoggedIn
     contractDeployed(_bytes32s[0])
     {
         TaskImpl.commitReceiptImpl(state, _gasUsed, _optionalEthereumContractAddress,
@@ -392,7 +390,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     )
     public
     isUpdatedEnigmaContract
-    workerLoggedIn(msg.sender)
+    workerLoggedIn
     contractDeployed(_scAddr)
     {
         TaskImpl.commitTaskFailureImpl(state, _scAddr, _taskId, _outputHash, _gasUsed, _sig);
@@ -421,7 +419,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     function setWorkersParams(uint _blockNumber, uint _seed, bytes memory _sig)
     public
     isUpdatedEnigmaContract
-    workerRegistered(msg.sender)
+    workerRegistered(state.operatingToStakingAddresses[msg.sender])
     {
         PrincipalImpl.setWorkersParamsImpl(state, _blockNumber, _seed, _sig);
     }
@@ -492,7 +490,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     function getReport(address _custodian)
     public
     view
-    workerRegistered(_custodian)
+    workerRegistered(state.operatingToStakingAddresses[_custodian])
     returns (address, bytes memory)
     {
         return WorkersImpl.getReportImpl(state, _custodian);

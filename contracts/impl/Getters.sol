@@ -26,14 +26,14 @@ contract Getters is EnigmaStorage {
     * @return Worker struct
     */
     function getWorker(address _worker) public view returns (EnigmaCommon.Worker memory) {
-        return state.workers[_worker];
+        return state.workers[state.operatingToStakingAddresses[_worker]];
     }
 
     /**
     * Get Worker struct from a given worker's signing address
     *
     * @param _signer Worker's signing address
-    * @return Ethereum address
+    * @return Ethereum staking address
     * @return Worker struct
     */
     function getWorkerFromSigningAddress(address _signer) public view returns (address, EnigmaCommon.Worker memory) {
