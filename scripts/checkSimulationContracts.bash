@@ -15,15 +15,18 @@ IMPLDIR="$CONTRACTSDIR/impl";
 
 # Replace what needs to be replaced in Enigma.sol to support Simulation
 sed -e "s#import { WorkersImpl } from \"./impl/WorkersImpl.sol\";#import { WorkersImplSimulation } from \"./impl/WorkersImplSimulation.sol\";#" $CONTRACTSDIR/Enigma.sol > EnigmaSimulation.sol
+sed -e "s#import { TaskImpl } from \"./impl/TaskImpl.sol\";#import { TaskImplSimulation } from \"./impl/TaskImplSimulation.sol\";#"  EnigmaSimulation.sol > EnigmaSimulation.tmp && mv EnigmaSimulation.tmp EnigmaSimulation.sol
 sed -e "s/contract Enigma is/contract EnigmaSimulation is/" EnigmaSimulation.sol > EnigmaSimulation.tmp && mv EnigmaSimulation.tmp EnigmaSimulation.sol
 sed -e "s/WorkersImpl\./WorkersImplSimulation./g" EnigmaSimulation.sol > EnigmaSimulation.tmp && mv EnigmaSimulation.tmp EnigmaSimulation.sol
+sed -e "s/TaskImpl\./TaskImplSimulation./g" EnigmaSimulation.sol > EnigmaSimulation.tmp && mv EnigmaSimulation.tmp EnigmaSimulation.sol
 
 # Check if the existing EnigmaSimulation.sol matches the replacement version
 if ! diff EnigmaSimulation.sol $CONTRACTSDIR/EnigmaSimulation.sol > /dev/null 2>&1; then
 	if [ $FIX = 1 ]; then
 		mv EnigmaSimulation.sol $CONTRACTSDIR/EnigmaSimulation.sol
 	else 
-		echo "Error: Enigma.sol and EnigmaSimulation.sol differ more than they should.";
+		echo "Error: Enigma.sol and EnigmaSimulation.sol differ more than they should, here are the differences:";
+		diff EnigmaSimulation.sol $CONTRACTSDIR/EnigmaSimulation.sol
 		echo "Run this script with --fix to fix the differences automatically."
 		rm -f EnigmaSimulation.sol
 		popd > /dev/null 2>&1
@@ -42,7 +45,8 @@ if ! diff WorkersImplSimulation.sol $IMPLDIR/WorkersImplSimulation.sol > /dev/nu
 	if [ $FIX = 1 ]; then
 		mv WorkersImplSimulation.sol $IMPLDIR/WorkersImplSimulation.sol
 	else
-		echo "Error: WorkersImpl.sol and WorkersImplSimulation.sol differ more than they should.";
+		echo "Error: WorkersImpl.sol and WorkersImplSimulation.sol differ more than they should, here are the differences:";
+		diff WorkersImplSimulation.sol $IMPLDIR/WorkersImplSimulation.sol
 		echo "Run this script with --fix to fix the differences automatically."
 		rm -f WorkersImplSimulation.sol
 		popd > /dev/null 2>&1
@@ -62,7 +66,8 @@ if ! diff TaskImplSimulation.sol $IMPLDIR/TaskImplSimulation.sol > /dev/null 2>&
 	if [ $FIX = 1 ]; then
 		mv TaskImplSimulation.sol $IMPLDIR/TaskImplSimulation.sol
 	else
-		echo "Error: TaskImpl.sol and TaskImplSimulation.sol differ more than they should.";
+		echo "Error: TaskImpl.sol and TaskImplSimulation.sol differ more than they should, here are the differences:";
+		diff TaskImplSimulation.sol $IMPLDIR/TaskImplSimulation.sol
 		echo "Run this script with --fix to fix the differences automatically."
 		rm -f TaskImplSimulation.sol
 		popd > /dev/null 2>&1
@@ -82,7 +87,8 @@ if ! diff PrincipalImplSimulation.sol $IMPLDIR/PrincipalImplSimulation.sol > /de
 	if [ $FIX = 1 ]; then
 		mv PrincipalImplSimulation.sol $IMPLDIR/PrincipalImplSimulation.sol
 	else
-		echo "Error: PrincipalImpl.sol and PrincipalImplSimulation.sol differ more than they should.";
+		echo "Error: PrincipalImpl.sol and PrincipalImplSimulation.sol differ more than they should, here are the differences:";
+		diff PrincipalImplSimulation.sol $IMPLDIR/PrincipalImplSimulation.sol
 		echo "Run this script with --fix to fix the differences automatically."
 		rm -f PrincipalImplSimulation.sol
 		popd > /dev/null 2>&1
