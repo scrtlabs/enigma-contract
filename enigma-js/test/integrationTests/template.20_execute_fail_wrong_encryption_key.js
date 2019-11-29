@@ -135,7 +135,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the pending task', async () => {
     task = await enigma.getTaskRecordStatus(task);
@@ -161,6 +161,6 @@ describe('Enigma tests', () => {
     expect(task.engStatus).toEqual('FAILED');
     expect(task.encryptedAbiEncodedOutputs).toBeTruthy();
     expect(task.workerTaskSig).toBeTruthy();
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
 });
