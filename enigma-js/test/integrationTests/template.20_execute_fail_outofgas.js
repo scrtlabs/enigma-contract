@@ -61,7 +61,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (result) => resolve(result))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the pending task', async () => {
     task = await enigma.getTaskRecordStatus(task);
@@ -92,6 +92,6 @@ describe('Enigma tests', () => {
     expect(task.workerTaskSig).toBeTruthy();
     task = await enigma.decryptTaskResult(task);
     console.log('Output is: ' + task.decryptedOutput);
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
 });
