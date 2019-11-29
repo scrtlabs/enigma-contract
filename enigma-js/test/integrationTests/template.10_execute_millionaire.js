@@ -156,7 +156,7 @@ describe('Enigma tests', () => {
     expect(task3.workerTaskSig).toBeTruthy();
     task3 = await enigma.decryptTaskResult(task3);
     expect(task3.decryptedOutput).toEqual(utils.remove0x(addr2));
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
 });
 

@@ -90,7 +90,7 @@ describe('Enigma tests', () => {
     expect(task1.usedGas).toBeTruthy();
     expect(task1.workerTaskSig).toBeTruthy();
     expect(parseInt(task1.decryptedOutput, 16)).toEqual(76-17);
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   let task2;
   it('should execute compute task', async () => {
@@ -135,6 +135,6 @@ describe('Enigma tests', () => {
     expect(task2.usedGas).toBeTruthy();
     expect(task2.workerTaskSig).toBeTruthy();
     expect(parseInt(task2.decryptedOutput, 16)).toEqual(76*17);
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
 });
