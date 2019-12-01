@@ -143,42 +143,9 @@ export default class Enigma {
       workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
       const {publicKey, privateKey} = this.obtainTaskKeyPair();
       try {
-        const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
-          this.client.request('getWorkerEncryptionKey',
-              {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
-                if (err) {
-                  reject(err);
-                  return;
-                }
-                resolve(response);
-              });
-        });
-        const {result, id} = getWorkerEncryptionKeyResult;
-        const {workerEncryptionKey, workerSig} = result;
-
-        // The signature of the workerEncryptionKey is generated
-        // concatenating the following elements in a bytearray:
-        // len('Enigma User Message') + b'Enigma User Message' + len(workerEncryptionKey) + workerEncryptionKey
-        // Because the first 3 elements are constant, they are hardcoded as follows:
-        // len('Enigma User Message') as a uint64 => 19 in hex => 0000000000000013
-        // bytes of 'Enigma User Message' in hex => 456e69676d612055736572204d657373616765
-        // len(workerEncryptionKey) as a unit64 => 64 in hex => 0000000000000040
-        const hexToVerify = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040' +
-          workerEncryptionKey;
-
-        // the hashing function soliditySha3 expects hex instead of bytes
-        let recAddress = EthCrypto.recover('0x'+workerSig,
-            this.web3.utils.soliditySha3({t: 'bytes', value: hexToVerify}));
-
-        recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
-
-        if (workerAddress !== recAddress) {
-          console.error('Worker address', workerAddress, '!= recovered address', recAddress);
-          emitter.emit(eeConstants.ERROR, {
-            name: 'InvalidWorker',
-            message: `Invalid worker encryption key + signature combo ${workerAddress} != ${recAddress}`,
-          });
-        } else {
+        const {workerEncryptionKey, id} = await this.obtainWorkerEncryptionKey(
+            workerAddress, workerParams.firstBlockNumber, publicKey);
+        if (workerEncryptionKey) {
           // Generate derived key from worker's encryption key and user's private key
           const derivedKey = utils.getDerivedKey(workerEncryptionKey, privateKey);
           // Encrypt function and ABI-encoded args
@@ -698,6 +665,71 @@ export default class Enigma {
     isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
       this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
     return seed;
+  }
+
+  /**
+   * Manages worker encryption keys. Keeps track of worker (identified by workerAddress)
+   * and epoch (identified by firstBlockNumber), and maintains a dictionary of workerEncryptionKeys
+   * indexed by the epoch + workerAddress pair. Only if an entry in the dictionary does not exist,
+   * then requests workerEncrytionKey from the network.
+   *
+   *  @param {string} workerAddress
+   *  @param {Number} firstBlockNumer - from workerParms
+   *  @param {string} publicKey
+   *  @return {Object} workerEncryptionKey, id pair
+   */
+  async obtainWorkerEncryptionKey(workerAddress, firstBlockNumber, publicKey) {
+    if (this.taskKeyLocalStorage.hasOwnProperty(firstBlockNumber) &&
+      this.taskKeyLocalStorage[firstBlockNumber].hasOwnProperty(workerAddress)) {
+      return this.taskKeyLocalStorage[firstBlockNumber][workerAddress];
+    } else {
+      const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
+        this.client.request('getWorkerEncryptionKey',
+            {workerAddress: workerAddress, userPubKey: publicKey}, (err, response) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(response);
+            });
+      });
+      const {result, id} = getWorkerEncryptionKeyResult;
+      const {workerEncryptionKey, workerSig} = result;
+
+      // The signature of the workerEncryptionKey is generated
+      // concatenating the following elements in a bytearray:
+      // len('Enigma User Message') + b'Enigma User Message' + len(workerEncryptionKey) + workerEncryptionKey
+      // Because the first 3 elements are constant, they are hardcoded as follows:
+      // len('Enigma User Message') as a uint64 => 19 in hex => 0000000000000013
+      // bytes of 'Enigma User Message' in hex => 456e69676d612055736572204d657373616765
+      // len(workerEncryptionKey) as a unit64 => 64 in hex => 0000000000000040
+      const hexToVerify = '0x0000000000000013456e69676d612055736572204d6573736167650000000000000040' +
+        workerEncryptionKey;
+
+      // the hashing function soliditySha3 expects hex instead of bytes
+      let recAddress = EthCrypto.recover('0x'+workerSig,
+          this.web3.utils.soliditySha3({t: 'bytes', value: hexToVerify}));
+
+      recAddress = recAddress.toLowerCase().slice(-40); // remove leading '0x' if present
+
+      if (workerAddress !== recAddress) {
+        console.error('Worker address', workerAddress, '!= recovered address', recAddress);
+        throw Error(`Invalid worker encryption key + signature combo ${workerAddress} != ${recAddress}`);
+        // emitter.emit(eeConstants.ERROR, {
+        //   name: 'InvalidWorker',
+        //   message: `Invalid worker encryption key + signature combo ${workerAddress} != ${recAddress}`,
+        // });
+      } else {
+        if (!this.taskKeyLocalStorage.hasOwnProperty(firstBlockNumber)) {
+          this.taskKeyLocalStorage[firstBlockNumber]={};
+        }
+        this.taskKeyLocalStorage[firstBlockNumber][workerAddress] = {
+          workerEncryptionKey: workerEncryptionKey,
+          id: id,
+        };
+        return {workerEncryptionKey, id};
+      }
+    }
   }
 
   /**

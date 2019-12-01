@@ -793,7 +793,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: scTask.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig)).toEqual(accounts[0]);
-      expect(scTask.nonce).toEqual(1);
       expect(scTask.receipt).toBeTruthy();
       expect(scTask.transactionHash).toBeTruthy();
       expect(scTask.taskId).toBeTruthy();
@@ -890,7 +889,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: scTask.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig)).toEqual(accounts[0]);
-      expect(scTask.nonce).toEqual(2);
       expect(scTask.receipt).toBeTruthy();
       expect(scTask.transactionHash).toBeTruthy();
       expect(scTask.taskId).toBeTruthy();
@@ -986,7 +984,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: scTask.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, scTask.userTaskSig)).toEqual(accounts[0]);
-      expect(scTask.nonce).toEqual(3);
       expect(scTask.receipt).toBeTruthy();
       expect(scTask.transactionHash).toBeTruthy();
       expect(scTask.taskId).toBeTruthy();
@@ -1235,7 +1232,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: task.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(accounts[0]);
-      expect(task.nonce).toEqual(5);
     });
 
     it('should create task record', async () => {
@@ -1405,7 +1401,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: task.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(accounts[0]);
-      expect(task.nonce).toEqual(6);
       expect(task.receipt).toBeTruthy();
       expect(task.transactionHash).toBeTruthy();
       expect(task.taskId).toBeTruthy();
@@ -1751,7 +1746,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: task.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(accounts[0]);
-      expect(task.nonce).toEqual(9);
       expect(task.receipt).toBeTruthy();
       expect(task.transactionHash).toBeTruthy();
       expect(task.taskId).toBeTruthy();
