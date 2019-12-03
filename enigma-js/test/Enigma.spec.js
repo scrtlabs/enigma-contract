@@ -100,9 +100,9 @@ describe('Enigma tests', () => {
       expect(keyPair2.publicKey).toEqual(keyPair.publicKey);
       enigma.setTaskKeyPair('cupcake');
       const {publicKey, privateKey} = enigma.obtainTaskKeyPair(accounts[0], 0);
-      expect(privateKey).toEqual('f73db5ef42251a0208365f59f4fe39ef5ee68efe0d3ab72f59d96727e8e8c92e');
-      expect(publicKey).toEqual('76de22c0c17f9eb0ecae08e60f05a51fb1deec4b633e94ef15be918499d20e11adb939346151d3733e' +
-        'ce466c89cad882763c4499caed0c078b2d7fe4a29497f2');
+      expect(privateKey).toEqual('eae1c61870317ea6a5c540c26c942eac6f0f57b2d5db46b64fb22755db22e726');
+      expect(publicKey).toEqual('212c9fffc277591ed495bdd5c8b1782ae9fc3915f768d27f7be7569059d2540a094c22548dd861945f' +
+        '17ee01654abef5ced887022a4e21fb8867ff2b56b3c65b');
     });
 
     it('should check mrSigner and isvSvn', async () => {
