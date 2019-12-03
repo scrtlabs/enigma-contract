@@ -141,7 +141,7 @@ export default class Enigma {
       const firstBlockNumber = workerParams.firstBlockNumber;
       let workerAddress = await this.selectWorkerGroup(scAddr, workerParams, 1)[0]; // TODO: tmp fix 1 worker
       workerAddress = workerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
-      const {publicKey, privateKey} = this.obtainTaskKeyPair();
+      const {publicKey, privateKey} = this.obtainTaskKeyPair(sender, nonce);
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           this.client.request('getWorkerEncryptionKey',
@@ -511,7 +511,7 @@ export default class Enigma {
   async decryptTaskResult(task) {
     console.log('task.encryptedAbiEncodedOutputs is '+task.encryptedAbiEncodedOutputs);
     if (task.encryptedAbiEncodedOutputs) {
-      const {privateKey} = this.obtainTaskKeyPair();
+      const {privateKey} = this.obtainTaskKeyPair(task.sender, task.nonce);
       const derivedKey = utils.getDerivedKey(task.workerEncryptionKey, privateKey);
       task.decryptedOutput = utils.decryptMessage(derivedKey, task.encryptedAbiEncodedOutputs);
     } else {
@@ -659,18 +659,31 @@ export default class Enigma {
    *
    * @return {Object} Public key-private key pair
    */
-  obtainTaskKeyPair() {
+  obtainTaskKeyPair(sender, nonce) {
     // TODO: Developer tool to allow users to select their own unique passphrase to generate private key
+    const taskId = this.getTaskId(sender, nonce);
+
     const isBrowser = typeof window !== 'undefined';
     let privateKey;
-    const encodedPrivateKey = isBrowser ? window.localStorage.getItem('encodedPrivateKey') :
-      this.taskKeyLocalStorage['encodedPrivateKey'];
-    if (encodedPrivateKey == null) {
-      throw Error('Need to set task key pair first');
+    const seed = isBrowser ? atob(window.localStorage.getItem('seed')) :
+      this.taskKeyLocalStorage['seed'];
+
+    if (seed == null) {
+      throw Error('Need to set seed through setTaskKeyPair first');
     } else {
-      privateKey = isBrowser ? atob(encodedPrivateKey) : Buffer.from(encodedPrivateKey, 'base64').toString('binary');
+      const seedTask = seed + taskId;
+      const random = forge.random.createInstance();
+      random.seedFileSync = function(needed) {
+        return forge.util.fillString(seedTask, needed);
+      };
+      privateKey = forge.util.bytesToHex(random.getBytes(32));
     }
+
     const publicKey = EthCrypto.publicKeyByPrivateKey(privateKey);
+
+    isBrowser ? window.localStorage.setItem('encodedPrivateKey'+taskId, btoa(privateKey)) :
+      this.taskKeyLocalStorage['encodedPrivateKey'+taskId] = Buffer.from(privateKey, 'binary').toString('base64');
+
     return {publicKey, privateKey};
   }
 
@@ -689,14 +702,17 @@ export default class Enigma {
         seed += characters.charAt(Math.floor(Math.random() * characters.length));
       }
     }
-    const random = forge.random.createInstance();
     // TODO: Query user for passphrase
-    random.seedFileSync = function(needed) {
-      return forge.util.fillString(seed, needed);
-    };
-    const privateKey = forge.util.bytesToHex(random.getBytes(32));
-    isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
-      this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+
+    // const random = forge.random.createInstance();
+    // random.seedFileSync = function(needed) {
+    //   return forge.util.fillString(seed, needed);
+    // };
+    // const privateKey = forge.util.bytesToHex(random.getBytes(32));
+    // isBrowser ? window.localStorage.setItem('encodedPrivateKey', btoa(privateKey)) :
+    //   this.taskKeyLocalStorage['encodedPrivateKey'] = Buffer.from(privateKey, 'binary').toString('base64');
+    isBrowser ? window.localStorage.setItem('seed', btoa(seed)) :
+      this.taskKeyLocalStorage['seed'] = seed;
     return seed;
   }
 
@@ -799,6 +815,17 @@ export default class Enigma {
       }
     })();
     return emitter;
+  }
+
+  /**
+   * Return the taskId given a sender and a nonce, using the same algorithm used in the contract
+   *
+   * @param {string} sender - Ethereum address
+   * @param {Number} nonce
+   * @return {string} taskId
+   */
+  getTaskId(sender, nonce) {
+    return this.web3.utils.soliditySha3({t: 'address', v: sender}, {t: 'uint256', v: nonce});
   }
 
   /**
