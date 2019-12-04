@@ -60,9 +60,12 @@ steps:
           fi
         done'
       - make clone-contract BRANCH=${DRONE_BRANCH}
-      - if [[ "$MATCHING_BRANCH_INTEGRATION" -eq 1 ]]; then
+      - |
+        if [[ "$MATCHING_BRANCH_INTEGRATION" -eq 1 ]]; then
+          # which includes master and develop because these always exist
           make clone-client BRANCH=${DRONE_BRANCH}
         else
+          # otherwise we are on a feature branch, and we'll build against develop
           make clone-client BRANCH=develop
         fi
       - make build-contract DOCKER_TAG=$DOCKER_TAG
