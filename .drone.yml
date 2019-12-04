@@ -30,7 +30,7 @@ steps:
         declare -A DOCKER_IMAGES=([core]=worker_hw [km]=key_management_hw)
         declare -A GIT_BRANCH_ARG=([core]=GIT_BRANCH_CORE [km]=GIT_BRANCH_CORE [p2p]=GIT_BRANCH_P2P)
         declare -A PROJECT_DIRECTORY=([worker]=worker [km]=km)
-        declare -A PROJECT_BRANCH_FOUND=([core]=$MATCHING_BRANCH_CORE [km]=$MATCHING_BRANCH_CORE [p2p]=$MATCHING_BRANCH_P2P)
+        declare -A PROJECT_BRANCH_FOUND=([worker]=$MATCHING_BRANCH_CORE+$MATCHING_BRANCH_P2P [km]=$MATCHING_BRANCH_CORE)
         for project in $${PROJECTS[@]}; do
           DOCKER_IMAGE="enigmampc/$${DOCKER_IMAGES[$project]}"
           if [[ "$DRONE_BRANCH" == "master" ]]; then
