@@ -71,6 +71,10 @@ describe('Enigma tests', () => {
       });
     });
 
+    it('should compute taskId', () => {
+      expect(enigma.getTaskId('0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1',0)).toEqual('0x88987af7d35eabcad95915b93bfd3d2bc3308f06b7197478b0dfca268f0497dc');
+    });
+
     it('initializes Sample contract', async () => {
       sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
         SampleContract.networks['4447'].address);
@@ -79,26 +83,26 @@ describe('Enigma tests', () => {
 
     it('should fail to obtain key/pair without being set first', () => {
       try {
-        const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
+        const {publicKey, privateKey} = enigma.obtainTaskKeyPair(accounts[0], 0);
       } catch (err) {
-        expect(err.message).toEqual('Need to set task key pair first');
+        expect(err.message).toEqual('Need to set seed through setTaskKeyPair first');
       }
     });
 
     it('should generate and save key/pair', () => {
       const seed = enigma.setTaskKeyPair();
-      const keyPair = enigma.obtainTaskKeyPair();
+      const keyPair = enigma.obtainTaskKeyPair(accounts[0], 0);
       expect(keyPair.privateKey).toBeTruthy();
       expect(keyPair.publicKey).toBeTruthy();
       enigma.setTaskKeyPair(seed);
-      const keyPair2 = enigma.obtainTaskKeyPair();
+      const keyPair2 = enigma.obtainTaskKeyPair(accounts[0], 0);
       expect(keyPair2.privateKey).toEqual(keyPair.privateKey);
       expect(keyPair2.publicKey).toEqual(keyPair.publicKey);
       enigma.setTaskKeyPair('cupcake');
-      const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
-      expect(privateKey).toEqual('1737611edbedec5546e1457769f900b8d7daef442d966e60949decd63f9dd86f');
-      expect(publicKey).toEqual('2ea8e4cefb78efd0725ed12b23b05079a0a433cc8a656f212accf58672fee44a20cfcaa50466237273' +
-        'e762e49ec912be61358d5e90bff56a53a0ed42abfe27e3');
+      const {publicKey, privateKey} = enigma.obtainTaskKeyPair(accounts[0], 0);
+      expect(privateKey).toEqual('eae1c61870317ea6a5c540c26c942eac6f0f57b2d5db46b64fb22755db22e726');
+      expect(publicKey).toEqual('212c9fffc277591ed495bdd5c8b1782ae9fc3915f768d27f7be7569059d2540a094c22548dd861945f' +
+        '17ee01654abef5ced887022a4e21fb8867ff2b56b3c65b');
     });
 
     it('should check mrSigner and isvSvn', async () => {
