@@ -12,9 +12,10 @@ steps:
       - export MATCHING_BRANCH_CORE="$(git ls-remote --heads https://github.com/enigmampc/enigma-core.git ${DRONE_BRANCH} | wc -l)"
       - export MATCHING_BRANCH_P2P="$(git ls-remote --heads https://github.com/enigmampc/enigma-p2p.git ${DRONE_BRANCH} | wc -l)"
       - export MATCHING_BRANCH_DOCKER="$(git ls-remote --heads https://github.com/enigmampc/docker-environment.git ${DRONE_BRANCH} | wc -l)"
+      - export MATCHING_BRANCH_INTEGRATION="$(git ls-remote --heads https://github.com/enigmampc/integration-tests.git ${DRONE_BRANCH} | wc -l)"
       - export DOCKER_TAG=contract_${DRONE_BUILD_NUMBER}
       - |
-        if [[ "$MATCHING_BRANCH_DOCKER" == 1 ]]; then
+        if [[ "$MATCHING_BRANCH_DOCKER" -eq 1 ]]; then
           # which includes master and develop because these always exist
           git clone --single-branch --branch ${DRONE_BRANCH} https://github.com/enigmampc/docker-environment.git
         else
@@ -27,10 +28,10 @@ steps:
       - |
         /bin/bash -c '
         declare -a PROJECTS=(worker km)
-        declare -A DOCKER_IMAGES=([core]=worker_hw [km]=key_management_hw)
+        declare -A DOCKER_IMAGES=([worker]=worker_hw [km]=key_management_hw)
         declare -A GIT_BRANCH_ARG=([core]=GIT_BRANCH_CORE [km]=GIT_BRANCH_CORE [p2p]=GIT_BRANCH_P2P)
         declare -A PROJECT_DIRECTORY=([worker]=worker [km]=km)
-        declare -A PROJECT_BRANCH_FOUND=([worker]=$MATCHING_BRANCH_CORE+$MATCHING_BRANCH_P2P [km]=$MATCHING_BRANCH_CORE)
+        declare -A PROJECT_BRANCH_FOUND=([worker]=$(($MATCHING_BRANCH_CORE+$MATCHING_BRANCH_P2P)) [km]=$MATCHING_BRANCH_CORE)
         for project in $${PROJECTS[@]}; do
           DOCKER_IMAGE="enigmampc/$${DOCKER_IMAGES[$project]}"
           if [[ "$DRONE_BRANCH" == "master" ]]; then
@@ -44,12 +45,12 @@ steps:
               make clone-km BRANCH=${DRONE_BRANCH}
               make build-km DOCKER_TAG=$DOCKER_TAG
             else
-              if [[ "$MATCHING_BRANCH_P2P" == 1 ]]; then
+              if [[ "$MATCHING_BRANCH_P2P" -eq 1 ]]; then
                 make clone-p2p BRANCH=${DRONE_BRANCH}
               else
                 make clone-p2p BRANCH=develop
               fi
-              if [[ "$MATCHING_BRANCH_CORE" == 1 ]]; then
+              if [[ "$MATCHING_BRANCH_CORE" -eq 1 ]]; then
                 make clone-core BRANCH=${DRONE_BRANCH}
               else
                 make clone-core BRANCH=develop
@@ -59,7 +60,11 @@ steps:
           fi
         done'
       - make clone-contract BRANCH=${DRONE_BRANCH}
-      - make clone-client BRANCH=${DRONE_BRANCH}
+      - if [[ "$MATCHING_BRANCH_INTEGRATION" -eq 1 ]]; then
+          make clone-client BRANCH=${DRONE_BRANCH}
+        else
+          make clone-client BRANCH=develop
+        fi
       - make build-contract DOCKER_TAG=$DOCKER_TAG
       - make build-contract DOCKER_TAG=$DOCKER_TAG
       - export NODES=3
