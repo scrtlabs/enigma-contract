@@ -29,7 +29,6 @@ steps:
         /bin/bash -c '
         declare -a PROJECTS=(worker km)
         declare -A DOCKER_IMAGES=([worker]=worker_hw [km]=key_management_hw)
-        declare -A PROJECT_DIRECTORY=([worker]=worker [km]=km)
         declare -A PROJECT_BRANCH_FOUND=([worker]=$(($MATCHING_BRANCH_CORE+$MATCHING_BRANCH_P2P)) [km]=$MATCHING_BRANCH_CORE)
         for project in $${PROJECTS[@]}; do
           DOCKER_IMAGE="enigmampc/$${DOCKER_IMAGES[$project]}"
