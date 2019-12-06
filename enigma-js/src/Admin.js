@@ -31,7 +31,7 @@ export default class Admin {
     const result = await this.enigmaContract.methods.getWorkerFromSigningAddress(sigAddr).call();
     return {
       account: result[0],
-      operatingAddress: result[1][0],
+      stakingAddress: result[1][0],
       status: parseInt(result[1][2]),
       report: result[1][3],
       balance: parseInt(result[1][4]),
@@ -169,6 +169,33 @@ export default class Admin {
   }
 
   /**
+   * Set operating address for a staking address
+   *
+   * @param {string} stakingAddress - Staking address
+   * @param {string} operatingAddress - Operating address
+   * @return {EventEmitter} EventEmitter to be listened to track login transaction
+   */
+  setOperatingAddress(stakingAddress, operatingAddress) {
+    const emitter = new EventEmitter();
+    (async () => {
+      try {
+        await this.enigmaContract.methods.setOperatingAddress(operatingAddress).send({
+          from: stakingAddress,
+        }).on('transactionHash', (hash) => {
+          emitter.emit(eeConstants.SET_OPERATING_ADDRESS_TRANSACTION_HASH, hash);
+        }).on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit(eeConstants.SET_OPERATING_ADDRESS_CONFIRMATION, confirmationNumber, receipt);
+        }).on('receipt', (receipt) => {
+          emitter.emit(eeConstants.SET_OPERATING_ADDRESS_RECEIPT, receipt);
+        });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
    * Logout the selected worker
    *
    * @param {string} account - ETH address for worker being logged out
@@ -277,5 +304,15 @@ export default class Admin {
    */
   async getWorkerSignerAddr(account) {
     return (await this.enigmaContract.methods.getWorker(account).call()).signer;
+  }
+
+  /**
+   * Get worker's operating address from staking address
+   *
+   * @param {string} account - Worker's ETH address
+   * @return {Promise} Resolves to worker's signer address
+   */
+  async getOperatingAddressFromStakingAddress(account) {
+    return await this.enigmaContract.methods.getOperatingAddressFromStakingAddress(account).call();
   }
 }

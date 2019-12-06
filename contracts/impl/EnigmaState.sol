@@ -54,7 +54,7 @@ library EnigmaState {
         // A registry of all registered workers with their attributes
         mapping(address => EnigmaCommon.Worker) workers;
 
-        mapping(address => address) operatingToStakingAddresses;
+        mapping(address => address) stakingToOperatingAddresses;
 
         // A registry of all tasks with their attributes
         mapping(bytes32 => EnigmaCommon.TaskRecord) tasks;

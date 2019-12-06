@@ -32,7 +32,7 @@ library PrincipalImplSimulation {
         // This should be called for each epoch by the Principal node
 
         // We assume that the Principal is always the first registered node
-        require(state.workers[state.operatingToStakingAddresses[msg.sender]].signer == state.principal,
+        require(state.workers[msg.sender].signer == state.principal,
             "Only the Principal can update the seed");
         require(_blockNumber - WorkersImplSimulation.getFirstBlockNumberImpl(state, _blockNumber) >= state.epochSize,
             "Already called during this epoch");

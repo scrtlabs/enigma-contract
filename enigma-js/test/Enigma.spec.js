@@ -194,10 +194,10 @@ describe('Enigma tests', () => {
         const signature = '0x' + worker[3];
         // Using the same artificial data for all workers
         receipt = await new Promise((resolve, reject) => {
-          enigma.enigmaContract.methods.register(operatingAccounts[8], worker[0], report, signature).send({
+          enigma.enigmaContract.methods.register(stakingAccounts[8], worker[0], report, signature).send({
             gas: 4712388,
             gasPrice: 100000000000,
-            from: stakingAccounts[8],
+            from: operatingAccounts[8],
           }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
         });
       }
@@ -302,17 +302,17 @@ describe('Enigma tests', () => {
         const signature = '0x' + worker[3];
         // Using the same artificial data for all workers
         let promise = new Promise((resolve, reject) => {
-          enigma.enigmaContract.methods.register(operatingAccounts[i], worker[0], report, signature).send({
+          enigma.enigmaContract.methods.register(stakingAccounts[i], worker[0], report, signature).send({
             gas: 4712388,
             gasPrice: 100000000000,
-            from: stakingAccounts[i],
+            from: operatingAccounts[i],
           }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
         });
         promises.push(promise);
       }
       // Using the account as the signer for testing purposes
       const registerWorkersResults = await Promise.all(promises);
-      expect(registerWorkersResults.length).toEqual(stakingAccounts.length - 2);
+      expect(registerWorkersResults.length).toEqual(operatingAccounts.length - 2);
     }, 20000);
 
     it('should fail to register worker with same signing key', async () => {
@@ -321,12 +321,26 @@ describe('Enigma tests', () => {
       const signature = '0x' + worker[3];
 
       await expect(new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.register(operatingAccounts[0], worker[0], report, signature).send({
+        enigma.enigmaContract.methods.register(stakingAccounts[0], worker[0], report, signature).send({
           gas: 4712388,
           gasPrice: 100000000000,
           from: stakingAccounts[0],
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not a unique signing key');
+    }, 5000);
+
+    it('should fail to register worker that has already been registered', async () => {
+      let worker = data.workers[0];
+      const report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + worker[3];
+
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.register(stakingAccounts[0], worker[0], report, signature).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: operatingAccounts[0],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Registered worker');
     }, 5000);
 
     it('should get the worker report', async () => {
@@ -375,6 +389,34 @@ describe('Enigma tests', () => {
           reject(err);
         });
       })).rejects.toEqual({message: 'Not enough tokens in wallet', name: 'NotEnoughTokens'});
+    });
+
+    it('should fail to deposit when operating address has not been set for a worker', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.admin.deposit(stakingAccounts[0], utils.toGrains(900)).
+        on(eeConstants.DEPOSIT_RECEIPT, (result) => resolve(result)).
+        on(eeConstants.ERROR, (err) => {
+          reject(err);
+        });
+      }))
+        .rejects.toEqual('Returned error: VM Exception while processing transaction: revert Unregistered worker');
+    });
+
+    it('should set the operating addresses for staking addresses', async () => {
+      for (let h = 0; h < stakingAccounts.length - 1; h++) {
+        if (h === 8) {
+          continue;
+        }
+        await new Promise((resolve, reject) => {
+          enigma.admin.setOperatingAddress(stakingAccounts[h], operatingAccounts[h])
+            .on(eeConstants.SET_OPERATING_ADDRESS_RECEIPT, (result) => resolve(result))
+            .on(eeConstants.ERROR, (err) => {
+              reject(err);
+            });
+        });
+        const operatingAddress = await enigma.admin.getOperatingAddressFromStakingAddress(stakingAccounts[h]);
+        expect(operatingAddress).toEqual(operatingAccounts[h]);
+      }
     });
 
     it('should deposit tokens in worker banks', async () => {
@@ -815,7 +857,7 @@ describe('Enigma tests', () => {
       const startingSenderBalance = parseInt(await enigma.tokenContract.methods.balanceOf(scTask.sender).call());
       const result = await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.deploySecretContractFailure(scTask.taskId, '0x00', gasUsed, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
       worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
@@ -847,7 +889,7 @@ describe('Enigma tests', () => {
           optionalEthereumData, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid task status');
     });
@@ -927,7 +969,7 @@ describe('Enigma tests', () => {
           optionalEthereumData, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
       worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
@@ -1039,7 +1081,7 @@ describe('Enigma tests', () => {
           optionalEthereumData, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
@@ -1109,7 +1151,7 @@ describe('Enigma tests', () => {
           optionalEthereumData, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
       worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
@@ -1501,7 +1543,7 @@ describe('Enigma tests', () => {
       const result = await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.commitTaskFailure(scAddr, task.taskId, web3.utils.soliditySha3('failure'),
           gasUsed, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
       });
       worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
@@ -1544,7 +1586,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid task status');
     });
@@ -1601,7 +1643,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
@@ -1615,7 +1657,7 @@ describe('Enigma tests', () => {
       expect(endingWorkerBalance - startingWorkerBalance).toEqual(gasUsedTotal * task.gasPx);
       expect(endingSenderBalance - startingSenderBalance).toEqual((task.gasLimit - gasUsedTotal) * task.gasPx);
       expect(result.events.ReceiptVerified).toBeTruthy();
-      expect(result.events.ReceiptVerified.returnValues.workerAddress).toEqual(worker.operatingAddress);
+      expect(result.events.ReceiptVerified.returnValues.workerAddress).toEqual(worker.account);
     });
 
     it('should count state deltas', async () => {
@@ -1676,7 +1718,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
@@ -1792,7 +1834,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
@@ -1867,7 +1909,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       sampleContractInt = parseInt(await sampleContract.methods.stateInt().call());
@@ -1944,7 +1986,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       gasUsedEthCall = result.gasUsed;
@@ -2032,7 +2074,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
           gasLimit: 300000,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert');
@@ -2087,7 +2129,7 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, task.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
@@ -2432,24 +2474,55 @@ describe('Enigma tests', () => {
         enigma.enigmaContract.methods.commitReceipt(gasUsed, optionalEthereumContractAddress,
           [scAddr, pendingTaskA.taskId, stateDeltaHash, outputHash],
           optionalEthereumData, sig).send({
-          from: worker.operatingAddress,
+          from: worker.account,
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Not updated Enigma' +
         ' contract');
+    });
+
+    it('should fail to re-register a worker with new contract due to mismatching staking address', async () => {
+      const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
+      const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
+      let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
+      const index = stakingAccounts.indexOf(worker.stakingAddress);
+      const workerData = data.workers[index];
+      const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + workerData[3];
+      const proof = utils.hash([enigmaUpgradedContract.options.address]);
+      function fixSignature (signature) {
+        // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
+        // signature malleability if version is 0/1
+        // see https://github.com/ethereum/go-ethereum/blob/v1.8.23/internal/ethapi/api.go#L465
+        let v = parseInt(signature.slice(130, 132), 16);
+        if (v < 27) {
+          v += 27;
+        }
+        const vHex = v.toString(16);
+        return signature.slice(0, 130) + vHex;
+      }
+      const sig = fixSignature(await enigma.web3.eth.sign(proof, worker.account));
+      await expect(new Promise((resolve, reject) => {
+        enigmaUpgradedContract.methods.register(stakingAccounts[8], workerData[0], report, signature, sig).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: worker.account,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid staking address' +
+        ' for registration balance transfer');
     });
 
     it('should fail to re-register a worker with new contract due to an invalid signature', async () => {
       const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
       let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
-      const index = stakingAccounts.indexOf(worker.account);
+      const index = stakingAccounts.indexOf(worker.stakingAddress);
       const workerData = data.workers[index];
       const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
       const signature = '0x' + workerData[3];
       const proof = utils.hash(['0x00']);
       const sig = await enigma.web3.eth.sign(proof, worker.account);
       await expect(new Promise((resolve, reject) => {
-        enigmaUpgradedContract.methods.register(operatingAccounts[index], workerData[0], report, signature, sig).send({
+        enigmaUpgradedContract.methods.register(stakingAccounts[index], workerData[0], report, signature, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
           from: worker.account,
@@ -2461,7 +2534,7 @@ describe('Enigma tests', () => {
       const workerParams = await enigma.getWorkerParams(latestTask.creationBlockNumber);
       const selectedWorkerAddr = (await enigma.selectWorkerGroup(latestTask.scAddr, workerParams, 1))[0];
       let worker = await enigma.admin.findBySigningAddress(selectedWorkerAddr);
-      const index = stakingAccounts.indexOf(worker.account);
+      const index = stakingAccounts.indexOf(worker.stakingAddress);
       const workerData = data.workers[index];
       const report = '0x' + Array.from(workerData[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
       const signature = '0x' + workerData[3];
@@ -2485,7 +2558,7 @@ describe('Enigma tests', () => {
         await enigma.tokenContract.methods.balanceOf(enigmaUpgradedContract.options.address).call(),
       );
       const receipt = await new Promise((resolve, reject) => {
-        enigmaUpgradedContract.methods.register(operatingAccounts[index], workerData[0], report, signature, sig).send({
+        enigmaUpgradedContract.methods.register(stakingAccounts[index], workerData[0], report, signature, sig).send({
           gas: 4712388,
           gasPrice: 100000000000,
           from: worker.account,
