@@ -61,10 +61,10 @@ steps:
       - |
         if [[ "$MATCHING_BRANCH_INTEGRATION" -eq 1 ]]; then
           # which includes master and develop because these always exist
-          make clone-client BRANCH=${DRONE_BRANCH}
+          make clone-client-solo BRANCH=${DRONE_BRANCH}
         else
           # otherwise we are on a feature branch, and we'll build against develop
-          make clone-client BRANCH=develop
+          make clone-client-solo BRANCH=develop
         fi
       - make build-contract DOCKER_TAG=$DOCKER_TAG
       - make build-client DOCKER_TAG=$DOCKER_TAG
