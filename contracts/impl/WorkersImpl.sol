@@ -103,13 +103,17 @@ library WorkersImpl {
         // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
         // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
         // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
+        bytes memory attributes = extract_element(quoteDecoded, 96, 16);
         bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+        bytes memory isvProdid = extract_element(quoteDecoded, 304, 2);
         bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
         address signerQuote = bytesToAddress(reportData);
 
         require(signerQuote == _signer, "Signer does not match contents of quote");
         require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
+        state.principal == _signer ?
+            require(isvProdid.equals(hex"0002")) : require(isvProdid.equals(hex"0001"));
         require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
 
         worker.signer = _signer;
