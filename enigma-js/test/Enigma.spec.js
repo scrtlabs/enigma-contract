@@ -419,6 +419,18 @@ describe('Enigma tests', () => {
       }
     });
 
+    it('should fail to set an operating address when there is one already in use', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.admin.setOperatingAddress(stakingAccounts[7], operatingAccounts[0])
+          .on(eeConstants.SET_OPERATING_ADDRESS_RECEIPT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (err) => {
+            reject(err);
+          });
+      }))
+        .rejects.toEqual('Returned error: VM Exception while processing transaction: revert Staking address currently' +
+          ' tied to an in-use operating address');
+    });
+
     it('should deposit tokens in worker banks', async () => {
       const deposits = [900, 100, 10, 20, 100, 200, 40, 100];
       let promises = [];
@@ -503,6 +515,18 @@ describe('Enigma tests', () => {
       expect(workerStatus).toEqual(1);
     });
 
+    it('should fail to unregister a worker because balance is not 0', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.unregister().send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: stakingAccounts[7],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      }))
+        .rejects.toEqual('Returned error: VM Exception while processing transaction: revert Worker\'s balance is not' +
+          ' empty');
+    });
+
     it('should fail to withdraw because worker is still logged in', async () => {
       let withdrawAmount = utils.toGrains(100);
       await expect(new Promise((resolve, reject) => {
@@ -518,7 +542,7 @@ describe('Enigma tests', () => {
 
     it('should fail to withdraw in same epoch as logout', async () => {
       await new Promise((resolve, reject) => {
-        enigma.admin.logout(operatingAccounts[7]).on(eeConstants.LOGOUT_RECEIPT, (result) => {
+        enigma.admin.logout(stakingAccounts[7]).on(eeConstants.LOGOUT_RECEIPT, (result) => {
           resolve(result);
         }).on(eeConstants.ERROR, (err) => {
           reject(err);
@@ -629,6 +653,70 @@ describe('Enigma tests', () => {
       });
       const endingBalance = await enigma.admin.getBalance(operatingAccounts[7]);
       expect(endingBalance - startingBalance).toEqual(-withdrawAmount);
+    });
+
+    it('should unregister a worker', async () => {
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.unregister().send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: stakingAccounts[7],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      const workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
+      expect(workerStatus).toEqual(0);
+    });
+
+    it('should fail to set operating address for a mismatching staking address (worker unregistered)', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.admin.setOperatingAddress(stakingAccounts[7], operatingAccounts[7])
+          .on(eeConstants.SET_OPERATING_ADDRESS_RECEIPT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (err) => {
+            reject(err);
+          });
+      }))
+        .rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid staking address' +
+          ' for this operating address');
+    });
+
+    it('should reregister worker', async () => {
+      let worker = data.workers[7];
+      const report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + worker[3];
+      // Using the same artificial data for all workers
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.register(stakingAccounts[7], worker[0], report, signature).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: operatingAccounts[7],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
+      });
+      let workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
+      expect(workerStatus).toEqual(2);
+    });
+
+    it('should fail to set operating address for mismatching staking address', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.admin.setOperatingAddress(stakingAccounts[7], operatingAccounts[8])
+          .on(eeConstants.SET_OPERATING_ADDRESS_RECEIPT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (err) => {
+            reject(err);
+          });
+      }))
+        .rejects.toEqual('Returned error: VM Exception while processing transaction: revert Invalid staking address' +
+          ' for this operating address');
+    });
+
+    it('should set operating address for staking address', async () => {
+      await new Promise((resolve, reject) => {
+        enigma.admin.setOperatingAddress(stakingAccounts[7], operatingAccounts[7])
+          .on(eeConstants.SET_OPERATING_ADDRESS_RECEIPT, (result) => resolve(result))
+          .on(eeConstants.ERROR, (err) => {
+            reject(err);
+          });
+      });
+      const operatingAddress = await enigma.admin.getOperatingAddressFromStakingAddress(stakingAccounts[7]);
+      expect(operatingAddress).toEqual(operatingAccounts[7]);
     });
 
     let scTask;

@@ -64,12 +64,33 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
+    * Checks if staking address balance is 0
+    *
+    */
+    modifier emptyBalance() {
+        require(state.workers[state.stakingToOperatingAddresses[msg.sender]].balance == 0,
+            "Worker's balance is not empty");
+        _;
+    }
+
+    /**
     * Checks if the custodian wallet is logged in as a worker
     *
     */
     modifier workerLoggedIn() {
         EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         require(worker.status == EnigmaCommon.WorkerStatus.LoggedIn, "Worker not logged in");
+        _;
+    }
+
+    /**
+    * Checks if the staking address or operating address is logged in
+    *
+    */
+    modifier stakingOrOperatingAddressLoggedIn() {
+        require((state.workers[msg.sender].status == EnigmaCommon.WorkerStatus.LoggedIn) ||
+            state.workers[state.stakingToOperatingAddresses[msg.sender]].status == EnigmaCommon.WorkerStatus.LoggedIn,
+            "Worker not logged in");
         _;
     }
 
@@ -144,7 +165,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     *
     */
     modifier canSetOperatingAddress(address _operatingAddress) {
-        require(state.workers[state.stakingToOperatingAddresses[msg.sender]].stakingAddress == address(0),
+        require(state.stakingToOperatingAddresses[msg.sender] == address(0),
             "Staking address currently tied to an in-use operating address");
         require(state.workers[_operatingAddress].stakingAddress == msg.sender,
             "Invalid staking address for this operating address");
@@ -205,6 +226,19 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
+    * Unregisters a staking address' worker.
+    *
+    */
+    function unregister()
+    public
+    isUpdatedEnigmaContract
+    workerRegistered(state.stakingToOperatingAddresses[msg.sender])
+    emptyBalance
+    {
+        WorkersImpl.unregisterImpl(state);
+    }
+
+    /**
     * Deposits ENG stake into contract from worker. Worker must be registered to do so.
     *
     * @param _custodian The worker's ETH address
@@ -241,7 +275,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     /**
     * Logout worker. Worker must be logged in to do so.
     */
-    function logout() public workerLoggedIn {
+    function logout() public stakingOrOperatingAddressLoggedIn {
         WorkersImpl.logoutImpl(state);
     }
 

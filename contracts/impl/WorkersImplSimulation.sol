@@ -120,6 +120,13 @@ library WorkersImplSimulation {
         emit Registered(msg.sender, _signer);
     }
 
+    function unregisterImpl(EnigmaState.State storage state) public {
+        address operatingAddress = state.stakingToOperatingAddresses[msg.sender];
+        EnigmaCommon.Worker storage worker = state.workers[operatingAddress];
+        delete state.workers[operatingAddress];
+        delete state.stakingToOperatingAddresses[msg.sender];
+    }
+
     function setOperatingAddressImpl(EnigmaState.State storage state, address _operatingAddress)
     public {
         state.stakingToOperatingAddresses[msg.sender] = _operatingAddress;
@@ -163,14 +170,16 @@ library WorkersImplSimulation {
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
-        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        address operatingAddress = (state.workers[msg.sender].status == EnigmaCommon.WorkerStatus.LoggedIn) ?
+            msg.sender : state.stakingToOperatingAddresses[msg.sender];
+        EnigmaCommon.Worker storage worker = state.workers[operatingAddress];
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
         worker.workerLogs.push(EnigmaCommon.WorkerLog({
             workerEventType: EnigmaCommon.WorkerLogType.LogOut,
             blockNumber: block.number,
             balance: worker.balance
         }));
-        emit LoggedOut(msg.sender);
+        emit LoggedOut(operatingAddress);
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)

@@ -65,6 +65,16 @@ contract EnigmaV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
+    * Checks if staking address balance is 0
+    *
+    */
+    modifier emptyBalance() {
+        require(state.workers[state.stakingToOperatingAddresses[msg.sender]].balance == 0,
+            "Worker's balance is not empty");
+        _;
+    }
+
+    /**
     * Checks if the custodian wallet is logged in as a worker
     *
     */
@@ -145,7 +155,7 @@ contract EnigmaV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     *
     */
     modifier canSetOperatingAddress(address _operatingAddress) {
-        require(state.workers[state.stakingToOperatingAddresses[msg.sender]].stakingAddress == address(0),
+        require(state.stakingToOperatingAddresses[msg.sender] == address(0),
             "Staking address currently tied to an in-use operating address");
         require(state.workers[_operatingAddress].stakingAddress == msg.sender,
             "Invalid staking address for this operating address");
