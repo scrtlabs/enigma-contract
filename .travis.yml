@@ -12,7 +12,7 @@ install:
   - pushd enigma-js && yarn install && popd
 
 before_script:
-  - ganache-cli -p 9545 -i 4447 -a 20 &
+  - ganache-cli -p 9545 -i 4447 -a 20 -d &
   - sleep 5
 
 script:

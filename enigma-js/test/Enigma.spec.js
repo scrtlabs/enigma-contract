@@ -86,7 +86,7 @@ describe('Enigma tests', () => {
 
     it('should fail to obtain key/pair without being set first', () => {
       try {
-        const {publicKey, privateKey} = enigma.obtainTaskKeyPair(accounts[0], 0);
+        const {publicKey, privateKey} = enigma.obtainTaskKeyPair(operatingAccounts[0], 0);
       } catch (err) {
         expect(err.message).toEqual('Need to set seed through setTaskKeyPair first');
       }
@@ -94,15 +94,15 @@ describe('Enigma tests', () => {
 
     it('should generate and save key/pair', () => {
       const seed = enigma.setTaskKeyPair();
-      const keyPair = enigma.obtainTaskKeyPair(accounts[0], 0);
+      const keyPair = enigma.obtainTaskKeyPair(operatingAccounts[0], 0);
       expect(keyPair.privateKey).toBeTruthy();
       expect(keyPair.publicKey).toBeTruthy();
       enigma.setTaskKeyPair(seed);
-      const keyPair2 = enigma.obtainTaskKeyPair(accounts[0], 0);
+      const keyPair2 = enigma.obtainTaskKeyPair(operatingAccounts[0], 0);
       expect(keyPair2.privateKey).toEqual(keyPair.privateKey);
       expect(keyPair2.publicKey).toEqual(keyPair.publicKey);
       enigma.setTaskKeyPair('cupcake');
-      const {publicKey, privateKey} = enigma.obtainTaskKeyPair(accounts[0], 0);
+      const {publicKey, privateKey} = enigma.obtainTaskKeyPair(stakingAccounts[0], 0);
       expect(privateKey).toEqual('eae1c61870317ea6a5c540c26c942eac6f0f57b2d5db46b64fb22755db22e726');
       expect(publicKey).toEqual('212c9fffc277591ed495bdd5c8b1782ae9fc3915f768d27f7be7569059d2540a094c22548dd861945f' +
         '17ee01654abef5ced887022a4e21fb8867ff2b56b3c65b');
