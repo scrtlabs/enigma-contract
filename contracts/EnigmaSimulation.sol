@@ -225,7 +225,6 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
         WorkersImplSimulation.registerImpl(state, _stakingAddress, _signer, _report, _signature);
     }
 
-
     /**
     * Unregisters a staking address' worker.
     *
