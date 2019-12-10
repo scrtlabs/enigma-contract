@@ -70,6 +70,7 @@ library EnigmaState {
         uint stakingThreshold;
         uint workerGroupSize;
 
+        bool debug;
         bytes mrSigner;
         bytes isvSvn;
     }

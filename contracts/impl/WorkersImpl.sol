@@ -18,7 +18,7 @@ library WorkersImpl {
     using SafeMath for uint256;
     using Bytes for bytes;
 
-    event Registered(address custodian, address signer);
+    event Registered(address custodian, address signer, bytes isvProdid);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
     event LoggedIn(address workerAddress);
@@ -68,6 +68,36 @@ library WorkersImpl {
         }
     }
 
+    function shiftLeft(bytes1 a, uint8 n) internal pure returns (bytes1) {
+        return bytes1(uint8(a) * uint8(2) ** n);
+    }
+
+    // Get bit value at position
+    function getBit(bytes1 a, uint8 n) internal pure returns (bool) {
+        return a & shiftLeft(0x01, n) != 0;
+    }
+
+    function readBytes1(
+        bytes memory b,
+        uint256 index
+    )
+    public
+    pure
+    returns (bytes1 result)
+    {
+        // Arrays are prefixed by a 32 byte length field
+        index += 32;
+
+        // Read the bytes4 from array memory
+        assembly {
+            result := mload(add(b, index))
+        // Solidity does not require us to clean the trailing bytes.
+        // We do it anyway
+            result := and(result, 0xFF00000000000000000000000000000000000000000000000000000000000000)
+        }
+        return result;
+    }
+
     function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
         bytes memory _signature)
     public {
@@ -94,6 +124,10 @@ library WorkersImpl {
         // Add the length of 'Body":"'' to find where the quote starts
         i=i+7;
 
+        bytes memory isvEnclaveQuoteStatus = extract_element(_report, i-27, 2);
+        require((isvEnclaveQuoteStatus[0] == 0x4f) && (isvEnclaveQuoteStatus[1] == 0x4b),
+            "isvEnclaveQuoteStatus does not match");
+
         // 576 bytes is the length of the quote
         bytes memory quoteBody = extract_element(_report, i, 576);
 
@@ -110,17 +144,18 @@ library WorkersImpl {
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
         address signerQuote = bytesToAddress(reportData);
 
+        require(getBit(readBytes1(attributes, 0), 6) == state.debug, "Debug does not match");
         require(signerQuote == _signer, "Signer does not match contents of quote");
         require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
-        state.principal == _signer ?
-            require(isvProdid.equals(hex"0002")) : require(isvProdid.equals(hex"0001"));
+//        state.principal == _signer ?
+//            require(isvProdid.equals(hex"0002")) : require(isvProdid.equals(hex"0001"));
         require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
 
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
 
-        emit Registered(msg.sender, _signer);
+        emit Registered(msg.sender, _signer, isvEnclaveQuoteStatus);
     }
 
     function getReportImpl(EnigmaState.State storage state, address _custodian)
