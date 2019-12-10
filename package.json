@@ -18,14 +18,15 @@
     "web3-utils": "^1.2.4"
   },
   "devDependencies": {
-    "@babel/cli": "^7.7.0",
-    "@babel/core": "^7.7.2",
-    "@babel/preset-env": "^7.7.1",
-    "@babel/register": "^7.7.0",
+    "@babel/cli": "^7.7.5",
+    "@babel/core": "^7.7.5",
+    "@babel/preset-env": "^7.7.6",
+    "@babel/register": "^7.7.4",
+    "@truffle/contract": "^4.1.0",
     "buffer": "^5.4.3",
-    "core-js": "^3.4.1",
+    "core-js": "^3.4.8",
     "dotenv": "^8.2.0",
-    "elliptic": "^6.5.0",
+    "elliptic": "^6.5.2",
     "eth-crypto": "^1.5.0",
     "ethereumjs-abi": "^0.6.8",
     "msgpack-lite": "^0.1.26",
@@ -33,7 +34,6 @@
     "openzeppelin-solidity": "2.4",
     "regenerator-runtime": "^0.13.3",
     "rlp": "^2.2.0",
-    "@truffle/contract": "^4.1.0",
     "web3": "^1.2.4"
   }
 }
