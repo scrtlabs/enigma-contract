@@ -121,10 +121,10 @@ library WorkersImplSimulation {
     }
 
     function unregisterImpl(EnigmaState.State storage state) public {
-        address operatingAddress = state.stakingToOperatingAddresses[msg.sender];
-        EnigmaCommon.Worker storage worker = state.workers[operatingAddress];
+        address operatingAddress = (state.workers[msg.sender].status != EnigmaCommon.WorkerStatus.Unregistered) ?
+            msg.sender : state.stakingToOperatingAddresses[msg.sender];
+        delete state.stakingToOperatingAddresses[state.workers[operatingAddress].stakingAddress];
         delete state.workers[operatingAddress];
-        delete state.stakingToOperatingAddresses[msg.sender];
     }
 
     function setOperatingAddressImpl(EnigmaState.State storage state, address _operatingAddress)

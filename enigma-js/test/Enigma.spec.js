@@ -659,7 +659,7 @@ describe('Enigma tests', () => {
       expect(endingBalance - startingBalance).toEqual(-withdrawAmount);
     });
 
-    it('should unregister a worker', async () => {
+    it('should unregister a worker from staking address', async () => {
       await new Promise((resolve, reject) => {
         enigma.enigmaContract.methods.unregister().send({
           gas: 4712388,
@@ -668,6 +668,41 @@ describe('Enigma tests', () => {
         }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
       });
       const workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
+      expect(workerStatus).toEqual(0);
+    });
+
+    it('should fail to unregister a worker from operating address since already unregistered', async () => {
+      await expect(new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.unregister().send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: operatingAccounts[7],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Unregistered worker');
+    });
+
+    it('should reregister worker and unregister from operating address', async () => {
+      let worker = data.workers[7];
+      const report = '0x' + Array.from(worker[1]).map((c) => c.charCodeAt(0).toString(16)).join('');
+      const signature = '0x' + worker[3];
+      // Using the same artificial data for all workers
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.register(stakingAccounts[7], worker[0], report, signature).send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: operatingAccounts[7],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
+      });
+      let workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
+      expect(workerStatus).toEqual(2);
+      await new Promise((resolve, reject) => {
+        enigma.enigmaContract.methods.unregister().send({
+          gas: 4712388,
+          gasPrice: 100000000000,
+          from: operatingAccounts[7],
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
       expect(workerStatus).toEqual(0);
     });
 

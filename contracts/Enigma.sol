@@ -95,6 +95,17 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
+    * Checks if the staking address or operating address is registered
+    *
+    */
+    modifier stakingOrOperatingAddressRegistered() {
+        require((state.workers[msg.sender].status != EnigmaCommon.WorkerStatus.Unregistered) ||
+        state.workers[state.stakingToOperatingAddresses[msg.sender]].status != EnigmaCommon.WorkerStatus.Unregistered,
+            "Unregistered worker");
+        _;
+    }
+
+    /**
     * Checks if worker can log in
     *
     */
@@ -127,7 +138,8 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * @param _scAddr Secret contract address
     */
     modifier contractUndefined(bytes32 _scAddr) {
-        require(state.contracts[_scAddr].status == EnigmaCommon.SecretContractStatus.Undefined, "Secret contract already deployed");
+        require(state.contracts[_scAddr].status == EnigmaCommon.SecretContractStatus.Undefined,
+            "Secret contract already deployed");
         _;
     }
 
@@ -137,7 +149,8 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     * @param _scAddr Secret contract address
     */
     modifier contractDeployed(bytes32 _scAddr) {
-        require(state.contracts[_scAddr].status == EnigmaCommon.SecretContractStatus.Deployed, "Secret contract not deployed");
+        require(state.contracts[_scAddr].status == EnigmaCommon.SecretContractStatus.Deployed,
+            "Secret contract not deployed");
         _;
     }
 
@@ -232,7 +245,7 @@ contract Enigma is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     function unregister()
     public
     isUpdatedEnigmaContract
-    workerRegistered(state.stakingToOperatingAddresses[msg.sender])
+    stakingOrOperatingAddressRegistered
     emptyBalance
     {
         WorkersImpl.unregisterImpl(state);
