@@ -217,9 +217,9 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
-    * Deposits ENG stake into contract from worker. Worker must be registered to do so.
+    * Deposits ENG stake into contract from staking address. Staking address' operating address must be registered.
     *
-    * @param _custodian The worker's ETH address
+    * @param _custodian The staking address to deposit from
     * @param _amount The amount of ENG, in grains format (10 ** 8), to deposit
     */
     function deposit(address _custodian, uint _amount)
@@ -231,9 +231,9 @@ contract EnigmaSimulationV2 is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     }
 
     /**
-    * Withdraws ENG stake from contract back to worker. Worker must be registered to do so.
+    * Withdraws ENG stake from contract back to staking address. Staking address' operating address must be registered.
     *
-    * @param _amount The amount of ENG, in grains format (10 ** 8), to deposit
+    * @param _amount The amount of ENG, in grains format (10 ** 8), to withdraw
     */
     function withdraw(uint _amount)
     public
