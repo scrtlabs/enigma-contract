@@ -102,13 +102,7 @@ describe('Enigma tests', () => {
         ' the owner');
     });
 
-    it('should set exchange rate', async () => {
-      await new Promise((resolve, reject) => {
-        exchangeRateContract.methods.setExchangeRate(164518).send({
-          from: stakingAccounts[0],
-          gasLimit: 300000,
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
-      });
+    it('should get the exchange rate already set in migration', async () => {
       const exchangeRate = parseInt(await exchangeRateContract.methods.getExchangeRate().call());
       expect(exchangeRate).toEqual(164518);
     });
