@@ -17,6 +17,7 @@ import EnigmaTokenContract from '../../build/contracts/EnigmaToken';
 import data from './data';
 import * as eeConstants from '../src/emitterConstants';
 import SampleContract from '../../build/contracts/Sample';
+import ExchangeRateContract from '../../build/contracts/ExchangeRate';
 import {execInContainer, getStateKeysInContainer} from './principal-utils';
 
 dotenv.config();
@@ -44,6 +45,7 @@ describe('Enigma tests', () => {
     let web3;
     let enigma;
     let sampleContract;
+    let exchangeRateContract;
     it('initializes', () => {
       const provider = new Web3.providers.HttpProvider('http://localhost:9545');
       web3 = new Web3(provider);
@@ -82,6 +84,33 @@ describe('Enigma tests', () => {
       sampleContract = new enigma.web3.eth.Contract(SampleContract['abi'],
         SampleContract.networks['4447'].address);
       expect(sampleContract.options.address).toBeTruthy();
+    });
+
+    it('initializes Exchange Rate contract', async () => {
+      exchangeRateContract = new enigma.web3.eth.Contract(ExchangeRateContract['abi'],
+        ExchangeRateContract.networks['4447'].address);
+      expect(exchangeRateContract.options.address).toBeTruthy();
+    });
+
+    it('should fail to set exchange rate from an invalid address', async () => {
+      await expect(new Promise((resolve, reject) => {
+        exchangeRateContract.methods.setExchangeRate(164518).send({
+          from: stakingAccounts[1],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Ownable: caller is not' +
+        ' the owner');
+    });
+
+    it('should set exchange rate', async () => {
+      await new Promise((resolve, reject) => {
+        exchangeRateContract.methods.setExchangeRate(164518).send({
+          from: stakingAccounts[0],
+          gasLimit: 300000,
+        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+      });
+      const exchangeRate = parseInt(await exchangeRateContract.methods.getExchangeRate().call());
+      expect(exchangeRate).toEqual(164518);
     });
 
     it('should fail to obtain key/pair without being set first', () => {
