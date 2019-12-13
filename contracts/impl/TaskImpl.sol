@@ -97,7 +97,8 @@ library TaskImpl {
         task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
         task.outputHash = _codeHash;
 
-        transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
+        transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed,
+            task.gasLimit.sub(_gasUsed), task.gasPx);
 
         // Verify the worker's signature
         bytes memory message;
@@ -106,18 +107,18 @@ library TaskImpl {
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, hex"00");
         bytes32 msgHash = keccak256(message);
-        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
+        require(msgHash.recover(_sig) == worker.signer, "Invalid signature");
 
         emit ReceiptFailed(_taskId, _taskId, _gasUsed, msg.sender, _sig);
     }
 
     function verifyDeployReceipt(EnigmaState.State storage state, bytes32 _taskId, bytes32 _codeHash,
         bytes32 _initStateDeltaHash, bytes memory _optionalEthereumData, address _optionalEthereumContractAddress,
-        uint64 _gasUsed, address _sender, bytes memory _sig)
+        uint64 _gasUsed, bytes memory _sig)
     internal
     view
     {
-        validateReceipt(state, _gasUsed, _sender, _taskId, _taskId);
+        validateReceipt(state, _gasUsed, _taskId, _taskId);
 
         // Verify the worker's signature
         bytes memory message;
@@ -131,7 +132,8 @@ library TaskImpl {
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
         message = EnigmaCommon.appendMessage(message, hex"01");
         bytes32 msgHash = keccak256(message);
-        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer,
+            "Invalid signature");
     }
 
     function deploySecretContractImpl(
@@ -146,7 +148,7 @@ library TaskImpl {
         EnigmaCommon.SecretContract storage secretContract = state.contracts[_bytes32s[0]];
         EnigmaCommon.TaskRecord storage task = state.tasks[_bytes32s[0]];
         verifyDeployReceipt(state, _bytes32s[0], _bytes32s[2], _bytes32s[3], _optionalEthereumData,
-            _optionalEthereumContractAddress, _gasUsed, msg.sender, _sig);
+            _optionalEthereumContractAddress, _gasUsed, _sig);
         task.proof = _sig;
         uint256 callbackGasETH;
         uint256 callbackGasENG;
@@ -161,7 +163,8 @@ library TaskImpl {
             callbackGasENG = callbackGasENG.mul(tx.gasprice); // Callback used gas fee (ETH)
             callbackGasENG = callbackGasENG.mul(10**8).div(IExchangeRate(state.exchangeRate).getExchangeRate()).div(10**10); // Callback used gas fee (ENG)
             callbackGasENG = (callbackGasENG.div(task.gasPx)).add(_gasUsed); // Total used gas units (ENG)
-            transferFundsAfterTask(state, msg.sender, task.sender, callbackGasENG, task.gasLimit.sub(callbackGasENG), task.gasPx);
+            transferFundsAfterTask(state, msg.sender, task.sender, callbackGasENG,
+                task.gasLimit.sub(callbackGasENG), task.gasPx);
             if (success) {
                 task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
                 secretContract.owner = task.sender;
@@ -177,7 +180,8 @@ library TaskImpl {
                 emit ReceiptFailedETH(_bytes32s[0], _bytes32s[0], _gasUsed, callbackGasENG, msg.sender, _sig);
             }
         } else {
-            transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
+            transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed,
+                task.gasLimit.sub(_gasUsed), task.gasPx);
             task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
             secretContract.owner = task.sender;
             secretContract.preCodeHash = _bytes32s[1];
@@ -199,12 +203,6 @@ library TaskImpl {
         // Credit the task sender with the unused gas fees
         require(state.engToken.transfer(_user, (_gasUnused).mul(_gasPx)),
             "Token transfer failed");
-    }
-
-    function transferFundsAfterTaskETH(EnigmaState.State storage state, address _worker, uint _gasLimit, uint _gasPx)
-    internal {
-        // Credit worker with the fees associated with this task
-        state.workers[_worker].balance = state.workers[_worker].balance.add(_gasLimit.mul(_gasPx));
     }
 
     function createTaskRecordImpl(
@@ -270,7 +268,8 @@ library TaskImpl {
         task.status = EnigmaCommon.TaskStatus.ReceiptFailed;
         task.outputHash = _outputHash;
 
-        transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
+        transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed,
+            task.gasLimit.sub(_gasUsed), task.gasPx);
 
         // Verify the worker's signature
         bytes memory message;
@@ -280,17 +279,16 @@ library TaskImpl {
         message = EnigmaCommon.appendMessage(message, _gasUsed.toBytesFromUint64());
         message = EnigmaCommon.appendMessage(message, hex"00");
         bytes32 msgHash = keccak256(message);
-        require(msgHash.recover(_sig) == state.workers[msg.sender].signer, "Invalid signature");
+        require(msgHash.recover(_sig) == worker.signer, "Invalid signature");
 
         emit ReceiptFailed(_taskId, _scAddr, _gasUsed, msg.sender, _sig);
     }
 
-    function validateReceipt(EnigmaState.State storage state, uint64 _gasUsed, address _sender, bytes32 _scAddr,
-        bytes32 _taskId)
+    function validateReceipt(EnigmaState.State storage state, uint64 _gasUsed, bytes32 _scAddr, bytes32 _taskId)
     internal
     view
     {
-        EnigmaCommon.Worker memory worker = state.workers[_sender];
+        EnigmaCommon.Worker memory worker = state.workers[msg.sender];
         EnigmaCommon.TaskRecord memory task = state.tasks[_taskId];
         require(task.status == EnigmaCommon.TaskStatus.RecordCreated, 'Invalid task status');
 
@@ -304,12 +302,12 @@ library TaskImpl {
 
     function verifyReceipt(EnigmaState.State storage state, bytes32 _scAddr, bytes32 _taskId, bytes32 _stateDeltaHash,
         bytes32 _outputHash, bytes memory _optionalEthereumData, address _optionalEthereumContractAddress,
-        uint64 _gasUsed, address _sender, bytes memory _sig)
+        uint64 _gasUsed, bytes memory _sig)
     internal
     view
     {
         EnigmaCommon.SecretContract memory secretContract = state.contracts[_scAddr];
-        validateReceipt(state, _gasUsed, _sender, _scAddr, _taskId);
+        validateReceipt(state, _gasUsed, _scAddr, _taskId);
 
         bytes32 lastStateDeltaHash = secretContract.stateDeltaHashes[secretContract.stateDeltaHashes.length - 1];
 
@@ -328,7 +326,8 @@ library TaskImpl {
         message = EnigmaCommon.appendMessage(message, hex"01");
         bytes32 msgHash = keccak256(message);
 
-        require(msgHash.recover(_sig) == state.workers[_sender].signer, "Invalid signature");
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer,
+            "Invalid signature");
     }
 
     function commitReceiptImpl(
@@ -346,7 +345,7 @@ library TaskImpl {
 
         // Verify the receipt
         verifyReceipt(state, _bytes32s[0], _bytes32s[1], _bytes32s[2], _bytes32s[3], _optionalEthereumData,
-            _optionalEthereumContractAddress, _gasUsed, msg.sender, _sig);
+            _optionalEthereumContractAddress, _gasUsed, _sig);
 
         task.proof = _sig;
         uint256 callbackGasETH;
@@ -361,7 +360,8 @@ library TaskImpl {
             callbackGasENG = callbackGasENG.mul(tx.gasprice); // Callback used gas fee (ETH)
             callbackGasENG = callbackGasENG.mul(10**8).div(IExchangeRate(state.exchangeRate).getExchangeRate()).div(10**10); // Callback used gas fee (ENG)
             callbackGasENG = (callbackGasENG.div(task.gasPx)).add(_gasUsed); // Total used gas units (ENG)
-            transferFundsAfterTask(state, msg.sender, task.sender, callbackGasENG, task.gasLimit.sub(callbackGasENG), task.gasPx);
+            transferFundsAfterTask(state, msg.sender, task.sender, callbackGasENG,
+                task.gasLimit.sub(callbackGasENG), task.gasPx);
             if (success) {
                 task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
                 uint deltaHashIndex = _bytes32s[2] != bytes32(0) ?
@@ -374,7 +374,8 @@ library TaskImpl {
                 emit ReceiptFailedETH(_bytes32s[1], _bytes32s[0], _gasUsed, callbackGasENG, msg.sender, _sig);
             }
         } else {
-            transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed, task.gasLimit.sub(_gasUsed), task.gasPx);
+            transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed,
+                task.gasLimit.sub(_gasUsed), task.gasPx);
             task.status = EnigmaCommon.TaskStatus.ReceiptVerified;
             uint deltaHashIndex = _bytes32s[2] != bytes32(0) ?
                 secretContract.stateDeltaHashes.push(_bytes32s[2]) - 1 : 0;
@@ -393,7 +394,7 @@ library TaskImpl {
         EnigmaCommon.SecretContract memory secretContract = state.contracts[_scAddr];
         bytes32[] memory inputsHashes = new bytes32[](_taskIds.length);
         for (uint i = 0; i < _taskIds.length; i++) {
-            validateReceipt(state, _gasesUsed[i], _sender, _scAddr, _taskIds[i]);
+            validateReceipt(state, _gasesUsed[i], _scAddr, _taskIds[i]);
 
             inputsHashes[i] = state.tasks[_taskIds[i]].inputsHash;
         }
@@ -424,7 +425,8 @@ library TaskImpl {
         message = EnigmaCommon.appendMessage(message, _optionalEthereumContractAddress.toBytes());
         message = EnigmaCommon.appendMessage(message, hex"01");
         bytes32 msgHash = keccak256(message);
-        require(msgHash.recover(_sig) == state.workers[_sender].signer, "Invalid signature");
+        require(msgHash.recover(_sig) == state.workers[msg.sender].signer,
+            "Invalid signature");
     }
 
     function returnFeesForTaskImpl(

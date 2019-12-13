@@ -8,6 +8,7 @@ import { EnigmaState } from "../../impl/EnigmaState.sol";
 import { IEnigma } from "../../interfaces/IEnigma.sol";
 import "../../utils/SolRsaVerify.sol";
 import "../../utils/Base64.sol";
+import { Bytes } from "../../utils/Bytes.sol";
 
 /**
  * @author Enigma
@@ -16,10 +17,13 @@ import "../../utils/Base64.sol";
  */
 library WorkersImplSimulationV2 {
     using SafeMath for uint256;
+    using Bytes for bytes;
 
     event Registered(address custodian, address signer);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
+    event LoggedIn(address workerAddress);
+    event LoggedOut(address workerAddress);
 
     uint constant internal WORD_SIZE = 32;
 
@@ -61,12 +65,12 @@ library WorkersImplSimulationV2 {
     // Borrowed from https://ethereum.stackexchange.com/a/50528/24704
     function bytesToAddress(bytes memory bys) internal pure returns (address addr) {
         assembly {
-          addr := mload(add(bys,20))
+            addr := mload(add(bys,20))
         }
     }
 
-    function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
-        bytes memory _signature, bytes memory _upgradeTransferSig)
+    function registerImpl(EnigmaState.State storage state, address _stakingAddress, address _signer,
+        bytes memory _report, bytes memory _signature, bytes memory _upgradeTransferSig)
     public {
         // TODO: consider exit if both signer and custodian are matching
         // If the custodian is not already register, we add an index entry
@@ -79,10 +83,10 @@ library WorkersImplSimulationV2 {
 //        uint i = 0;
 //        // find the word "Body" in the _report
 //        while( i < _report.length && !(
-//            _report[i] == 0x42 &&
-//            _report[i+1] == 0x6f &&
-//            _report[i+2] == 0x64 &&
-//            _report[i+3] == 0x79
+//        _report[i] == 0x42 &&
+//        _report[i+1] == 0x6f &&
+//        _report[i+2] == 0x64 &&
+//        _report[i+3] == 0x79
 //        )) {
 //            i++;
 //        }
@@ -100,22 +104,29 @@ library WorkersImplSimulationV2 {
 //        // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
 //        // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
 //        // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
-//        // bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
-//        // bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
+//        bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+//        bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
 //        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
 //        address signerQuote = bytesToAddress(reportData);
 //
 //        require(signerQuote == _signer, "Signer does not match contents of quote");
+//        require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
+//        require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
 
+        worker.stakingAddress = _stakingAddress;
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
 
-        uint256 oldWorkerBalance = IEnigma(state.oldEnigmaContractAddress)
-            .transferWorkerStakePostUpgrade(msg.sender, _upgradeTransferSig);
-        worker.balance = oldWorkerBalance;
+        worker.balance = IEnigma(state.oldEnigmaContractAddress)
+            .transferWorkerStakePostUpgrade(msg.sender, _stakingAddress, _upgradeTransferSig);
 
         emit Registered(msg.sender, _signer);
+    }
+
+    function setOperatingAddressImpl(EnigmaState.State storage state, address _operatingAddress)
+    public {
+        state.stakingToOperatingAddresses[msg.sender] = _operatingAddress;
     }
 
     function getReportImpl(EnigmaState.State storage state, address _custodian)
@@ -152,6 +163,7 @@ library WorkersImplSimulationV2 {
             blockNumber: block.number,
             balance: worker.balance
         }));
+        emit LoggedIn(msg.sender);
     }
 
     function logoutImpl(EnigmaState.State storage state) public {
@@ -161,15 +173,17 @@ library WorkersImplSimulationV2 {
             workerEventType: EnigmaCommon.WorkerLogType.LogOut,
             blockNumber: block.number,
             balance: worker.balance
-        }));
+            }));
+        emit LoggedOut(msg.sender);
     }
 
     function depositImpl(EnigmaState.State storage state, address _custodian, uint _amount)
     public
     {
-        require(state.engToken.allowance(_custodian, address(this)) >= _amount, "Not enough tokens allowed for transfer");
+        require(state.engToken.allowance(_custodian, address(this)) >= _amount,
+            "Not enough tokens allowed for transfer");
 
-        EnigmaCommon.Worker storage worker = state.workers[_custodian];
+        EnigmaCommon.Worker storage worker = state.workers[state.stakingToOperatingAddresses[_custodian]];
         worker.balance = worker.balance.add(_amount);
 
         require(state.engToken.transferFrom(_custodian, address(this), _amount), "Token transfer failed");
@@ -180,7 +194,7 @@ library WorkersImplSimulationV2 {
     function withdrawImpl(EnigmaState.State storage state, uint _amount)
     public
     {
-        EnigmaCommon.Worker storage worker = state.workers[msg.sender];
+        EnigmaCommon.Worker storage worker = state.workers[state.stakingToOperatingAddresses[msg.sender]];
         require(worker.balance >= _amount, "Not enough tokens in worker balance");
 
         worker.balance = worker.balance.sub(_amount);

@@ -60,8 +60,10 @@ async function deployProtocol(deployer) {
     (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
       Enigma.link('WorkersImplSimulation', WorkersImpl.address) :
       Enigma.link('WorkersImpl', WorkersImpl.address),
+    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+      Enigma.link('TaskImplSimulation', TaskImpl.address) :
+      Enigma.link('TaskImpl', TaskImpl.address),
     Enigma.link('PrincipalImpl', PrincipalImpl.address),
-    Enigma.link('TaskImpl', TaskImpl.address),
     Enigma.link('UpgradeImpl', UpgradeImpl.address),
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
