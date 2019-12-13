@@ -13,6 +13,7 @@ const ISVSVN = '0x0000';
 const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
 const EPOCH_SIZE = 10;
 const TIMEOUT_THRESHOLD = 2;
+const EXCHANGE_RATE = 164518;
 
 dotenv.config();    // Reads .env configuration file, if present
 
@@ -77,7 +78,7 @@ async function deployProtocol(deployer, accounts) {
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(ExchangeRate);
   const exchangeRateContract = await ExchangeRate.deployed();
-  await exchangeRateContract.setExchangeRate(164518, {from: accounts[0], gas: 300000});
+  await exchangeRateContract.setExchangeRate(EXCHANGE_RATE, {from: accounts[0], gas: 300000});
   await deployer.deploy(Enigma, EnigmaToken.address, principal, ExchangeRate.address, EPOCH_SIZE, TIMEOUT_THRESHOLD,
       MRSIGNER, ISVSVN);
   await deployer.deploy(Sample);
