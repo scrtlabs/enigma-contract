@@ -69,7 +69,7 @@ steps:
       - make build-contract DOCKER_TAG=$DOCKER_TAG
       - make build-client DOCKER_TAG=$DOCKER_TAG
       - export NODES=3
-      - SGX_MODE=HW docker-compose -f docker-compose.yml -f docker-compose.hw.yml up --scale worker=$NODES --exit-code-from client & sleep 60 && docker-compose exec -T client make test && export RESULT=$? || export RESULT=$?
+      - SGX_MODE=HW docker-compose -f docker-compose.yml -f docker-compose.hw.yml up --scale worker=$NODES --exit-code-from client & sleep 240 && docker-compose exec -T client make test && export RESULT=$? || export RESULT=$?
       - docker-compose -f docker-compose.yml -f docker-compose.hw.yml down -v --rmi all || true
       - if [ $RESULT -ne 0 ]; then exit 1; fi
 
