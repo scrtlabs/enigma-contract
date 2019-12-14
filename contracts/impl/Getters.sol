@@ -151,4 +151,13 @@ contract Getters is EnigmaStorage {
     function getIsvSvn() public view returns (bytes memory) {
         return state.isvSvn;
     }
+
+    /**
+    * Get debug
+    *
+    * @return debug
+    */
+    function getDebug() public view returns (bool) {
+        return state.debug;
+    }
 }
