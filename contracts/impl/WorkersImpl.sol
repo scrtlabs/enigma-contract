@@ -18,7 +18,7 @@ library WorkersImpl {
     using SafeMath for uint256;
     using Bytes for bytes;
 
-    event Registered(address custodian, address signer, bytes isvProdid);
+    event Registered(address custodian, address signer);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
     event LoggedIn(address workerAddress);
@@ -110,7 +110,28 @@ library WorkersImpl {
         require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
 
         uint i = 0;
-        // find the word "Body" in the _report
+        // find the word "Status" in the _report
+        while( i < _report.length && !(
+            _report[i] == 0x53 &&
+            _report[i+1] == 0x74 &&
+            _report[i+2] == 0x61 &&
+            _report[i+3] == 0x74 &&
+            _report[i+4] == 0x75 &&
+            _report[i+5] == 0x73
+        )) {
+            i++;
+        }
+        require( i < _report.length, "isvEnclaveQuoteStatus not found in report");
+
+        // Add the length of 'Status":"' to find where the quote starts
+        i=i+9;
+
+        bytes memory isvEnclaveQuoteStatus = extract_element(_report, i, 2);
+        // TODO uncomment line below when we get proper status "OK", instead of "GROUP_OUT_OF_DATE"
+        // require((isvEnclaveQuoteStatus[0] == 0x4f) && (isvEnclaveQuoteStatus[1] == 0x4b),
+        //     "isvEnclaveQuoteStatus is not OK");
+
+        // find the word "Body" in the _report, which always comes after isvEnclaveQuoteStatus, otherwise reset i=0
         while( i < _report.length && !(
             _report[i] == 0x42 &&
             _report[i+1] == 0x6f &&
@@ -121,12 +142,8 @@ library WorkersImpl {
         }
         require( i < _report.length, "isvEnclaveQuoteBody not found in report");
 
-        // Add the length of 'Body":"'' to find where the quote starts
+        // Add the length of 'Body":"' to find where the quote starts
         i=i+7;
-
-        bytes memory isvEnclaveQuoteStatus = extract_element(_report, i-27, 2);
-        require((isvEnclaveQuoteStatus[0] == 0x4f) && (isvEnclaveQuoteStatus[1] == 0x4b),
-            "isvEnclaveQuoteStatus does not match");
 
         // 576 bytes is the length of the quote
         bytes memory quoteBody = extract_element(_report, i, 576);
@@ -144,18 +161,19 @@ library WorkersImpl {
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
         address signerQuote = bytesToAddress(reportData);
 
-        require(getBit(readBytes1(attributes, 0), 6) == state.debug, "Debug does not match");
+        require(getBit(readBytes1(attributes, 0), 1) == state.debug, "Debug does not match");
         require(signerQuote == _signer, "Signer does not match contents of quote");
         require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
-//        state.principal == _signer ?
-//            require(isvProdid.equals(hex"0002")) : require(isvProdid.equals(hex"0001"));
+        // 2 bytes represented little-endian, so least significant goes first
+        state.principal == _signer ?
+            require(isvProdid.equals(hex"0200"), "isvProdID not set to 2 for Key Management node") : require(isvProdid.equals(hex"0100"), "isvProdID not set to 1 for worker node");
         require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
 
         worker.signer = _signer;
         worker.report = _report;
         worker.status = EnigmaCommon.WorkerStatus.LoggedOut;
 
-        emit Registered(msg.sender, _signer, isvEnclaveQuoteStatus);
+        emit Registered(msg.sender, _signer);
     }
 
     function getReportImpl(EnigmaState.State storage state, address _custodian)

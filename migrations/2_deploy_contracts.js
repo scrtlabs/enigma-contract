@@ -8,8 +8,8 @@ const fs = require('fs');
 const path = require('path');
 const VotingETH = artifacts.require('VotingETH.sol');
 
-const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
-const DEBUG = false;
+const PRINCIPAL_SIGNING_ADDRESS = '0x7de257a09705ad7a5652f7c89275b1ed74a7553c';
+const DEBUG = true;
 const ISVSVN = '0x0000';
 const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
 const EPOCH_SIZE = 10;

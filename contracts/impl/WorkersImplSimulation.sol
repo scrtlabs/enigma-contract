@@ -68,6 +68,36 @@ library WorkersImplSimulation {
         }
     }
 
+    function shiftLeft(bytes1 a, uint8 n) internal pure returns (bytes1) {
+        return bytes1(uint8(a) * uint8(2) ** n);
+    }
+
+    // Get bit value at position
+    function getBit(bytes1 a, uint8 n) internal pure returns (bool) {
+        return a & shiftLeft(0x01, n) != 0;
+    }
+
+    function readBytes1(
+        bytes memory b,
+        uint256 index
+    )
+    public
+    pure
+    returns (bytes1 result)
+    {
+        // Arrays are prefixed by a 32 byte length field
+        index += 32;
+
+        // Read the bytes4 from array memory
+        assembly {
+            result := mload(add(b, index))
+        // Solidity does not require us to clean the trailing bytes.
+        // We do it anyway
+            result := and(result, 0xFF00000000000000000000000000000000000000000000000000000000000000)
+        }
+        return result;
+    }
+
     function registerImpl(EnigmaState.State storage state, address _signer, bytes memory _report,
         bytes memory _signature)
     public {
@@ -80,7 +110,28 @@ library WorkersImplSimulation {
 //        require(verifyReportImpl(_report, _signature) == 0, "Verifying signature failed");
 //
 //        uint i = 0;
-//        // find the word "Body" in the _report
+//        // find the word "Status" in the _report
+//        while( i < _report.length && !(
+//            _report[i] == 0x53 &&
+//            _report[i+1] == 0x74 &&
+//            _report[i+2] == 0x61 &&
+//            _report[i+3] == 0x74 &&
+//            _report[i+4] == 0x75 &&
+//            _report[i+5] == 0x73
+//        )) {
+//            i++;
+//        }
+//        require( i < _report.length, "isvEnclaveQuoteStatus not found in report");
+//
+//        // Add the length of 'Status":"' to find where the quote starts
+//        i=i+9;
+//
+//        bytes memory isvEnclaveQuoteStatus = extract_element(_report, i, 2);
+//        // TODO uncomment line below when we get proper status "OK", instead of "GROUP_OUT_OF_DATE"
+//        // require((isvEnclaveQuoteStatus[0] == 0x4f) && (isvEnclaveQuoteStatus[1] == 0x4b),
+//        //     "isvEnclaveQuoteStatus is not OK");
+//
+//        // find the word "Body" in the _report, which always comes after isvEnclaveQuoteStatus, otherwise reset i=0
 //        while( i < _report.length && !(
 //            _report[i] == 0x42 &&
 //            _report[i+1] == 0x6f &&
@@ -91,7 +142,7 @@ library WorkersImplSimulation {
 //        }
 //        require( i < _report.length, "isvEnclaveQuoteBody not found in report");
 //
-//        // Add the length of 'Body":"'' to find where the quote starts
+//        // Add the length of 'Body":"' to find where the quote starts
 //        i=i+7;
 //
 //        // 576 bytes is the length of the quote
@@ -103,13 +154,19 @@ library WorkersImplSimulation {
 //        // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
 //        // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
 //        // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
+//        bytes memory attributes = extract_element(quoteDecoded, 96, 16);
 //        bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
+//        bytes memory isvProdid = extract_element(quoteDecoded, 304, 2);
 //        bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
 //        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
 //        address signerQuote = bytesToAddress(reportData);
 //
+//        require(getBit(readBytes1(attributes, 0), 1) == state.debug, "Debug does not match");
 //        require(signerQuote == _signer, "Signer does not match contents of quote");
 //        require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
+//        // 2 bytes represented little-endian, so least significant goes first
+//        state.principal == _signer ?
+//            require(isvProdid.equals(hex"0200"), "isvProdID not set to 2 for Key Management node") : require(isvProdid.equals(hex"0100"), "isvProdID not set to 1 for worker node");
 //        require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
 
         worker.signer = _signer;
