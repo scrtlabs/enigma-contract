@@ -1,13 +1,21 @@
 pragma solidity ^0.5.12;
 pragma experimental ABIEncoderV2;
 
-contract ExchangeRate {
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
+contract ExchangeRate is Ownable {
+
+    uint exchangeRate;
 
     constructor() public {
 
     }
 
     function getExchangeRate() public view returns (uint256) {
-        return 164518;// 0.00164518
+        return exchangeRate;
+    }
+
+    function setExchangeRate(uint _exchangeRate) public onlyOwner {
+        exchangeRate = _exchangeRate;
     }
 }

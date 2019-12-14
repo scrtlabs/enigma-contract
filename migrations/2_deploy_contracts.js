@@ -14,6 +14,7 @@ const ISVSVN = '0x0000';
 const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
 const EPOCH_SIZE = 10;
 const TIMEOUT_THRESHOLD = 2;
+const EXCHANGE_RATE = 164518;
 
 dotenv.config();    // Reads .env configuration file, if present
 
@@ -31,7 +32,7 @@ const TaskImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX
   artifacts.require('./impl/TaskImpl.sol');
 const UpgradeImpl = artifacts.require('./impl/UpgradeImpl.sol');
 
-async function deployProtocol(deployer) {
+async function deployProtocol(deployer, accounts) {
   await Promise.all([
     deployer.deploy(EnigmaToken),
     deployer.deploy(SolRsaVerify),
@@ -77,6 +78,8 @@ async function deployProtocol(deployer) {
   }
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(ExchangeRate);
+  const exchangeRateContract = await ExchangeRate.deployed();
+  await exchangeRateContract.setExchangeRate(EXCHANGE_RATE, {from: accounts[0], gas: 300000});
   await deployer.deploy(Enigma, EnigmaToken.address, principal, ExchangeRate.address, EPOCH_SIZE, TIMEOUT_THRESHOLD,
       DEBUG, MRSIGNER, ISVSVN);
   await deployer.deploy(Sample);
@@ -107,10 +110,10 @@ async function deployProtocol(deployer) {
   }
 }
 
-async function doMigration(deployer) {
-  await deployProtocol(deployer);
+async function doMigration(deployer, accounts) {
+  await deployProtocol(deployer, accounts);
 }
 
-module.exports = function(deployer) {
-  deployer.then(() => doMigration(deployer));
+module.exports = function(deployer, network, accounts) {
+  deployer.then(() => doMigration(deployer, accounts));
 };
