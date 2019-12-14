@@ -204,6 +204,7 @@ describe('Enigma tests', () => {
             from: operatingAccounts[8],
           }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
         });
+        // console.log(receipt.events.Registered.returnValues);
       }
       expect(receipt).toBeTruthy();
     }, 30000);
