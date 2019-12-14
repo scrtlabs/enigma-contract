@@ -758,7 +758,8 @@ export default class Enigma {
         } catch (err) {
           if ((retryCount++ >= maxRetries) ||
             ((err !== 'Returned error: VM Exception while processing transaction: revert Wrong epoch for this task') &&
-            (err !== 'Returned error: VM Exception while processing transaction: revert Incorrect nonce yielding bad secret contract address'))){
+            (err !== 'Returned error: VM Exception while processing transaction:'+
+              ' revert Incorrect nonce yielding bad secret contract address'))) {
             emitter.emit(eeConstants.ERROR, err);
             break;
           }
