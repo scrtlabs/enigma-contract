@@ -154,20 +154,17 @@ library WorkersImplSimulation {
 //        // https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf
 //        // bytes memory cpuSvn = extract_element(quoteDecoded, 48, 16);
 //        // bytes memory mrEnclave = extract_element(quoteDecoded, 112, 32);
-//        bytes memory attributes = extract_element(quoteDecoded, 96, 16);
-//        bytes memory mrSigner = extract_element(quoteDecoded, 176, 32);
 //        bytes memory isvProdid = extract_element(quoteDecoded, 304, 2);
-//        bytes memory isvSvn = extract_element(quoteDecoded, 306, 2);
 //        bytes memory reportData = extract_element(quoteDecoded, 368, 64);
-//        address signerQuote = bytesToAddress(reportData);
 //
-//        require(getBit(readBytes1(attributes, 0), 1) == state.debug, "Debug does not match");
-//        require(signerQuote == _signer, "Signer does not match contents of quote");
-//        require(mrSigner.equals(state.mrSigner), "mrSigner does not match");
+//        require(getBit(readBytes1(extract_element(quoteDecoded, 96, 16), 0), 1) == state.debug, "Debug does not match");
+//        require(extract_element(quoteDecoded, 176, 32).equals(state.mrSigner), "mrSigner does not match");
 //        // 2 bytes represented little-endian, so least significant goes first
 //        state.principal == _signer ?
-//            require(isvProdid.equals(hex"0200"), "isvProdID not set to 2 for Key Management node") : require(isvProdid.equals(hex"0100"), "isvProdID not set to 1 for worker node");
-//        require(isvSvn.equals(state.isvSvn), "isvSvn does not match");
+//            require(isvProdid.equals(hex"0200"), "isvProdID not set to 2 for Key Management node") :
+//            require(isvProdid.equals(hex"0100"), "isvProdID not set to 1 for worker node");
+//        require(extract_element(quoteDecoded, 306, 2).equals(state.isvSvn), "isvSvn does not match");
+//        require(bytesToAddress(reportData) == _signer, "Signer does not match contents of quote");
 
         worker.stakingAddress = _stakingAddress;
         worker.signer = _signer;

@@ -158,13 +158,13 @@ library WorkersImpl {
         bytes memory reportData = extract_element(quoteDecoded, 368, 64);
 
         require(getBit(readBytes1(extract_element(quoteDecoded, 96, 16), 0), 1) == state.debug, "Debug does not match");
-        require(bytesToAddress(reportData) == _signer, "Signer does not match contents of quote");
         require(extract_element(quoteDecoded, 176, 32).equals(state.mrSigner), "mrSigner does not match");
         // 2 bytes represented little-endian, so least significant goes first
         state.principal == _signer ?
             require(isvProdid.equals(hex"0200"), "isvProdID not set to 2 for Key Management node") :
             require(isvProdid.equals(hex"0100"), "isvProdID not set to 1 for worker node");
         require(extract_element(quoteDecoded, 306, 2).equals(state.isvSvn), "isvSvn does not match");
+        require(bytesToAddress(reportData) == _signer, "Signer does not match contents of quote");
 
         worker.stakingAddress = _stakingAddress;
         worker.signer = _signer;
