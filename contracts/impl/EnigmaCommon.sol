@@ -30,6 +30,7 @@ library EnigmaCommon {
     }
 
     struct Worker {
+        address stakingAddress; // Staking address
         address signer; // Enclave address
         WorkerStatus status; // Unregistered: 0, LoggedIn: 1, LoggedOut: 2
         bytes report; // Decided to store this as one  RLP encoded attribute for easier external storage in the future

@@ -186,10 +186,11 @@ function () {
               result = _context.sent;
               return _context.abrupt("return", {
                 account: result[0],
-                status: parseInt(result[1][1]),
-                report: result[1][2],
-                balance: parseInt(result[1][3]),
-                logs: result[1][4]
+                stakingAddress: result[1][0],
+                status: parseInt(result[1][2]),
+                report: result[1][3],
+                balance: parseInt(result[1][4]),
+                logs: result[1][5]
               });
 
             case 4:
@@ -534,15 +535,16 @@ function () {
       return emitter;
     }
     /**
-     * Logout the selected worker
+     * Set operating address for a staking address
      *
-     * @param {string} account - ETH address for worker being logged out
-     * @return {EventEmitter} EventEmitter to be listened to track logout transaction
+     * @param {string} stakingAddress - Staking address
+     * @param {string} operatingAddress - Operating address
+     * @return {EventEmitter} EventEmitter to be listened to track login transaction
      */
 
   }, {
-    key: "logout",
-    value: function logout(account) {
+    key: "setOperatingAddress",
+    value: function setOperatingAddress(stakingAddress, operatingAddress) {
       var _this2 = this;
 
       var emitter = new eventemitter3__WEBPACK_IMPORTED_MODULE_0___default.a();
@@ -554,14 +556,14 @@ function () {
               case 0:
                 _context13.prev = 0;
                 _context13.next = 3;
-                return regeneratorRuntime.awrap(_this2.enigmaContract.methods.logout().send({
-                  from: account
+                return regeneratorRuntime.awrap(_this2.enigmaContract.methods.setOperatingAddress(operatingAddress).send({
+                  from: stakingAddress
                 }).on('transactionHash', function (hash) {
-                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["LOGOUT_TRANSACTION_HASH"], hash);
+                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["SET_OPERATING_ADDRESS_TRANSACTION_HASH"], hash);
                 }).on('confirmation', function (confirmationNumber, receipt) {
-                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["LOGOUT_CONFIRMATION"], confirmationNumber, receipt);
+                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["SET_OPERATING_ADDRESS_CONFIRMATION"], confirmationNumber, receipt);
                 }).on('receipt', function (receipt) {
-                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["LOGOUT_RECEIPT"], receipt);
+                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["SET_OPERATING_ADDRESS_RECEIPT"], receipt);
                 }));
 
               case 3:
@@ -584,6 +586,56 @@ function () {
       return emitter;
     }
     /**
+     * Logout the selected worker
+     *
+     * @param {string} account - ETH address for worker being logged out
+     * @return {EventEmitter} EventEmitter to be listened to track logout transaction
+     */
+
+  }, {
+    key: "logout",
+    value: function logout(account) {
+      var _this3 = this;
+
+      var emitter = new eventemitter3__WEBPACK_IMPORTED_MODULE_0___default.a();
+
+      (function _callee3() {
+        return regeneratorRuntime.async(function _callee3$(_context14) {
+          while (1) {
+            switch (_context14.prev = _context14.next) {
+              case 0:
+                _context14.prev = 0;
+                _context14.next = 3;
+                return regeneratorRuntime.awrap(_this3.enigmaContract.methods.logout().send({
+                  from: account
+                }).on('transactionHash', function (hash) {
+                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["LOGOUT_TRANSACTION_HASH"], hash);
+                }).on('confirmation', function (confirmationNumber, receipt) {
+                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["LOGOUT_CONFIRMATION"], confirmationNumber, receipt);
+                }).on('receipt', function (receipt) {
+                  emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["LOGOUT_RECEIPT"], receipt);
+                }));
+
+              case 3:
+                _context14.next = 8;
+                break;
+
+              case 5:
+                _context14.prev = 5;
+                _context14.t0 = _context14["catch"](0);
+                emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["ERROR"], _context14.t0.message);
+
+              case 8:
+              case "end":
+                return _context14.stop();
+            }
+          }
+        }, null, null, [[0, 5]]);
+      })();
+
+      return emitter;
+    }
+    /**
      * Deposit ENG tokens in the worker's bank. Worker must be registered prior to this.
      *
      * @param {string} account - Worker's ETH address
@@ -594,24 +646,24 @@ function () {
   }, {
     key: "deposit",
     value: function deposit(account, amount) {
-      var _this3 = this;
+      var _this4 = this;
 
       var emitter = new eventemitter3__WEBPACK_IMPORTED_MODULE_0___default.a();
 
-      (function _callee3() {
+      (function _callee4() {
         var balance, msg, receipt;
-        return regeneratorRuntime.async(function _callee3$(_context14) {
+        return regeneratorRuntime.async(function _callee4$(_context15) {
           while (1) {
-            switch (_context14.prev = _context14.next) {
+            switch (_context15.prev = _context15.next) {
               case 0:
-                _context14.next = 2;
-                return regeneratorRuntime.awrap(_this3.tokenContract.methods.balanceOf(account).call());
+                _context15.next = 2;
+                return regeneratorRuntime.awrap(_this4.tokenContract.methods.balanceOf(account).call());
 
               case 2:
-                balance = _context14.sent;
+                balance = _context15.sent;
 
                 if (!(balance < amount)) {
-                  _context14.next = 7;
+                  _context15.next = 7;
                   break;
                 }
 
@@ -620,18 +672,18 @@ function () {
                   name: 'NotEnoughTokens',
                   message: msg
                 });
-                return _context14.abrupt("return");
+                return _context15.abrupt("return");
 
               case 7:
-                _context14.next = 9;
-                return regeneratorRuntime.awrap(_this3.tokenContract.methods.approve(_this3.enigmaContract.options.address, amount).send({
+                _context15.next = 9;
+                return regeneratorRuntime.awrap(_this4.tokenContract.methods.approve(_this4.enigmaContract.options.address, amount).send({
                   from: account
                 }));
 
               case 9:
-                _context14.prev = 9;
-                _context14.next = 12;
-                return regeneratorRuntime.awrap(_this3.enigmaContract.methods.deposit(account, amount).send({
+                _context15.prev = 9;
+                _context15.next = 12;
+                return regeneratorRuntime.awrap(_this4.enigmaContract.methods.deposit(account, amount).send({
                   from: account
                 }).on('transactionHash', function (hash) {
                   emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["DEPOSIT_TRANSACTION_HASH"], hash);
@@ -640,19 +692,19 @@ function () {
                 }));
 
               case 12:
-                receipt = _context14.sent;
+                receipt = _context15.sent;
                 emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["DEPOSIT_RECEIPT"], receipt);
-                _context14.next = 19;
+                _context15.next = 19;
                 break;
 
               case 16:
-                _context14.prev = 16;
-                _context14.t0 = _context14["catch"](9);
-                emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["ERROR"], _context14.t0.message);
+                _context15.prev = 16;
+                _context15.t0 = _context15["catch"](9);
+                emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["ERROR"], _context15.t0.message);
 
               case 19:
               case "end":
-                return _context14.stop();
+                return _context15.stop();
             }
           }
         }, null, null, [[9, 16]]);
@@ -672,18 +724,18 @@ function () {
   }, {
     key: "withdraw",
     value: function withdraw(account, amount) {
-      var _this4 = this;
+      var _this5 = this;
 
       var emitter = new eventemitter3__WEBPACK_IMPORTED_MODULE_0___default.a();
 
-      (function _callee4() {
-        return regeneratorRuntime.async(function _callee4$(_context15) {
+      (function _callee5() {
+        return regeneratorRuntime.async(function _callee5$(_context16) {
           while (1) {
-            switch (_context15.prev = _context15.next) {
+            switch (_context16.prev = _context16.next) {
               case 0:
-                _context15.prev = 0;
-                _context15.next = 3;
-                return regeneratorRuntime.awrap(_this4.enigmaContract.methods.withdraw(amount).send({
+                _context16.prev = 0;
+                _context16.next = 3;
+                return regeneratorRuntime.awrap(_this5.enigmaContract.methods.withdraw(amount).send({
                   from: account
                 }).on('transactionHash', function (hash) {
                   emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["WITHDRAW_TRANSACTION_HASH"], hash);
@@ -694,17 +746,17 @@ function () {
                 }));
 
               case 3:
-                _context15.next = 8;
+                _context16.next = 8;
                 break;
 
               case 5:
-                _context15.prev = 5;
-                _context15.t0 = _context15["catch"](0);
-                emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["ERROR"], _context15.t0.message);
+                _context16.prev = 5;
+                _context16.t0 = _context16["catch"](0);
+                emitter.emit(_emitterConstants__WEBPACK_IMPORTED_MODULE_1__["ERROR"], _context16.t0.message);
 
               case 8:
               case "end":
-                return _context15.stop();
+                return _context16.stop();
             }
           }
         }, null, null, [[0, 5]]);
@@ -722,21 +774,21 @@ function () {
   }, {
     key: "getBalance",
     value: function getBalance(account) {
-      return regeneratorRuntime.async(function getBalance$(_context16) {
+      return regeneratorRuntime.async(function getBalance$(_context17) {
         while (1) {
-          switch (_context16.prev = _context16.next) {
+          switch (_context17.prev = _context17.next) {
             case 0:
-              _context16.t0 = parseInt;
-              _context16.next = 3;
+              _context17.t0 = parseInt;
+              _context17.next = 3;
               return regeneratorRuntime.awrap(this.enigmaContract.methods.getWorker(account).call());
 
             case 3:
-              _context16.t1 = _context16.sent.balance;
-              return _context16.abrupt("return", (0, _context16.t0)(_context16.t1));
+              _context17.t1 = _context17.sent.balance;
+              return _context17.abrupt("return", (0, _context17.t0)(_context17.t1));
 
             case 5:
             case "end":
-              return _context16.stop();
+              return _context17.stop();
           }
         }
       }, null, this);
@@ -751,19 +803,46 @@ function () {
   }, {
     key: "getWorkerSignerAddr",
     value: function getWorkerSignerAddr(account) {
-      return regeneratorRuntime.async(function getWorkerSignerAddr$(_context17) {
+      return regeneratorRuntime.async(function getWorkerSignerAddr$(_context18) {
         while (1) {
-          switch (_context17.prev = _context17.next) {
+          switch (_context18.prev = _context18.next) {
             case 0:
-              _context17.next = 2;
+              _context18.next = 2;
               return regeneratorRuntime.awrap(this.enigmaContract.methods.getWorker(account).call());
 
             case 2:
-              return _context17.abrupt("return", _context17.sent.signer);
+              return _context18.abrupt("return", _context18.sent.signer);
 
             case 3:
             case "end":
-              return _context17.stop();
+              return _context18.stop();
+          }
+        }
+      }, null, this);
+    }
+    /**
+     * Get worker's operating address from staking address
+     *
+     * @param {string} account - Worker's ETH address
+     * @return {Promise} Resolves to worker's signer address
+     */
+
+  }, {
+    key: "getOperatingAddressFromStakingAddress",
+    value: function getOperatingAddressFromStakingAddress(account) {
+      return regeneratorRuntime.async(function getOperatingAddressFromStakingAddress$(_context19) {
+        while (1) {
+          switch (_context19.prev = _context19.next) {
+            case 0:
+              _context19.next = 2;
+              return regeneratorRuntime.awrap(this.enigmaContract.methods.getOperatingAddressFromStakingAddress(account).call());
+
+            case 2:
+              return _context19.abrupt("return", _context19.sent);
+
+            case 3:
+            case "end":
+              return _context19.stop();
           }
         }
       }, null, this);
@@ -2329,7 +2408,7 @@ function () {
 /*!*********************************!*\
   !*** ./src/emitterConstants.js ***!
   \*********************************/
-/*! exports provided: ERROR, DEPOSIT_TRANSACTION_HASH, DEPOSIT_CONFIRMATION, DEPOSIT_RECEIPT, WITHDRAW_TRANSACTION_HASH, WITHDRAW_CONFIRMATION, WITHDRAW_RECEIPT, LOGIN_TRANSACTION_HASH, LOGIN_CONFIRMATION, LOGIN_RECEIPT, LOGOUT_TRANSACTION_HASH, LOGOUT_CONFIRMATION, LOGOUT_RECEIPT, DEPLOY_SC_ADDR_RESULT, DEPLOY_SC_ETH_TRANSACTION_HASH, DEPLOY_SC_ETH_CONFIRMATION, DEPLOY_SC_ETH_RECEIPT, DEPLOY_SC_ENG_RECEIPT, CREATE_TASK, CREATE_TASK_INPUT, CREATE_TASK_RECORD_TRANSACTION_HASH, CREATE_TASK_RECORD_CONFIRMATION, CREATE_TASK_RECORD_RECEIPT, CREATE_TASK_RECORD, SEND_TASK_INPUT_RESULT, POLL_TASK_STATUS_RESULT, GET_TASK_RESULT_RESULT, DEPLOY_SECRET_CONTRACT_RESULT, RETURN_FEES_FOR_TASK_RECEIPT, RETURN_FEES_FOR_TASK, POLL_TASK_ETH_RESULT, RPC_SEND_TASK_INPUT, RPC_DEPLOY_SECRET_CONTRACT, RPC_GET_TASK_RESULT, RPC_GET_TASK_STATUS, GET_TASK_RESULT_SUCCESS, GET_TASK_RESULT_FAILED, GET_TASK_RESULT_UNVERIFIED, GET_TASK_RESULT_INPROGRESS, ETH_STATUS_UNDEFINED, ETH_STATUS_CREATED, ETH_STATUS_VERIFIED, ETH_STATUS_FAILED, ETH_STATUS_FAILED_ETH, ETH_STATUS_FAILED_RETURN */
+/*! exports provided: ERROR, DEPOSIT_TRANSACTION_HASH, DEPOSIT_CONFIRMATION, DEPOSIT_RECEIPT, WITHDRAW_TRANSACTION_HASH, WITHDRAW_CONFIRMATION, WITHDRAW_RECEIPT, LOGIN_TRANSACTION_HASH, LOGIN_CONFIRMATION, LOGIN_RECEIPT, LOGOUT_TRANSACTION_HASH, LOGOUT_CONFIRMATION, LOGOUT_RECEIPT, SET_OPERATING_ADDRESS_TRANSACTION_HASH, SET_OPERATING_ADDRESS_CONFIRMATION, SET_OPERATING_ADDRESS_RECEIPT, DEPLOY_SC_ADDR_RESULT, DEPLOY_SC_ETH_TRANSACTION_HASH, DEPLOY_SC_ETH_CONFIRMATION, DEPLOY_SC_ETH_RECEIPT, DEPLOY_SC_ENG_RECEIPT, CREATE_TASK, CREATE_TASK_INPUT, CREATE_TASK_RECORD_TRANSACTION_HASH, CREATE_TASK_RECORD_CONFIRMATION, CREATE_TASK_RECORD_RECEIPT, CREATE_TASK_RECORD, SEND_TASK_INPUT_RESULT, POLL_TASK_STATUS_RESULT, GET_TASK_RESULT_RESULT, DEPLOY_SECRET_CONTRACT_RESULT, RETURN_FEES_FOR_TASK_RECEIPT, RETURN_FEES_FOR_TASK, POLL_TASK_ETH_RESULT, RPC_SEND_TASK_INPUT, RPC_DEPLOY_SECRET_CONTRACT, RPC_GET_TASK_RESULT, RPC_GET_TASK_STATUS, GET_TASK_RESULT_SUCCESS, GET_TASK_RESULT_FAILED, GET_TASK_RESULT_UNVERIFIED, GET_TASK_RESULT_INPROGRESS, ETH_STATUS_UNDEFINED, ETH_STATUS_CREATED, ETH_STATUS_VERIFIED, ETH_STATUS_FAILED, ETH_STATUS_FAILED_ETH, ETH_STATUS_FAILED_RETURN */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2347,6 +2426,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "LOGOUT_TRANSACTION_HASH", function() { return LOGOUT_TRANSACTION_HASH; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "LOGOUT_CONFIRMATION", function() { return LOGOUT_CONFIRMATION; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "LOGOUT_RECEIPT", function() { return LOGOUT_RECEIPT; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SET_OPERATING_ADDRESS_TRANSACTION_HASH", function() { return SET_OPERATING_ADDRESS_TRANSACTION_HASH; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SET_OPERATING_ADDRESS_CONFIRMATION", function() { return SET_OPERATING_ADDRESS_CONFIRMATION; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SET_OPERATING_ADDRESS_RECEIPT", function() { return SET_OPERATING_ADDRESS_RECEIPT; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DEPLOY_SC_ADDR_RESULT", function() { return DEPLOY_SC_ADDR_RESULT; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DEPLOY_SC_ETH_TRANSACTION_HASH", function() { return DEPLOY_SC_ETH_TRANSACTION_HASH; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DEPLOY_SC_ETH_CONFIRMATION", function() { return DEPLOY_SC_ETH_CONFIRMATION; });
@@ -2392,6 +2474,9 @@ var LOGIN_RECEIPT = 'loginReceipt';
 var LOGOUT_TRANSACTION_HASH = 'logoutTransactionHash';
 var LOGOUT_CONFIRMATION = 'logoutConfirmation';
 var LOGOUT_RECEIPT = 'logoutReceipt';
+var SET_OPERATING_ADDRESS_TRANSACTION_HASH = 'setOperatingAddressTransactionHash';
+var SET_OPERATING_ADDRESS_CONFIRMATION = 'setOperatingAddressConfirmation';
+var SET_OPERATING_ADDRESS_RECEIPT = 'setOperatingAddressReceipt';
 var DEPLOY_SC_ADDR_RESULT = 'deploySCAddrResult';
 var DEPLOY_SC_ETH_TRANSACTION_HASH = 'deploySCEthTransactionHash';
 var DEPLOY_SC_ETH_CONFIRMATION = 'deploySCEthConfirmation';
