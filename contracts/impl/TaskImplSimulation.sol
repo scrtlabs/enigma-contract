@@ -32,7 +32,7 @@ library TaskImplSimulation {
         uint gasUsedTotal, bytes optionalEthereumData, address workerAddress);
     // ReceiptVerified => bytes32s [scAddr, taskId, stateDeltaHash, outputHash]
     event ReceiptVerified(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
-        uint deltaHashIndex, uint gasUsedTotal, bytes optionalEthereumData, address workerAddress, bytes sig);
+        uint deltaHashIndex, uint gasUsedTotal, bytes optionalEthereumData, bytes sig, address workerAddress);
     event ReceiptFailed(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
     event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, uint gasUsedTotal, address workerAddress,
         bytes sig);
@@ -158,7 +158,12 @@ library TaskImplSimulation {
             callbackGasETH = callbackGasETH.mul(IExchangeRate(state.exchangeRate).getExchangeRate()).mul(10**10).div(10**8); // Unused gas fee (ETH wei)
             callbackGasETH = callbackGasETH.div(tx.gasprice); // Unused gas units (ETH)
             uint256 gasLeftInit = gasleft();
-            (bool success,) = _optionalEthereumContractAddress.call.gas(callbackGasETH)(_optionalEthereumData);
+            uint256 codeSize;
+            assembly {
+                codeSize := extcodesize(_optionalEthereumContractAddress)
+            }
+            (bool success,) = codeSize > 0 ?
+                _optionalEthereumContractAddress.call.gas(callbackGasETH)(_optionalEthereumData) : (false, bytes(""));
             callbackGasENG = gasLeftInit.sub(gasleft()); // Callback used gas units (ETH)
             callbackGasENG = callbackGasENG.mul(tx.gasprice); // Callback used gas fee (ETH)
             callbackGasENG = callbackGasENG.mul(10**8).div(IExchangeRate(state.exchangeRate).getExchangeRate()).div(10**10); // Callback used gas fee (ENG)
@@ -355,7 +360,12 @@ library TaskImplSimulation {
             callbackGasETH = callbackGasETH.mul(IExchangeRate(state.exchangeRate).getExchangeRate()).mul(10**10).div(10**8); // Unused gas fee (ETH wei)
             callbackGasETH = callbackGasETH.div(tx.gasprice); // Unused gas units (ETH)
             uint256 gasLeftInit = gasleft();
-            (bool success,) = _optionalEthereumContractAddress.call.gas(callbackGasETH)(_optionalEthereumData);
+            uint256 codeSize;
+            assembly {
+                codeSize := extcodesize(_optionalEthereumContractAddress)
+            }
+            (bool success,) = codeSize > 0 ?
+                _optionalEthereumContractAddress.call.gas(callbackGasETH)(_optionalEthereumData) : (false, bytes(""));
             callbackGasENG = gasLeftInit.sub(gasleft()); // Callback used gas units (ETH)
             callbackGasENG = callbackGasENG.mul(tx.gasprice); // Callback used gas fee (ETH)
             callbackGasENG = callbackGasENG.mul(10**8).div(IExchangeRate(state.exchangeRate).getExchangeRate()).div(10**10); // Callback used gas fee (ENG)
@@ -368,7 +378,7 @@ library TaskImplSimulation {
                     secretContract.stateDeltaHashes.push(_bytes32s[2]) - 1 : 0;
                 state.tasks[_bytes32s[1]].outputHash = _bytes32s[3];
                 emit ReceiptVerified(_gasUsed, _optionalEthereumContractAddress, _bytes32s, deltaHashIndex, callbackGasENG,
-                    _optionalEthereumData, msg.sender, _sig);
+                    _optionalEthereumData, _sig, msg.sender);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
                 emit ReceiptFailedETH(_bytes32s[1], _bytes32s[0], _gasUsed, callbackGasENG, msg.sender, _sig);
@@ -381,7 +391,7 @@ library TaskImplSimulation {
                 secretContract.stateDeltaHashes.push(_bytes32s[2]) - 1 : 0;
             state.tasks[_bytes32s[1]].outputHash = _bytes32s[3];
             emit ReceiptVerified(_gasUsed, _optionalEthereumContractAddress, _bytes32s, deltaHashIndex, _gasUsed,
-                _optionalEthereumData, msg.sender, _sig);
+                _optionalEthereumData, _sig, msg.sender);
         }
     }
 
