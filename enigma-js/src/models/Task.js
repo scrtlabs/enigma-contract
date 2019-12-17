@@ -26,8 +26,8 @@ export default class Task {
    * @param {boolean} isContractDeploymentTask
    */
   constructor(scAddr, encryptedFn, encryptedAbiEncodedArgs, gasLimit, gasPx, msgId, userPubKey, firstBlockNumber,
-              workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode, preCodeHash,
-              isContractDeploymentTask) {
+      workerAddress, workerEncryptionKey, sender, userTaskSig, nonce, preCode, preCodeHash,
+      isContractDeploymentTask) {
     // Initial task attributes
     this.inputsHash = utils.hash([encryptedFn, encryptedAbiEncodedArgs,
       isContractDeploymentTask ? preCodeHash : scAddr, userPubKey]);

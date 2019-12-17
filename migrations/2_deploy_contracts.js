@@ -8,11 +8,13 @@ const fs = require('fs');
 const path = require('path');
 const VotingETH = artifacts.require('VotingETH.sol');
 
-const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
+const PRINCIPAL_SIGNING_ADDRESS = '0x7de257a09705ad7a5652f7c89275b1ed74a7553c';
+const DEBUG = true;
 const ISVSVN = '0x0000';
 const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
 const EPOCH_SIZE = 10;
 const TIMEOUT_THRESHOLD = 2;
+const EXCHANGE_RATE = 164518;
 
 dotenv.config();    // Reads .env configuration file, if present
 
@@ -30,7 +32,7 @@ const TaskImpl = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX
   artifacts.require('./impl/TaskImpl.sol');
 const UpgradeImpl = artifacts.require('./impl/UpgradeImpl.sol');
 
-async function deployProtocol(deployer) {
+async function deployProtocol(deployer, accounts) {
   await Promise.all([
     deployer.deploy(EnigmaToken),
     deployer.deploy(SolRsaVerify),
@@ -60,8 +62,10 @@ async function deployProtocol(deployer) {
     (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
       Enigma.link('WorkersImplSimulation', WorkersImpl.address) :
       Enigma.link('WorkersImpl', WorkersImpl.address),
+    (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
+      Enigma.link('TaskImplSimulation', TaskImpl.address) :
+      Enigma.link('TaskImpl', TaskImpl.address),
     Enigma.link('PrincipalImpl', PrincipalImpl.address),
-    Enigma.link('TaskImpl', TaskImpl.address),
     Enigma.link('UpgradeImpl', UpgradeImpl.address),
     Enigma.link('SecretContractImpl', SecretContractImpl.address),
   ]);
@@ -74,8 +78,10 @@ async function deployProtocol(deployer) {
   }
   console.log('using account', principal, 'as principal signer');
   await deployer.deploy(ExchangeRate);
+  const exchangeRateContract = await ExchangeRate.deployed();
+  await exchangeRateContract.setExchangeRate(EXCHANGE_RATE, {from: accounts[0], gas: 300000});
   await deployer.deploy(Enigma, EnigmaToken.address, principal, ExchangeRate.address, EPOCH_SIZE, TIMEOUT_THRESHOLD,
-      MRSIGNER, ISVSVN);
+      DEBUG, MRSIGNER, ISVSVN);
   await deployer.deploy(Sample);
   await deployer.deploy(VotingETH);
 
@@ -104,10 +110,10 @@ async function deployProtocol(deployer) {
   }
 }
 
-async function doMigration(deployer) {
-  await deployProtocol(deployer);
+async function doMigration(deployer, accounts) {
+  await deployProtocol(deployer, accounts);
 }
 
-module.exports = function(deployer) {
-  deployer.then(() => doMigration(deployer));
+module.exports = function(deployer, network, accounts) {
+  deployer.then(() => doMigration(deployer, accounts));
 };

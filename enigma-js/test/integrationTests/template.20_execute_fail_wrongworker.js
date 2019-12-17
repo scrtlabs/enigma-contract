@@ -78,7 +78,7 @@ describe('Enigma tests', () => {
         return value != workerAddress;})[0];
 
       wrongWorkerAddress = wrongWorkerAddress.toLowerCase().slice(-40); // remove leading '0x' if present
-      const {publicKey, privateKey} = enigma.obtainTaskKeyPair();
+      const {publicKey, privateKey} = enigma.obtainTaskKeyPair(sender, nonce);
       try {
         const getWorkerEncryptionKeyResult = await new Promise((resolve, reject) => {
           enigma.client.request('getWorkerEncryptionKey',
@@ -164,7 +164,7 @@ describe('Enigma tests', () => {
         .on(eeConstants.SEND_TASK_INPUT_RESULT, (receipt) => resolve(receipt))
         .on(eeConstants.ERROR, (error) => reject(error));
     });
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
   it('should get the pending task', async () => {
     task = await enigma.getTaskRecordStatus(task);

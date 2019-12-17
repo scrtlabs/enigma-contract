@@ -31,10 +31,11 @@ export default class Admin {
     const result = await this.enigmaContract.methods.getWorkerFromSigningAddress(sigAddr).call();
     return {
       account: result[0],
-      status: parseInt(result[1][1]),
-      report: result[1][2],
-      balance: parseInt(result[1][3]),
-      logs: result[1][4],
+      stakingAddress: result[1][0],
+      status: parseInt(result[1][2]),
+      report: result[1][3],
+      balance: parseInt(result[1][4]),
+      logs: result[1][5],
     };
   }
 
@@ -140,7 +141,7 @@ export default class Admin {
    */
   async isValidDeltaHash(scAddr, stateDeltaHash) {
     return (await this.enigmaContract.methods.getSecretContract(scAddr).call()).stateDeltaHashes.includes(
-      stateDeltaHash);
+        stateDeltaHash);
   }
 
   /**
@@ -150,7 +151,7 @@ export default class Admin {
    * @return {EventEmitter} EventEmitter to be listened to track login transaction
    */
   login(account) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       try {
         await this.enigmaContract.methods.login().send({from: account}).on('transactionHash', (hash) => {
@@ -168,13 +169,40 @@ export default class Admin {
   }
 
   /**
+   * Set operating address for a staking address
+   *
+   * @param {string} stakingAddress - Staking address
+   * @param {string} operatingAddress - Operating address
+   * @return {EventEmitter} EventEmitter to be listened to track login transaction
+   */
+  setOperatingAddress(stakingAddress, operatingAddress) {
+    const emitter = new EventEmitter();
+    (async () => {
+      try {
+        await this.enigmaContract.methods.setOperatingAddress(operatingAddress).send({
+          from: stakingAddress,
+        }).on('transactionHash', (hash) => {
+          emitter.emit(eeConstants.SET_OPERATING_ADDRESS_TRANSACTION_HASH, hash);
+        }).on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit(eeConstants.SET_OPERATING_ADDRESS_CONFIRMATION, confirmationNumber, receipt);
+        }).on('receipt', (receipt) => {
+          emitter.emit(eeConstants.SET_OPERATING_ADDRESS_RECEIPT, receipt);
+        });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
    * Logout the selected worker
    *
    * @param {string} account - ETH address for worker being logged out
    * @return {EventEmitter} EventEmitter to be listened to track logout transaction
    */
   logout(account) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       try {
         await this.enigmaContract.methods.logout().send({from: account}).on('transactionHash', (hash) => {
@@ -199,7 +227,7 @@ export default class Admin {
    * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
   deposit(account, amount) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       const balance = await this.tokenContract.methods.balanceOf(account).call();
       if (balance < amount) {
@@ -212,14 +240,14 @@ export default class Admin {
       }
       await this.tokenContract.methods.approve(this.enigmaContract.options.address, amount).send({from: account});
       try {
-        const receipt = await this.enigmaContract.methods.deposit(account, amount).
-          send({from: account}).
-          on('transactionHash', (hash) => {
-            emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
-          }).
-          on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
-          });
+        const receipt = await this.enigmaContract.methods.deposit(account, amount)
+            .send({from: account})
+            .on('transactionHash', (hash) => {
+              emitter.emit(eeConstants.DEPOSIT_TRANSACTION_HASH, hash);
+            })
+            .on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.DEPOSIT_CONFIRMATION, confirmationNumber, receipt);
+            });
         emitter.emit(eeConstants.DEPOSIT_RECEIPT, receipt);
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
@@ -237,20 +265,20 @@ export default class Admin {
    * @return {EventEmitter} EventEmitter to be listened to track deposit transaction
    */
   withdraw(account, amount) {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     (async () => {
       try {
         await this.enigmaContract.methods.withdraw(amount).
-          send({from: account}).
-          on('transactionHash', (hash) => {
-            emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
-          }).
-          on('confirmation', (confirmationNumber, receipt) => {
-            emitter.emit(eeConstants.WITHDRAW_CONFIRMATION, confirmationNumber, receipt);
-          }).
-          on('receipt', (receipt) => {
-            emitter.emit(eeConstants.WITHDRAW_RECEIPT, receipt);
-          });
+            send({from: account}).
+            on('transactionHash', (hash) => {
+              emitter.emit(eeConstants.WITHDRAW_TRANSACTION_HASH, hash);
+            }).
+            on('confirmation', (confirmationNumber, receipt) => {
+              emitter.emit(eeConstants.WITHDRAW_CONFIRMATION, confirmationNumber, receipt);
+            }).
+            on('receipt', (receipt) => {
+              emitter.emit(eeConstants.WITHDRAW_RECEIPT, receipt);
+            });
       } catch (err) {
         emitter.emit(eeConstants.ERROR, err.message);
       }
@@ -276,5 +304,15 @@ export default class Admin {
    */
   async getWorkerSignerAddr(account) {
     return (await this.enigmaContract.methods.getWorker(account).call()).signer;
+  }
+
+  /**
+   * Get worker's operating address from staking address
+   *
+   * @param {string} account - Worker's ETH address
+   * @return {Promise} Resolves to worker's signer address
+   */
+  async getOperatingAddressFromStakingAddress(account) {
+    return await this.enigmaContract.methods.getOperatingAddressFromStakingAddress(account).call();
   }
 }

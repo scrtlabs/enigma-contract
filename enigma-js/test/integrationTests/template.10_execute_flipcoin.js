@@ -88,6 +88,6 @@ describe('Enigma tests', () => {
     task = await enigma.decryptTaskResult(task);
     const result = parseInt(task.decryptedOutput, 16);
     expect(result === 1 || result === 0).toBe(true);
-  });
+  }, constants.TIMEOUT_COMPUTE);
 
 });

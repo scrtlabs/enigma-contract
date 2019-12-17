@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -32,7 +32,8 @@ library PrincipalImplV2 {
         // This should be called for each epoch by the Principal node
 
         // We assume that the Principal is always the first registered node
-        require(state.workers[msg.sender].signer == state.principal, "Only the Principal can update the seed");
+        require(state.workers[msg.sender].signer == state.principal,
+            "Only the Principal can update the seed");
         require(_blockNumber - WorkersImplV2.getFirstBlockNumberImpl(state, _blockNumber) >= state.epochSize,
             "Already called during this epoch");
 
@@ -76,7 +77,7 @@ library PrincipalImplV2 {
                 workerEventType: EnigmaCommon.WorkerLogType.Compound,
                 blockNumber: block.number,
                 balance: worker.balance
-            }));
+                }));
         }
 
         emit WorkersParameterized(_seed, block.number, _blockNumber, workerParams.workers,

@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
+const DEBUG = true;
 const ISVSVN = '0x0000';
 const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
 const EPOCH_SIZE = 10;
@@ -86,7 +87,7 @@ async function deployProtocol(deployer) {
   const enigmaTokenAddress = (await EnigmaToken.deployed()).address;
   console.log('OLD ENIGMA ADDRESS PASSED INTO', enigmaAddress);
   await deployer.deploy(EnigmaV2, enigmaTokenAddress, principal, exchangeRateAddress, enigmaAddress, EPOCH_SIZE,
-      TIMEOUT_THRESHOLD, MRSIGNER, ISVSVN);
+      TIMEOUT_THRESHOLD, DEBUG, MRSIGNER, ISVSVN);
 }
 
 async function doMigration(deployer) {

@@ -175,8 +175,8 @@ const EC = elliptic.ec;
  */
 function generateScAddr(sender, nonce) {
   return web3Utils.soliditySha3(
-    {t: 'bytes', v: sender},
-    {t: 'uint', v: nonce},
+      {t: 'bytes', v: sender},
+      {t: 'uint', v: nonce},
   );
 }
 
@@ -209,7 +209,7 @@ function appendMessages(hexStr, inputsArray, principal=false) {
  */
 function appendArrayMessages(hexStr, inputsArray) {
   const principalPrefix = '01';
-  for (let array of inputsArray) {
+  for (const array of inputsArray) {
     hexStr += principalPrefix + JSBI.BigInt(array[0].length * (array[1]+9)).toString(16).padStart(16, '0');
     hexStr = appendMessages(hexStr, array[0], true);
   }
@@ -223,7 +223,7 @@ function appendArrayMessages(hexStr, inputsArray) {
  * @return {string} Hash of inputs
  */
 function hash(inputsArray) {
-  let hexStr = appendMessages('', inputsArray);
+  const hexStr = appendMessages('', inputsArray);
   return web3Utils.soliditySha3({t: 'bytes', v: hexStr});
 }
 
@@ -258,7 +258,7 @@ function principalHash(seed, nonce, workerAddresses, workerStakes) {
  * @return {string} hash of inputs
  */
 function commitReceiptsHash(codeHash, inputsHashes, lastStateDeltaHash, stateDeltaHashes, outputHashes, gasesUsed,
-                            optionalEthereumData, optionalEthereumContractAddress, successFlag) {
+    optionalEthereumData, optionalEthereumContractAddress, successFlag) {
   let hexStr = '';
   hexStr = appendMessages(hexStr, [codeHash]);
   hexStr = appendArrayMessages(hexStr, [inputsHashes]);
@@ -362,22 +362,22 @@ function commitReceiptsHash(codeHash, inputsHashes, lastStateDeltaHash, stateDel
  * @return {string}
  */
 function getDerivedKey(enclavePublicKey, clientPrivateKey) {
-  let ec = new EC('secp256k1');
+  const ec = new EC('secp256k1');
 
   if (enclavePublicKey.length == 128) {
     enclavePublicKey = '04' + enclavePublicKey;
   }
 
-  let clientKey = ec.keyFromPrivate(clientPrivateKey, 'hex');
-  let enclaveKey = ec.keyFromPublic(enclavePublicKey, 'hex');
+  const clientKey = ec.keyFromPrivate(clientPrivateKey, 'hex');
+  const enclaveKey = ec.keyFromPublic(enclavePublicKey, 'hex');
 
-  let sharedPoints = enclaveKey.getPublic().mul(clientKey.getPrivate());
-  let y = 0x02 | (sharedPoints.getY().isOdd() ? 1 : 0);
-  let x = sharedPoints.getX();
-  let yBuffer = Buffer.from([y]);
-  let xBuffer = x.toArrayLike(Buffer, 'be', 32);
+  const sharedPoints = enclaveKey.getPublic().mul(clientKey.getPrivate());
+  const y = 0x02 | (sharedPoints.getY().isOdd() ? 1 : 0);
+  const x = sharedPoints.getX();
+  const yBuffer = Buffer.from([y]);
+  const xBuffer = x.toArrayLike(Buffer, 'be', 32);
 
-  let sha256 = forge.md.sha256.create();
+  const sha256 = forge.md.sha256.create();
 
   sha256.update(yBuffer.toString('binary'));
   sha256.update(xBuffer.toString('binary'));
@@ -394,15 +394,15 @@ function getDerivedKey(enclavePublicKey, clientPrivateKey) {
  * @return {string} Decrypted message
  */
 function decryptMessage(keyHex, msgHex) {
-  let key = forge.util.hexToBytes(keyHex);
-  let msgBuf = Buffer.from(msgHex, 'hex');
-  let iv = forge.util.createBuffer(msgBuf.slice(-12));
-  let tag = forge.util.createBuffer(msgBuf.slice(-28, -12));
+  const key = forge.util.hexToBytes(keyHex);
+  const msgBuf = Buffer.from(msgHex, 'hex');
+  const iv = forge.util.createBuffer(msgBuf.slice(-12));
+  const tag = forge.util.createBuffer(msgBuf.slice(-28, -12));
   const decipher = forge.cipher.createDecipher('AES-GCM', key);
 
   decipher.start({iv: iv, tag: tag});
   decipher.update(
-    forge.util.createBuffer(msgBuf.slice(0, -28)));
+      forge.util.createBuffer(msgBuf.slice(0, -28)));
 
   if (decipher.finish()) {
     return decipher.output.toHex();
@@ -421,14 +421,14 @@ function decryptMessage(keyHex, msgHex) {
  * @return {string} Encrypted message
  */
 function encryptMessage(keyHex, msg, iv = forge.random.getBytesSync(12)) {
-  let key = forge.util.hexToBytes(keyHex);
+  const key = forge.util.hexToBytes(keyHex);
   const cipher = forge.cipher.createCipher('AES-GCM', key);
 
   cipher.start({iv: iv});
   cipher.update(forge.util.createBuffer(msg));
   cipher.finish();
 
-  let result = cipher.output.putBuffer(cipher.mode.tag).putBytes(iv);
+  const result = cipher.output.putBuffer(cipher.mode.tag).putBytes(iv);
 
   return result.toHex();
 }
@@ -531,7 +531,7 @@ function gunzip(buffer) {
 }
 
 
-let utils = {};
+const utils = {};
 
 // utils.readCert = readCert;
 // utils.encodeReport = encodeReport;

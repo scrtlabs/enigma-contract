@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 pragma experimental ABIEncoderV2;
 
 import { EnigmaCommon } from "./EnigmaCommon.sol";
@@ -54,6 +54,8 @@ library EnigmaState {
         // A registry of all registered workers with their attributes
         mapping(address => EnigmaCommon.Worker) workers;
 
+        mapping(address => address) stakingToOperatingAddresses;
+
         // A registry of all tasks with their attributes
         mapping(bytes32 => EnigmaCommon.TaskRecord) tasks;
 
@@ -70,6 +72,7 @@ library EnigmaState {
         uint stakingThreshold;
         uint workerGroupSize;
 
+        bool debug;
         bytes mrSigner;
         bytes isvSvn;
     }
