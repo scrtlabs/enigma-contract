@@ -1593,7 +1593,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: task.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(stakingAccounts[0]);
-      expect(task.nonce).toEqual(6);
       expect(task.receipt).toBeTruthy();
       expect(task.transactionHash).toBeTruthy();
       expect(task.taskId).toBeTruthy();
@@ -1939,7 +1938,6 @@ describe('Enigma tests', () => {
         {t: 'bytes', v: task.encryptedAbiEncodedArgs},
       );
       expect(enigma.web3.eth.accounts.recover(msg, task.userTaskSig)).toEqual(stakingAccounts[0]);
-      expect(task.nonce).toEqual(9);
       expect(task.receipt).toBeTruthy();
       expect(task.transactionHash).toBeTruthy();
       expect(task.taskId).toBeTruthy();

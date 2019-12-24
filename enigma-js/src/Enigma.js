@@ -110,7 +110,7 @@ export default class Enigma {
     const emitter = new EventEmitter();
     (async () => {
       // TODO: never larger that 53-bit?
-      const nonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
+      const nonce = await this.getNonce(sender, isContractDeploymentTask);
       const scAddr = isContractDeploymentTask ? utils.generateScAddr(sender, nonce) : scAddrOrPreCode;
       let preCode;
       let preCodeGzip;
@@ -715,6 +715,32 @@ export default class Enigma {
     isBrowser ? window.localStorage.setItem('seed', btoa(seed)) :
       this.taskKeyLocalStorage['seed'] = seed;
     return seed;
+  }
+
+  /**
+   * Return the nonce for the current task, the maximum of the nonce returned by the contract and the
+   * one we are tracking locally to avoid conflicts in concurrency.
+   *
+   * @param {string} sender - ETH address for task sender
+   * @param {boolean} trueNonce - if this is a contract deployment use a true nonce from the contract
+   * @return {Number} nonce
+   */
+  async getNonce(sender, trueNonce = false) {
+    const isBrowser = typeof window !== 'undefined';
+    const remoteNonce = parseInt(await this.enigmaContract.methods.getUserTaskDeployments(sender).call());
+    let nonce;
+    if (trueNonce) {
+      nonce = remoteNonce;
+    } else {
+      const localNonce = isBrowser ? parseInt(window.localStorage.getItem('nonce-'+sender)) :
+      parseInt(this.taskKeyLocalStorage['nonce-'+sender]);
+      // If localNonce undefined, return remoteNonce, otherwise Math.max() returns NaN
+      nonce = localNonce ? Math.max(remoteNonce, localNonce) : remoteNonce;
+    }
+    // Store the next nonce we will use, to match what the query from the contract will return
+    isBrowser ? window.localStorage.setItem('nonce-'+sender, nonce+1) :
+      this.taskKeyLocalStorage['nonce-'+sender] = nonce+1;
+    return nonce;
   }
 
   /**
