@@ -223,7 +223,7 @@ export default class Admin {
    * Unregister the selected worker
    *
    * @param {string} account - ETH staking address or operating address
-   * @return {EventEmitter} EventEmitter to be listened to track logout transaction
+   * @return {EventEmitter} EventEmitter to be listened to track unregister transaction
    */
   unregister(account) {
     const emitter = new EventEmitter();
