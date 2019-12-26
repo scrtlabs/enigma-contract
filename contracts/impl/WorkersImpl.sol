@@ -19,6 +19,7 @@ library WorkersImpl {
     using Bytes for bytes;
 
     event Registered(address custodian, address signer);
+    event Unregistered(address custodian);
     event DepositSuccessful(address from, uint value);
     event WithdrawSuccessful(address to, uint value);
     event LoggedIn(address workerAddress);
@@ -179,6 +180,8 @@ library WorkersImpl {
             msg.sender : state.stakingToOperatingAddresses[msg.sender];
         delete state.stakingToOperatingAddresses[state.workers[operatingAddress].stakingAddress];
         delete state.workers[operatingAddress];
+
+        emit Unregistered(operatingAddress);
     }
 
     function setOperatingAddressImpl(EnigmaState.State storage state, address _operatingAddress)

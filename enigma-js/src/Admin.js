@@ -220,6 +220,30 @@ export default class Admin {
   }
 
   /**
+   * Unregister the selected worker
+   *
+   * @param {string} account - ETH staking address or operating address
+   * @return {EventEmitter} EventEmitter to be listened to track logout transaction
+   */
+  unregister(account) {
+    const emitter = new EventEmitter();
+    (async () => {
+      try {
+        await this.enigmaContract.methods.unregister().send({from: account}).on('transactionHash', (hash) => {
+          emitter.emit(eeConstants.UNREGISTER_TRANSACTION_HASH, hash);
+        }).on('confirmation', (confirmationNumber, receipt) => {
+          emitter.emit(eeConstants.UNREGISTER_CONFIRMATION, confirmationNumber, receipt);
+        }).on('receipt', (receipt) => {
+          emitter.emit(eeConstants.UNREGISTER_RECEIPT, receipt);
+        });
+      } catch (err) {
+        emitter.emit(eeConstants.ERROR, err.message);
+      }
+    })();
+    return emitter;
+  }
+
+  /**
    * Deposit ENG tokens in the worker's bank. Worker must be registered prior to this.
    *
    * @param {string} account - Worker's ETH address
