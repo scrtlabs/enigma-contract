@@ -25,7 +25,7 @@ library TaskImplSimulationV2 {
     using Bytes for uint64;
     using Bytes for address;
 
-    event TaskRecordCreated(bytes32 taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
+    event TaskRecordCreated(bytes32 indexed taskId, bytes32 inputsHash, uint64 gasLimit, uint64 gasPx, address sender,
         uint blockNumber);
     // SecretContractDeployed => bytes32s [taskId, preCodeHash, codeHash, initStateDeltaHash]
     event SecretContractDeployed(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
@@ -33,10 +33,10 @@ library TaskImplSimulationV2 {
     // ReceiptVerified => bytes32s [scAddr, taskId, stateDeltaHash, outputHash]
     event ReceiptVerified(uint64 gasUsed, address optionalEthereumContractAddress, bytes32[4] bytes32s,
         uint deltaHashIndex, uint gasUsedTotal, bytes optionalEthereumData, address workerAddress, bytes sig);
-    event ReceiptFailed(bytes32 taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
-    event ReceiptFailedETH(bytes32 taskId, bytes32 scAddr, uint gasUsed, uint gasUsedTotal, address workerAddress,
-        bytes sig);
-    event TaskFeeReturned(bytes32 taskId);
+    event ReceiptFailed(bytes32 indexed taskId, bytes32 scAddr, uint gasUsed, address workerAddress, bytes sig);
+    event ReceiptFailedETH(bytes32 indexed taskId, bytes32 scAddr, uint gasUsed, uint gasUsedTotal,
+        address workerAddress, bytes sig);
+    event TaskFeeReturned(bytes32 indexed taskId);
 
     function createDeploymentTaskRecordImpl(
         EnigmaState.State storage state,

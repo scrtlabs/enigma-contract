@@ -62,6 +62,9 @@ ES6 source files
     
 5. Build the library
 
+    * `cd ../migrations`
+    * `npx truffle migrate --reset`
+    * `cd ../enigma-js`
     * Run `yarn build` to produce minified version of the library. It will check code quality before building (ESLint) and it will also run all tests afterwards (see prior step) and output a code coverage report.
 
 
