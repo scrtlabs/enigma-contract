@@ -64,7 +64,7 @@ ES6 source files
 
     ```bash
     yarn
-    npx truffle compile
+    npx truffle migrate --reset
     cd enigma-js
     yarn build
     ```
