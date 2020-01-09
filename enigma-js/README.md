@@ -60,10 +60,16 @@ ES6 source files
     yarn test
     ```
     
-5. Build the library
+5. Building the library
 
-    * Run `yarn build` to produce minified version of the library. It will check code quality before building (ESLint) and it will also run all tests afterwards (see prior step) and output a code coverage report.
+    ```bash
+    yarn
+    npx truffle migrate --reset
+    cd enigma-js
+    yarn build
+    ```
 
+    This will produce minified version of the library. It will check code quality before building (ESLint) and it will also run all tests afterwards (see prior step) and output a code coverage report.
 
 ## Scripts
 
