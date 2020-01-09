@@ -227,7 +227,6 @@ describe('Enigma tests', () => {
             from: operatingAccounts[8],
           }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error));
         });
-        // console.log(receipt.events.Registered.returnValues);
       }
       expect(receipt).toBeTruthy();
     }, 30000);
@@ -545,14 +544,13 @@ describe('Enigma tests', () => {
 
     it('should fail to unregister a worker because balance is not 0', async () => {
       await expect(new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.unregister().send({
-          gas: 4712388,
-          gasPrice: 100000000000,
-          from: stakingAccounts[7],
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
-      }))
-        .rejects.toEqual('Returned error: VM Exception while processing transaction: revert Worker\'s balance is not' +
-          ' empty');
+        enigma.admin.unregister(stakingAccounts[7]).on(eeConstants.UNREGISTER_RECEIPT, (receipt) => {
+          resolve(receipt);
+        }).on(eeConstants.ERROR, (error) => {
+          reject(error);
+        });
+      })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Worker\'s balance is not' +
+        ' empty');
     });
 
     it('should fail to withdraw because worker is still logged in', async () => {
@@ -685,11 +683,11 @@ describe('Enigma tests', () => {
 
     it('should unregister a worker from staking address', async () => {
       await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.unregister().send({
-          gas: 4712388,
-          gasPrice: 100000000000,
-          from: stakingAccounts[7],
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+        enigma.admin.unregister(stakingAccounts[7]).on(eeConstants.UNREGISTER_RECEIPT, (result) => {
+          resolve(result);
+        }).on(eeConstants.ERROR, (err) => {
+          reject(err);
+        });
       });
       const workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
       expect(workerStatus).toEqual(0);
@@ -697,11 +695,11 @@ describe('Enigma tests', () => {
 
     it('should fail to unregister a worker from operating address since already unregistered', async () => {
       await expect(new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.unregister().send({
-          gas: 4712388,
-          gasPrice: 100000000000,
-          from: operatingAccounts[7],
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+        enigma.admin.unregister(operatingAccounts[7]).on(eeConstants.UNREGISTER_RECEIPT, (receipt) => {
+          resolve(receipt);
+        }).on(eeConstants.ERROR, (error) => {
+          reject(error);
+        });
       })).rejects.toEqual('Returned error: VM Exception while processing transaction: revert Unregistered worker');
     });
 
@@ -720,11 +718,11 @@ describe('Enigma tests', () => {
       let workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
       expect(workerStatus).toEqual(2);
       await new Promise((resolve, reject) => {
-        enigma.enigmaContract.methods.unregister().send({
-          gas: 4712388,
-          gasPrice: 100000000000,
-          from: operatingAccounts[7],
-        }).on('receipt', (receipt) => resolve(receipt)).on('error', (error) => reject(error.message));
+        enigma.admin.unregister(operatingAccounts[7]).on(eeConstants.UNREGISTER_RECEIPT, (receipt) => {
+          resolve(receipt);
+        }).on(eeConstants.ERROR, (error) => {
+          reject(error);
+        });
       });
       workerStatus = await enigma.admin.getWorkerStatus(operatingAccounts[7]);
       expect(workerStatus).toEqual(0);
