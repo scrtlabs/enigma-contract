@@ -439,8 +439,8 @@ contract EnigmaSimulation is EnigmaStorage, EnigmaEvents, Getters, Ownable {
     workerLoggedIn
     contractDeployed(_bytes32s[0])
     {
-        TaskImplSimulation.commitReceiptImpl(state, _gasUsed, _optionalEthereumContractAddress,
-            _bytes32s, _optionalEthereumData, _sig);
+        TaskImplSimulation.commitReceiptImpl(state, _sig, _gasUsed, _optionalEthereumContractAddress,
+            _bytes32s, _optionalEthereumData);
     }
 
     /**
