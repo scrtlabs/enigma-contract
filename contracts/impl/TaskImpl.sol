@@ -35,7 +35,7 @@ library TaskImpl {
         bytes32[4] bytes32s, uint deltaHashIndex, uint gasUsedTotal, bytes optionalEthereumData, address workerAddress);
     event ReceiptFailed(bytes32 indexed taskId, bytes32 scAddr, bytes32 outputHash,
         uint gasUsed, address workerAddress);
-    event ReceiptFailedETH(bytes32 indexed taskId, bytes32 scAddr, bytes32 outputHash, uint gasUsed, uint gasUsedTotal,
+    event ReceiptFailedETH(bytes32 indexed taskId, bytes32 scAddr, uint gasUsed, uint gasUsedTotal,
         address workerAddress);
     event TaskFeeReturned(bytes32 indexed taskId);
 
@@ -183,7 +183,7 @@ library TaskImpl {
                     callbackGasENG, _optionalEthereumData, msg.sender);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-                emit ReceiptFailedETH(_bytes32s[0], _bytes32s[0], _bytes32s[2], _gasUsed, callbackGasENG, msg.sender);
+                emit ReceiptFailedETH(_bytes32s[0], _bytes32s[0], _gasUsed, callbackGasENG, msg.sender);
             }
         } else {
             transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed,
@@ -382,7 +382,7 @@ library TaskImpl {
                     deltaHashIndex, callbackGasENG, _optionalEthereumData, msg.sender);
             } else {
                 task.status = EnigmaCommon.TaskStatus.ReceiptFailedETH;
-                emit ReceiptFailedETH(_bytes32s[1], _bytes32s[0], _bytes32s[3], _gasUsed, callbackGasENG, msg.sender);
+                emit ReceiptFailedETH(_bytes32s[1], _bytes32s[0], _gasUsed, callbackGasENG, msg.sender);
             }
         } else {
             transferFundsAfterTask(state, msg.sender, task.sender, _gasUsed,
