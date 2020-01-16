@@ -17,6 +17,10 @@ Simulation mode is only supported for development purposes in environments witho
 
 For reference, an `.env-template` is provided that can be copied over to `.env` to manage the setting of this environment variable.
 
+## Deployment on a live network
+
+See `docs/DEPLOY.md` for step-by-step instructions.
+
 ## License
 
 The Enigma Contract is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by
