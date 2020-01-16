@@ -27,13 +27,15 @@ This file documents how to deploy/migrate the Enigma Contract onto a public Ethe
 
 8. For now, delete `migrations/3_deploy_upgraded_contracts.js` or rename it to any other name without the `.js` extension to disable this file.
 
-9. You are encouraged to do a *dry-run* to make sure everything works as expected:
+9. Make sure the folder `$HOME/.enigma` exists in your computer. When the migrations run, if this folder exists, it will write the addresses for all the contracts on one file for every contract. These files should later be uploaded to their respective testnet version folder in the [enigmampc/discovery-testnet](https://github.com/enigmampc/discovery-testnet) repo for future reference (for example [v1/contracts](https://github.com/enigmampc/discovery-testnet/tree/master/v1/contracts)).
+
+10. You are encouraged to do a *dry-run* to make sure everything works as expected:
 
 	```bash
 	truffle migrate --reset --network kovan --dry-run
 	```
 
-10. When you are ready, run the actual migration:
+11. When you are ready, run the actual migration:
 
 	```bash
 	truffle migrate --reset --network kovan
