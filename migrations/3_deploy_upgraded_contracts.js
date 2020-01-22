@@ -6,14 +6,17 @@ const ExchangeRate = artifacts.require('ExchangeRate.sol');
 const fs = require('fs');
 const path = require('path');
 
-const PRINCIPAL_SIGNING_ADDRESS = '0xa7595124f19a31b70a7d919ef8502ca5eb5e8225';
-const DEBUG = true;
-const ISVSVN = '0x0000';
-const MRSIGNER = '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
-const EPOCH_SIZE = 10;
-const TIMEOUT_THRESHOLD = 2;
-
 dotenv.config();    // Reads .env configuration file, if present
+
+const PRINCIPAL_SIGNING_ADDRESS = process.env.PRINCIPAL_SIGNING_ADDRESS || '0x7de257a09705ad7a5652f7c89275b1ed74a7553c';
+const SGX_DEBUG = process.env.SGX_DEBUG || true;
+const SGX_ISVSVN = process.env.SGX_ISVSVN || '0x0000';
+const SGX_MRSIGNER = process.env.SGX_MRSIGNER || '0x83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e';
+const EPOCH_SIZE = process.env.EPOCH_SIZE || 10;
+const TIMEOUT_THRESHOLD = process.env.TIMEOUT_THRESHOLD || 2;
+const EXCHANGE_RATE = process.env.EXCHANGE_RATE || 164518;
+var TOKEN_ADDRESS = process.env.TOKEN_ADDRESS || false;
+
 
 const Enigma = (typeof process.env.SGX_MODE !== 'undefined' && process.env.SGX_MODE == 'SW') ?
     artifacts.require('./EnigmaSimulation.sol') :
@@ -84,10 +87,12 @@ async function deployProtocol(deployer) {
     principal = fs.readFileSync(principalSignAddrFile, 'utf-8');
   }
   console.log('using account', principal, 'as principal signer');
-  const enigmaTokenAddress = (await EnigmaToken.deployed()).address;
+  if( ! TOKEN_ADDRESS ) {
+    TOKEN_ADDRESS = (await EnigmaToken.deployed()).address;
+  }
   console.log('OLD ENIGMA ADDRESS PASSED INTO', enigmaAddress);
-  await deployer.deploy(EnigmaV2, enigmaTokenAddress, principal, exchangeRateAddress, enigmaAddress, EPOCH_SIZE,
-      TIMEOUT_THRESHOLD, DEBUG, MRSIGNER, ISVSVN);
+  await deployer.deploy(EnigmaV2, TOKEN_ADDRESS, principal, exchangeRateAddress, enigmaAddress, EPOCH_SIZE,
+      TIMEOUT_THRESHOLD, SGX_DEBUG, SGX_MRSIGNER, SGX_ISVSVN);
 }
 
 async function doMigration(deployer) {
