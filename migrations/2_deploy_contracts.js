@@ -94,7 +94,7 @@ async function deployProtocol(deployer, network, accounts) {
   await deployer.deploy(Enigma, TOKEN_ADDRESS, principal, ExchangeRate.address, EPOCH_SIZE, TIMEOUT_THRESHOLD,
       SGX_DEBUG, SGX_MRSIGNER, SGX_ISVSVN);
 
-  if (network != 'kovan') {
+  if (!network.includes('kovan')) {
     await deployer.deploy(Sample);
     await deployer.deploy(VotingETH);
   }
@@ -149,7 +149,7 @@ async function deployProtocol(deployer, network, accounts) {
       }
     });
 
-    if (network != 'kovan') {
+    if (!network.includes('kovan')) {
       fs.writeFile(path.join(homedir, '.enigma', 'votingcontract.txt'), VotingETH.address, 'utf8', function(err) {
         if(err) {
           return console.log(err);
